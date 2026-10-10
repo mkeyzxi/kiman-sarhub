@@ -2,32 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  FileText,
-  ClipboardCheck,
-  Package,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getMobileNavItems } from "@/config/navigation";
+import type { UserRole } from "@/components/shared/mock-data";
 
-const bottomNavItems = [
-  { href: "/operator", label: "Beranda", icon: LayoutDashboard },
-  { href: "/operator/logbook", label: "Logbook", icon: FileText },
-  { href: "/operator/checklist", label: "Checklist", icon: ClipboardCheck },
-  { href: "/bmn", label: "Aset", icon: Package },
-];
-
-export function MobileNav() {
+export function MobileNav({ role }: { role?: UserRole }) {
   const pathname = usePathname();
+  const effectiveRole: UserRole =
+    role ||
+    (typeof localStorage !== "undefined"
+      ? (localStorage.getItem("userRole") as UserRole)
+      : null) ||
+    "OPERATOR_LAPANGAN";
+
+  const items = getMobileNavItems(effectiveRole);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 safe-area-bottom">
       <div className="flex items-center justify-around h-16">
-        {bottomNavItems.map((item) => {
+        {items.map((item) => {
           const isActive =
-            item.href === "/operator"
-              ? pathname === "/operator"
-              : pathname.startsWith(item.href);
+            pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
 
           return (
@@ -35,10 +30,13 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors relative",
                 isActive ? "text-primary" : "text-slate-400"
               )}
             >
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+              )}
               <Icon className="h-5 w-5" />
               <span className="text-[10px] font-medium leading-tight">
                 {item.label}

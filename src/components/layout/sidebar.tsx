@@ -3,109 +3,23 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Package,
-  AlertTriangle,
-  ClipboardCheck,
-  FileText,
-  Settings,
-  LogOut,
-  LifeBuoy,
-  Map,
-  BarChart3,
-  Users,
-  X,
-  Ship,
-} from "lucide-react";
+import { LifeBuoy, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-  badge?: number;
-}
-
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
-
-// ─── Navigasi Berdasarkan Role ─────────────────────────────────────────────────────────
-// Mapping role ke grup navigasi yang boleh diakses.
-// Setiap grup memiliki href yang digunakan untuk matching aktif.
-const navGroupsByRole: Record<string, NavGroup[]> = {
-  ADMIN_IT: [
-    {
-      title: "Operasional",
-      items: [
-        { href: "/operator", label: "Dashboard Operasional", icon: <LayoutDashboard className="h-5 w-5" /> },
-        { href: "/operator/logbook", label: "Logbook Perjalanan", icon: <FileText className="h-5 w-5" /> },
-        { href: "/operator/checklist", label: "Checklist Perawatan", icon: <ClipboardCheck className="h-5 w-5" /> },
-      ],
-    },
-    {
-      title: "Aset & Maintenance",
-      items: [
-        { href: "/bmn", label: "Master Data BMN", icon: <Package className="h-5 w-5" /> },
-        { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: <AlertTriangle className="h-5 w-5" />, badge: 3 },
-      ],
-    },
-    {
-      title: "Monitoring",
-      items: [
-        { href: "/pimpinan", label: "Peta Kesiapsiagaan", icon: <Map className="h-5 w-5" /> },
-        { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: <BarChart3 className="h-5 w-5" /> },
-      ],
-    },
-    {
-      title: "Sistem",
-      items: [
-        { href: "/admin", label: "Kelola Pengguna", icon: <Users className="h-5 w-5" /> },
-        { href: "/admin/pengaturan", label: "Pengaturan", icon: <Settings className="h-5 w-5" /> },
-      ],
-    },
-  ],
-  PENGELOLA_BMN: [
-    {
-      title: "Aset & Maintenance",
-      items: [
-        { href: "/bmn", label: "Master Data BMN", icon: <Package className="h-5 w-5" /> },
-        { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: <AlertTriangle className="h-5 w-5" />, badge: 3 },
-      ],
-    },
-    {
-      title: "Monitoring",
-      items: [
-        { href: "/pimpinan", label: "Peta Kesiapsiagaan", icon: <Map className="h-5 w-5" /> },
-        { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: <BarChart3 className="h-5 w-5" /> },
-      ],
-    },
-  ],
-  KAKANSAR: [
-    {
-      title: "Monitoring",
-      items: [
-        { href: "/pimpinan", label: "Peta Kesiapsiagaan", icon: <Map className="h-5 w-5" /> },
-        { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: <BarChart3 className="h-5 w-5" /> },
-      ],
-    },
-  ],
-  OPERATOR_LAPANGAN: [
-    {
-      title: "Operasional",
-      items: [
-        { href: "/operator", label: "Dashboard Operasional", icon: <LayoutDashboard className="h-5 w-5" /> },
-        { href: "/operator/logbook", label: "Logbook Perjalanan", icon: <FileText className="h-5 w-5" /> },
-        { href: "/operator/checklist", label: "Checklist Perawatan", icon: <ClipboardCheck className="h-5 w-5" /> },
-      ],
-    },
-  ],
-};
+import {
+  navGroupsByRole,
+  roleLabels,
+  type NavGroup,
+} from "@/config/navigation";
+import type { UserRole } from "@/components/shared/mock-data";
 
 // ─── Sidebar Content (shared antara desktop fixed sidebar & mobile drawer) ──
-function SidebarContent({ role, onClose }: { role?: string; onClose?: () => void }) {
+function SidebarContent({
+  role,
+  onClose,
+}: {
+  role: UserRole;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const groups = navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN;
 
@@ -134,7 +48,7 @@ function SidebarContent({ role, onClose }: { role?: string; onClose?: () => void
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
-        {groups.map((group) => (
+        {groups.map((group: NavGroup) => (
           <div key={group.title} className="mb-5">
             <p className="px-3 mb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               {group.title}
@@ -153,6 +67,8 @@ function SidebarContent({ role, onClose }: { role?: string; onClose?: () => void
                   (item.href === "/pimpinan" && pathname === "/pimpinan") ||
                   (item.href === "/admin" && pathname === "/admin");
 
+                const Icon = item.icon;
+
                 return (
                   <li key={item.href}>
                     <Link
@@ -166,7 +82,7 @@ function SidebarContent({ role, onClose }: { role?: string; onClose?: () => void
                       )}
                     >
                       <span className={cn(isActive ? "text-primary" : "text-slate-400")}>
-                        {item.icon}
+                        <Icon className="h-5 w-5" />
                       </span>
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.badge && (
@@ -183,11 +99,25 @@ function SidebarContent({ role, onClose }: { role?: string; onClose?: () => void
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Footer — Role Info & Logout */}
       <div className="p-3 border-t border-slate-200 shrink-0">
+        {/* Role badge */}
+        <div className="mb-2 px-3 py-2 rounded-lg bg-slate-50">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            Masuk sebagai
+          </p>
+          <p className="text-xs font-semibold text-slate-700">
+            {roleLabels[role] || role}
+          </p>
+        </div>
+        {/* Logout */}
         <Link
           href="/login"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
+          onClick={() => {
+            localStorage.removeItem("userRole");
+            localStorage.removeItem("userName");
+          }}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
         >
           <LogOut className="h-5 w-5 text-slate-400" />
           <span>Keluar</span>
@@ -200,9 +130,22 @@ function SidebarContent({ role, onClose }: { role?: string; onClose?: () => void
 // ─── Exported Sidebar ───────────────────────────────────────────────────────
 // Desktop: fixed sidebar kiri  |  Mobile: drawer overlay via `open` prop
 // Per-role: menerima prop `role` untuk menfilter navigasi
-export function Sidebar({ open, onClose, role }: { open?: boolean; onClose?: () => void; role?: string }) {
+export function Sidebar({
+  open,
+  onClose,
+  role,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+  role?: UserRole;
+}) {
   // Use provided role, or read from localStorage, or default to OPERATOR_LAPANGAN
-  const effectiveRole = role || (typeof localStorage !== "undefined" ? localStorage.getItem("userRole") : null) || "OPERATOR_LAPANGAN";
+  const effectiveRole: UserRole =
+    role ||
+    (typeof localStorage !== "undefined"
+      ? (localStorage.getItem("userRole") as UserRole)
+      : null) ||
+    "OPERATOR_LAPANGAN";
 
   // Lock body scroll saat drawer mobile terbuka
   useEffect(() => {
@@ -220,7 +163,7 @@ export function Sidebar({ open, onClose, role }: { open?: boolean; onClose?: () 
     <>
       {/* ── Desktop sidebar (always visible ≥ md) ── */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200 z-30">
-        <SidebarContent role={role} />
+        <SidebarContent role={effectiveRole} />
       </aside>
 
       {/* ── Mobile drawer overlay (< md) ── */}
@@ -233,7 +176,7 @@ export function Sidebar({ open, onClose, role }: { open?: boolean; onClose?: () 
           />
           {/* Drawer */}
           <aside className="fixed inset-y-0 left-0 w-72 bg-white z-50 flex flex-col shadow-xl md:hidden animate-slide-in">
-            <SidebarContent role={role} onClose={onClose} />
+            <SidebarContent role={effectiveRole} onClose={onClose} />
           </aside>
         </>
       )}

@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { LifeBuoy, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { roleLabels, roleDescriptions, getDefaultPageForRole } from "@/config/navigation";
+import type { UserRole } from "@/components/shared/mock-data";
 
-const roles = [
+const roles: UserRole[] = [
   "ADMIN_IT",
   "PENGELOLA_BMN",
   "KAKANSAR",
@@ -15,21 +17,13 @@ const roles = [
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string>("OPERATOR_LAPANGAN");
+  const [selectedRole, setSelectedRole] = useState<UserRole>("OPERATOR_LAPANGAN");
   const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem("userRole", selectedRole);
-    if (selectedRole === "ADMIN_IT") {
-      router.push("/admin");
-    } else if (selectedRole === "PENGELOLA_BMN") {
-      router.push("/bmn");
-    } else if (selectedRole === "KAKANSAR") {
-      router.push("/pimpinan");
-    } else {
-      router.push("/operator");
-    }
+    router.push(getDefaultPageForRole(selectedRole));
   };
 
   return (
@@ -118,19 +112,28 @@ export default function LoginPage() {
           <p className="mb-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
             Masuk Sebagai (Mode Dev)
           </p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {roles.map((role) => (
               <button
                 key={role}
                 type="button"
                 onClick={() => setSelectedRole(role)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
                   selectedRole === role
-                    ? "border-primary bg-primary-light text-primary"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    ? "border-primary bg-primary-light"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                 }`}
               >
-                {role}
+                <span
+                  className={`block text-xs font-semibold ${
+                    selectedRole === role ? "text-primary" : "text-slate-700"
+                  }`}
+                >
+                  {roleLabels[role]}
+                </span>
+                <span className="block text-[10px] text-slate-400 mt-0.5 leading-tight">
+                  {roleDescriptions[role]}
+                </span>
               </button>
             ))}
           </div>

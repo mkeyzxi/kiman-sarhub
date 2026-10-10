@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { canAccessPath, getDefaultPageForRole } from "@/config/navigation";
+import type { UserRole } from "@/components/shared/mock-data";
 
 export default function DashboardLayout({
   children,
@@ -11,16 +14,64 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [role, setRole] = useState<UserRole | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Load role from localStorage
+  useEffect(() => {
+    const storedRole = localStorage.getItem("userRole") as UserRole | null;
+    if (!storedRole) {
+      router.replace("/login");
+      return;
+    }
+    setRole(storedRole);
+  }, [router]);
+
+  // Route protection — redirect ke 403 jika tidak punya akses
+  useEffect(() => {
+    if (!role) return;
+    if (!canAccessPath(role, pathname)) {
+      router.replace("/403");
+    }
+  }, [role, pathname, router]);
+
+  // Redirect ke default page jika mengakses root dashboard
+  useEffect(() => {
+    if (!role) return;
+    if (pathname === "/dashboard" || pathname === "/") {
+      router.replace(getDefaultPageForRole(role));
+    }
+  }, [role, pathname, router]);
+
+  // Tampilkan loading saat role belum dimuat
+  if (!role) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex">
       {/* Sidebar — desktop: fixed left | mobile: drawer overlay */}
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        role={role}
+      />
 
       {/* Main wrapper — offset oleh lebar sidebar di desktop */}
       <div className="flex-1 flex flex-col md:pl-64 min-h-0">
         {/* Header — hamburger menu terhubung ke sidebar drawer */}
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header
+          onMenuClick={() => setSidebarOpen(true)}
+          role={role}
+        />
 
         {/* Konten halaman — hanya area ini yang scroll */}
         <main className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-6 pb-20 md:pb-6">
@@ -29,7 +80,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Mobile bottom nav — hanya tampil di layar kecil */}
-      <MobileNav />
+      <MobileNav role={role} />
     </div>
   );
 }

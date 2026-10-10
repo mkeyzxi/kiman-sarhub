@@ -4,13 +4,17 @@ import { Bell, Search, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { notifikasiList } from "@/components/shared/mock-data";
+import { roleLabels } from "@/config/navigation";
+import type { UserRole } from "@/components/shared/mock-data";
 
 interface HeaderProps {
   onMenuClick?: () => void;
+  role?: UserRole;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, role }: HeaderProps) {
   const unreadCount = notifikasiList.filter((n) => !n.dibaca).length;
+  const displayRole = role ? roleLabels[role] : null;
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 shrink-0">
@@ -61,7 +65,9 @@ export function Header({ onMenuClick }: HeaderProps) {
           </Avatar>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-slate-800">Ansaruddin</p>
-            <p className="text-xs text-slate-500">Kepala Kantor</p>
+            <p className="text-xs text-slate-500">
+              {displayRole || "Kepala Kantor"}
+            </p>
           </div>
         </div>
       </div>
