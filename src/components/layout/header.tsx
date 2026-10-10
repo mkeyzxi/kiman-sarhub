@@ -7,25 +7,26 @@ import { notifikasiList } from "@/components/shared/mock-data";
 
 interface HeaderProps {
   onMenuClick?: () => void;
-  title?: string;
 }
 
-export function Header({ onMenuClick, title }: HeaderProps) {
+export function Header({ onMenuClick }: HeaderProps) {
   const unreadCount = notifikasiList.filter((n) => !n.dibaca).length;
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
-      {/* Left: Mobile menu + Title */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 shrink-0">
+      {/* Left: hamburger for mobile */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onMenuClick}
+          aria-label="Buka menu"
+        >
           <Menu className="h-5 w-5" />
         </Button>
-        {title && <h2 className="text-lg font-semibold text-slate-800">{title}</h2>}
-      </div>
 
-      {/* Right: Search + Notifications + Profile */}
-      <div className="flex items-center gap-4">
-        {/* Search */}
+        {/* Search — visible on sm+ */}
         <div className="hidden sm:flex items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -36,7 +37,10 @@ export function Header({ onMenuClick, title }: HeaderProps) {
             />
           </div>
         </div>
+      </div>
 
+      {/* Right: notifications + profile */}
+      <div className="flex items-center gap-3">
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5 text-slate-400" />
@@ -46,7 +50,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
         </Button>
 
         {/* Divider */}
-        <div className="w-px h-8 bg-slate-200" />
+        <div className="w-px h-8 bg-slate-200 hidden sm:block" />
 
         {/* Profile */}
         <div className="flex items-center gap-3">

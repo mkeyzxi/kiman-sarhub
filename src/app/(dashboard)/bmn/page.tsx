@@ -94,7 +94,7 @@ export default function MasterDataBMNPage() {
             Kelola dan pantau seluruh aset BMN yang dimiliki
           </p>
         </div>
-        <Link href="/dashboard/bmn/tambah">
+        <Link href="/bmn/tambah">
           <Button>
             <Plus className="h-4 w-4" />
             Tambah Aset
@@ -180,12 +180,12 @@ export default function MasterDataBMNPage() {
                 <TableCell>{aset.lokasi}</TableCell>
                 <TableCell>
                   <div className="flex items-center justify-center gap-1">
-                    <Link href={`/dashboard/bmn/${aset.id}`}>
+                    <Link href={`/bmn/${aset.id}`}>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <Link href={`/dashboard/bmn/${aset.id}/edit`}>
+                    <Link href={`/bmn/${aset.id}/edit`}>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Pencil className="h-4 w-4" />
                       </Button>

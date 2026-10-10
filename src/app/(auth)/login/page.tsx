@@ -1,21 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LifeBuoy, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 const roles = [
-  "Administrator",
-  "Pengelola BMN",
-  "Verifikator",
-  "Pimpinan",
-  "Personel Lapangan",
+  "ADMIN_IT",
+  "PENGELOLA_BMN",
+  "KAKANSAR",
+  "OPERATOR_LAPANGAN",
 ];
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("OPERATOR_LAPANGAN");
+  const router = useRouter();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem("userRole", selectedRole);
+    if (selectedRole === "ADMIN_IT") {
+      router.push("/admin");
+    } else if (selectedRole === "PENGELOLA_BMN") {
+      router.push("/bmn");
+    } else if (selectedRole === "KAKANSAR") {
+      router.push("/pimpinan");
+    } else {
+      router.push("/operator");
+    }
+  };
 
   return (
     <div className="w-full max-w-md">
@@ -32,7 +47,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form className="space-y-4" onSubmit={handleLogin}>
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -101,7 +116,7 @@ export default function LoginPage() {
         {/* Role Selector */}
         <div className="mt-8 border-t border-slate-100 pt-6">
           <p className="mb-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
-            Masuk Sebagai
+            Masuk Sebagai (Mode Dev)
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {roles.map((role) => (

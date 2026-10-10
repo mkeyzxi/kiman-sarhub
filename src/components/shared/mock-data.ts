@@ -8,11 +8,10 @@
 // -----------------------------------------------------------------------------
 
 export type UserRole =
-  | "Administrator"
-  | "Pengelola BMN"
-  | "Verifikator"
-  | "Pimpinan"
-  | "Pengguna";
+  | "ADMIN_IT"
+  | "PENGELOLA_BMN"
+  | "KAKANSAR"
+  | "OPERATOR_LAPANGAN";
 
 export interface User {
   id: string;
@@ -30,7 +29,7 @@ export const users: User[] = [
     id: "usr-001",
     nama: "Medlyn R. Pagali",
     nip: "198503122010012001",
-    role: "Pengelola BMN",
+    role: "PENGELOLA_BMN",
     email: "medlyn.pagali@basarnas.go.id",
     noTelepon: "0812-3456-7890",
     avatar: "/avatars/medlyn.png",
@@ -40,7 +39,7 @@ export const users: User[] = [
     id: "usr-002",
     nama: "Kauluddin",
     nip: "197801152005011002",
-    role: "Verifikator",
+    role: "PENGELOLA_BMN",
     email: "kauluddin@basarnas.go.id",
     noTelepon: "0813-2345-6789",
     avatar: "/avatars/kaul.png",
@@ -50,7 +49,7 @@ export const users: User[] = [
     id: "usr-003",
     nama: "Ansaruddin",
     nip: "196905201994031003",
-    role: "Pimpinan",
+    role: "KAKANSAR",
     email: "ansaruddin@basarnas.go.id",
     noTelepon: "0811-9876-5432",
     avatar: "/avatars/kansar.png",
@@ -60,7 +59,7 @@ export const users: User[] = [
     id: "usr-004",
     nama: "Rizky Pratama",
     nip: "199201102015011004",
-    role: "Administrator",
+    role: "ADMIN_IT",
     email: "rizky.pratama@basarnas.go.id",
     noTelepon: "0821-1122-3344",
     avatar: "/avatars/rizky.png",
@@ -70,7 +69,7 @@ export const users: User[] = [
     id: "usr-005",
     nama: "Siti Nurhaliza",
     nip: "199012252018012005",
-    role: "Pengguna",
+    role: "OPERATOR_LAPANGAN",
     email: "siti.nurhaliza@basarnas.go.id",
     noTelepon: "0852-4433-2211",
     avatar: "/avatars/siti.png",
@@ -80,7 +79,7 @@ export const users: User[] = [
     id: "usr-006",
     nama: "Ahmad Fauzi",
     nip: "198807142019011006",
-    role: "Pengguna",
+    role: "OPERATOR_LAPANGAN",
     email: "ahmad.fauzi@basarnas.go.id",
     noTelepon: "0813-5566-7788",
     avatar: "/avatars/fauzi.png",
@@ -90,7 +89,7 @@ export const users: User[] = [
     id: "usr-007",
     nama: "Dewi Lestari",
     nip: "199306182020012007",
-    role: "Pengguna",
+    role: "OPERATOR_LAPANGAN",
     email: "dewi.lestari@basarnas.go.id",
     noTelepon: "0822-8899-0011",
     avatar: "/avatars/dewi.png",
@@ -100,7 +99,7 @@ export const users: User[] = [
     id: "usr-008",
     nama: "Budi Santoso",
     nip: "198605302017011008",
-    role: "Pengguna",
+    role: "OPERATOR_LAPANGAN",
     email: "budi.santoso@basarnas.go.id",
     noTelepon: "0819-3344-5566",
     avatar: "/avatars/budi.png",
