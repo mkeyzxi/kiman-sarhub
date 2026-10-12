@@ -1,29 +1,19 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LifeBuoy, LogOut, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  navGroupsByRole,
-  roleLabels,
-  type NavGroup,
-} from "@/config/navigation";
+import {useEffect} from 'react'
+import Link from 'next/link'
+import {usePathname} from 'next/navigation'
+import {LogOut, X} from 'lucide-react'
+import {cn} from '@/lib/utils'
+import {navGroupsByRole, type NavGroup} from '@/config/navigation'
 
-import Image from "next/image";
-import type { UserRole } from "@/components/shared/mock-data";
+import Image from 'next/image'
+import type {UserRole} from '@/components/shared/mock-data'
 
 // ─── Sidebar Content (shared antara desktop fixed sidebar & mobile drawer) ──
-function SidebarContent({
-  role,
-  onClose,
-}: {
-  role: UserRole;
-  onClose?: () => void;
-}) {
-  const pathname = usePathname();
-  const groups = navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN;
+function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void}) {
+  const pathname = usePathname()
+  const groups = navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN
 
   return (
     <>
@@ -61,17 +51,17 @@ function SidebarContent({
               {group.items.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== "/operator" &&
-                    item.href !== "/bmn" &&
-                    item.href !== "/pimpinan" &&
-                    item.href !== "/admin" &&
-                    pathname.startsWith(item.href + "/")) ||
-                  (item.href === "/operator" && pathname === "/operator") ||
-                  (item.href === "/bmn" && pathname === "/bmn") ||
-                  (item.href === "/pimpinan" && pathname === "/pimpinan") ||
-                  (item.href === "/admin" && pathname === "/admin");
+                  (item.href !== '/operator' &&
+                    item.href !== '/bmn' &&
+                    item.href !== '/pimpinan' &&
+                    item.href !== '/admin' &&
+                    pathname.startsWith(item.href + '/')) ||
+                  (item.href === '/operator' && pathname === '/operator') ||
+                  (item.href === '/bmn' && pathname === '/bmn') ||
+                  (item.href === '/pimpinan' && pathname === '/pimpinan') ||
+                  (item.href === '/admin' && pathname === '/admin')
 
-                const Icon = item.icon;
+                const Icon = item.icon
 
                 return (
                   <li key={item.href}>
@@ -79,13 +69,13 @@ function SidebarContent({
                       href={item.href}
                       onClick={onClose}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                         isActive
-                          ? "bg-primary-light text-primary"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                          ? 'bg-primary-light text-primary'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800',
                       )}
                     >
-                      <span className={cn(isActive ? "text-primary" : "text-slate-400")}>
+                      <span className={cn(isActive ? 'text-primary' : 'text-slate-400')}>
                         <Icon className="h-5 w-5" />
                       </span>
                       <span className="flex-1 truncate">{item.label}</span>
@@ -96,7 +86,7 @@ function SidebarContent({
                       )}
                     </Link>
                   </li>
-                );
+                )
               })}
             </ul>
           </div>
@@ -118,8 +108,8 @@ function SidebarContent({
         <Link
           href="/login"
           onClick={() => {
-            localStorage.removeItem("userRole");
-            localStorage.removeItem("userName");
+            localStorage.removeItem('userRole')
+            localStorage.removeItem('userName')
           }}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
         >
@@ -128,7 +118,7 @@ function SidebarContent({
         </Link>
       </div>
     </>
-  );
+  )
 }
 
 // ─── Exported Sidebar ───────────────────────────────────────────────────────
@@ -139,29 +129,27 @@ export function Sidebar({
   onClose,
   role,
 }: {
-  open?: boolean;
-  onClose?: () => void;
-  role?: UserRole;
+  open?: boolean
+  onClose?: () => void
+  role?: UserRole
 }) {
   // Use provided role, or read from localStorage, or default to OPERATOR_LAPANGAN
   const effectiveRole: UserRole =
     role ||
-    (typeof localStorage !== "undefined"
-      ? (localStorage.getItem("userRole") as UserRole)
-      : null) ||
-    "OPERATOR_LAPANGAN";
+    (typeof localStorage !== 'undefined' ? (localStorage.getItem('userRole') as UserRole) : null) ||
+    'OPERATOR_LAPANGAN'
 
   // Lock body scroll saat drawer mobile terbuka
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden'
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = ''
     }
     return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+      document.body.style.overflow = ''
+    }
+  }, [open])
 
   return (
     <>
@@ -174,10 +162,7 @@ export function Sidebar({
       {open && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/50 z-40 md:hidden"
-            onClick={onClose}
-          />
+          <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden" onClick={onClose} />
           {/* Drawer */}
           <aside className="fixed inset-y-0 left-0 w-72 bg-white z-50 flex flex-col shadow-xl md:hidden animate-slide-in">
             <SidebarContent role={effectiveRole} onClose={onClose} />
@@ -185,5 +170,5 @@ export function Sidebar({
         </>
       )}
     </>
-  );
+  )
 }

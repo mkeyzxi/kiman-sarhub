@@ -1,19 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   BarChart3,
   FileText,
   Download,
-  TrendingUp,
-  TrendingDown,
   Users,
   Ship,
   Package,
-  Calendar,
-  Filter,
-  Eye,
   ArrowUpRight,
   ArrowDownRight,
   Activity,
@@ -21,7 +15,6 @@ import {
   Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -32,7 +25,6 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Select } from "@/components/ui/input";
-import { formatTanggal } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
 // ─── Data Laporan Operasional ─────────────────────────────────────────────────
@@ -256,7 +248,7 @@ export default function LaporanPage() {
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-3">
                     <div
-                      className="h-3 rounded-full bg-gradient-to-r from-primary to-primary-light transition-all"
+                      className="h-3 rounded-full bg-linear-to-r from-primary to-primary-light transition-all"
                       style={{ width: `${(item.operasi / 15) * 100}%` }}
                     />
                   </div>

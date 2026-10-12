@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -18,15 +18,25 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load role from localStorage
+  // Simpan role dari localStorage ke ref (hindari setState langsung di effect)
+  const storedRoleRef = useRef<UserRole | null>(null);
+
+  // Load role from localStorage ke ref
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole") as UserRole | null;
     if (!storedRole) {
       router.replace("/login");
       return;
     }
-    setRole(storedRole);
+    storedRoleRef.current = storedRole;
   }, [router]);
+
+  // Sinkronisasi ref ke state (effect dengan dependency kosong — jalan sekali)
+  useEffect(() => {
+    if (storedRoleRef.current) {
+      setRole(storedRoleRef.current);
+    }
+  }, []);
 
   // Route protection — redirect ke 403 jika tidak punya akses
   useEffect(() => {
