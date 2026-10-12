@@ -33,7 +33,7 @@ export default function TambahAsetPage() {
     <div className="space-y-6 max-w-3xl">
       {/* Page Header */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/bmn">
+        <Link href="/bmn">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -197,7 +197,7 @@ export default function TambahAsetPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
-          <Link href="/dashboard/bmn">
+          <Link href="/bmn">
             <Button variant="outline">Batal</Button>
           </Link>
           <Button type="submit">Simpan</Button>

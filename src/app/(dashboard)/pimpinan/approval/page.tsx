@@ -187,7 +187,7 @@ export default function ApprovalPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center">
-                      <Link href={`/dashboard/executive/approval/${approval.id}`}>
+                      <Link href={`/pimpinan/approval/${approval.id}`}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <Eye className="h-4 w-4" />
                         </Button>

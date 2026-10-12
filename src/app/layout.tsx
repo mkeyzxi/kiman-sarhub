@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Sistem Informasi Aset Terpadu - Kantor Pencarian dan Pertolongan Kelas B Mamuju",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="h-full font-sans">{children}</body>
