@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -29,9 +30,11 @@ import {
 
 const statusBadgeVariant: Record<StatusAset, "success" | "warning" | "danger" | "default"> = {
   Siaga: "success",
+  Operasi: "default",
   Dipinjam: "warning",
   Rusak: "danger",
-  Maintenance: "default",
+  Maintenance: "warning",
+  "Tidak Siap": "danger",
 };
 
 interface PageProps {
@@ -53,13 +56,13 @@ export default async function DetailAsetPage({ params }: PageProps) {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.history.back()}
+          <Link
+            href="/bmn"
+            aria-label="Kembali ke daftar aset"
+            className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
           >
             <ArrowLeft className="h-5 w-5" />
-          </Button>
+          </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Detail Aset</h1>
             <p className="text-sm text-slate-500 mt-1">

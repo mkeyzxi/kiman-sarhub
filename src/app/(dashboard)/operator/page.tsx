@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Ship,
@@ -14,6 +14,7 @@ import {
   Fuel,
   Users,
   ChevronRight,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { catatanPerbaikanDarat, pengisianBBM_RIB02 } from "@/components/shared/mock-data";
 
 // ─── Data Jurnal Siaga Rutin ─────────────────────────────────────────────────
 const jurnalSiagaRutin = [
@@ -125,27 +127,27 @@ const jurnalRIB = [
     endurance: "85%",
     waktu: "2 Jam 30 Menit",
     pemanasan: [
-      { no: 1, kegiatan: "Pemanasan mesin", waktu: "15 menit", rute: "Dermaga - Perairan Mamuju", berangkat: "08:00", kembali: "08:15" },
-      { no: 2, kegiatan: "Uji fungsi mesin", waktu: "10 menit", rute: "Perairan Mamuju", berangkat: "08:20", kembali: "08:30" },
+      { no: 1, kegiatan: "Pemanasan mesin", waktu: "15 menit", rute: "Dermaga - Perairan Mamuju", berangkat: "08:00", kembali: "08:15", keterangan: "" },
+      { no: 2, kegiatan: "Uji fungsi mesin", waktu: "10 menit", rute: "Perairan Mamuju", berangkat: "08:20", kembali: "08:30", keterangan: "" },
     ],
     pengecekan: [
-      { no: 1, item: "Tali Tros", status: "Baik" },
-      { no: 2, item: "Lunas", status: "Baik" },
-      { no: 3, item: "Ban Pelampung", status: "Baik" },
-      { no: 4, item: "Deck", status: "Baik" },
-      { no: 5, item: "Transom (Stand Mesin)", status: "Baik" },
-      { no: 6, item: "Starting Engine", status: "Baik" },
-      { no: 7, item: "Kap Mesin Kanan", status: "Baik" },
-      { no: 8, item: "Kap Mesin Kiri", status: "Baik" },
-      { no: 9, item: "Kaburator", status: "Baik" },
-      { no: 10, item: "Selang BBM", status: "Baik" },
-      { no: 11, item: "Busi", status: "Baik" },
-      { no: 12, item: "Dinamo Stater", status: "Baik" },
-      { no: 13, item: "Dinamo Strom", status: "Baik" },
-      { no: 14, item: "Hydraulic Mesin", status: "Baik" },
-      { no: 15, item: "Aki/Baterai", status: "Baik" },
-      { no: 16, item: "GPS Furuno", status: "Baik" },
-      { no: 17, item: "GPS Tracking", status: "Baik" },
+      { no: 1, item: "Tali Tros", status: "Baik", keterangan: "" },
+      { no: 2, item: "Lunas", status: "Baik", keterangan: "" },
+      { no: 3, item: "Ban Pelampung", status: "Baik", keterangan: "" },
+      { no: 4, item: "Deck", status: "Baik", keterangan: "" },
+      { no: 5, item: "Transom (Stand Mesin)", status: "Baik", keterangan: "" },
+      { no: 6, item: "Starting Engine", status: "Baik", keterangan: "" },
+      { no: 7, item: "Kap Mesin Kanan", status: "Baik", keterangan: "" },
+      { no: 8, item: "Kap Mesin Kiri", status: "Baik", keterangan: "" },
+      { no: 9, item: "Kaburator", status: "Baik", keterangan: "" },
+      { no: 10, item: "Selang BBM", status: "Baik", keterangan: "" },
+      { no: 11, item: "Busi", status: "Baik", keterangan: "" },
+      { no: 12, item: "Dinamo Stater", status: "Baik", keterangan: "" },
+      { no: 13, item: "Dinamo Strom", status: "Baik", keterangan: "" },
+      { no: 14, item: "Hydraulic Mesin", status: "Baik", keterangan: "" },
+      { no: 15, item: "Aki/Baterai", status: "Baik", keterangan: "" },
+      { no: 16, item: "GPS Furuno", status: "Baik", keterangan: "" },
+      { no: 17, item: "GPS Tracking", status: "Baik", keterangan: "" },
     ],
   },
   {
@@ -157,27 +159,27 @@ const jurnalRIB = [
     endurance: "92%",
     waktu: "3 Jam 15 Menit",
     pemanasan: [
-      { no: 1, kegiatan: "Pemanasan mesin", waktu: "20 menit", rute: "Dermaga - Perairan Mamuju", berangkat: "08:00", kembali: "08:20" },
-      { no: 2, kegiatan: "Uji fungsi mesin", waktu: "15 menit", rute: "Perairan Mamuju", berangkat: "08:25", kembali: "08:40" },
+      { no: 1, kegiatan: "Pemanasan mesin", waktu: "20 menit", rute: "Dermaga - Perairan Mamuju", berangkat: "08:00", kembali: "08:20", keterangan: "" },
+      { no: 2, kegiatan: "Uji fungsi mesin", waktu: "15 menit", rute: "Perairan Mamuju", berangkat: "08:25", kembali: "08:40", keterangan: "" },
     ],
     pengecekan: [
-      { no: 1, item: "Tali Tros", status: "Baik" },
-      { no: 2, item: "Lunas", status: "Baik" },
-      { no: 3, item: "Ban Pelampung", status: "Baik" },
-      { no: 4, item: "Deck", status: "Baik" },
-      { no: 5, item: "Transom (Stand Mesin)", status: "Baik" },
-      { no: 6, item: "Starting Engine", status: "Baik" },
-      { no: 7, item: "Kap Mesin Kanan", status: "Baik" },
-      { no: 8, item: "Kap Mesin Kiri", status: "Baik" },
-      { no: 9, item: "Kaburator", status: "Baik" },
-      { no: 10, item: "Selang BBM", status: "Baik" },
-      { no: 11, item: "Busi", status: "Baik" },
-      { no: 12, item: "Dinamo Stater", status: "Baik" },
-      { no: 13, item: "Dinamo Strom", status: "Baik" },
-      { no: 14, item: "Hydraulic Mesin", status: "Baik" },
-      { no: 15, item: "Aki/Baterai", status: "Baik" },
-      { no: 16, item: "GPS Furuno", status: "Baik" },
-      { no: 17, item: "GPS Tracking", status: "Baik" },
+      { no: 1, item: "Tali Tros", status: "Baik", keterangan: "" },
+      { no: 2, item: "Lunas", status: "Baik", keterangan: "" },
+      { no: 3, item: "Ban Pelampung", status: "Baik", keterangan: "" },
+      { no: 4, item: "Deck", status: "Baik", keterangan: "" },
+      { no: 5, item: "Transom (Stand Mesin)", status: "Baik", keterangan: "" },
+      { no: 6, item: "Starting Engine", status: "Baik", keterangan: "" },
+      { no: 7, item: "Kap Mesin Kanan", status: "Baik", keterangan: "" },
+      { no: 8, item: "Kap Mesin Kiri", status: "Baik", keterangan: "" },
+      { no: 9, item: "Kaburator", status: "Baik", keterangan: "" },
+      { no: 10, item: "Selang BBM", status: "Baik", keterangan: "" },
+      { no: 11, item: "Busi", status: "Baik", keterangan: "" },
+      { no: 12, item: "Dinamo Stater", status: "Baik", keterangan: "" },
+      { no: 13, item: "Dinamo Strom", status: "Baik", keterangan: "" },
+      { no: 14, item: "Hydraulic Mesin", status: "Baik", keterangan: "" },
+      { no: 15, item: "Aki/Baterai", status: "Baik", keterangan: "" },
+      { no: 16, item: "GPS Furuno", status: "Baik", keterangan: "" },
+      { no: 17, item: "GPS Tracking", status: "Baik", keterangan: "" },
     ],
   },
 ];
@@ -196,37 +198,37 @@ const logbookKapal = [
     pangkalan: "Dermaga Mamuju",
     runningHours: "1.245 Jam",
     kamarMesin: [
-      { no: 1, item: "Level Oli Mesin Utama", status: "Baik" },
-      { no: 2, item: "Level Oli Genset", status: "Baik" },
-      { no: 3, item: "Sistem Pendingin Air Laut & Air Tawar", status: "Baik" },
-      { no: 4, item: "Level Bahan Bakar (Harian)", status: "Baik" },
-      { no: 5, item: "Filter BBM & Separator", status: "Baik" },
-      { no: 6, item: "Sistem Kemudi / Hydraulic Steering", status: "Baik" },
-      { no: 7, item: "Pompa Bilga (Bilge Pump) & Automatic Switch", status: "Baik" },
-      { no: 8, item: "Tegangan Baterai / Accu Start", status: "Baik" },
-      { no: 9, item: "Kebocoran Pipa / Valve / Tetesan Oli", status: "Baik" },
+      { no: 1, item: "Level Oli Mesin Utama", status: "Baik", keterangan: "" },
+      { no: 2, item: "Level Oli Genset", status: "Baik", keterangan: "" },
+      { no: 3, item: "Sistem Pendingin Air Laut & Air Tawar", status: "Baik", keterangan: "" },
+      { no: 4, item: "Level Bahan Bakar (Harian)", status: "Baik", keterangan: "Standard Ref: 82.64%" },
+      { no: 5, item: "Filter BBM & Separator", status: "Baik", keterangan: "" },
+      { no: 6, item: "Sistem Kemudi / Hydraulic Steering", status: "Baik", keterangan: "" },
+      { no: 7, item: "Pompa Bilga (Bilge Pump) & Automatic Switch", status: "Baik", keterangan: "" },
+      { no: 8, item: "Tegangan Baterai / Accu Start", status: "Baik", keterangan: "" },
+      { no: 9, item: "Kebocoran Pipa / Valve / Tetesan Oli", status: "Baik", keterangan: "" },
     ],
     anjungan: [
-      { no: 1, item: "Radar Navigasi", status: "Baik" },
-      { no: 2, item: "GPS Navigasi", status: "Baik" },
-      { no: 3, item: "AIS (Automatic Identification System)", status: "Baik" },
-      { no: 4, item: "Radio Komunikasi VHF / HF", status: "Baik" },
-      { no: 5, item: "Echo Sounder / Fishfinder", status: "Baik" },
-      { no: 6, item: "Kompas Magnet / Gyro", status: "Baik" },
-      { no: 7, item: "Lampu-Lampu Navigasi", status: "Baik" },
-      { no: 8, item: "Lampu Sorot (Searchlight) & Sirine", status: "Baik" },
-      { no: 9, item: "Wiper Kaca Anjungan", status: "Baik" },
+      { no: 1, item: "Radar Navigasi", status: "Baik", keterangan: "" },
+      { no: 2, item: "GPS Navigasi", status: "Baik", keterangan: "" },
+      { no: 3, item: "AIS (Automatic Identification System)", status: "Baik", keterangan: "" },
+      { no: 4, item: "Radio Komunikasi VHF / HF", status: "Baik", keterangan: "" },
+      { no: 5, item: "Echo Sounder / Fishfinder", status: "Baik", keterangan: "" },
+      { no: 6, item: "Kompas Magnet / Gyro", status: "Baik", keterangan: "" },
+      { no: 7, item: "Lampu-Lampu Navigasi", status: "Baik", keterangan: "" },
+      { no: 8, item: "Lampu Sorot (Searchlight) & Sirine", status: "Baik", keterangan: "" },
+      { no: 9, item: "Wiper Kaca Anjungan", status: "Baik", keterangan: "" },
     ],
     geladak: [
-      { no: 1, item: "Life Jacket (Jaket Penolong)", status: "Baik" },
-      { no: 2, item: "Life Buoy (Pelampung Penolong)", status: "Baik" },
-      { no: 3, item: "Inflatable Liferaft (ILR) / Sekoci", status: "Baik" },
-      { no: 4, item: "APAR / Alat Pemadam Kebakaran", status: "Baik" },
-      { no: 5, item: "Pompa Pemadam Kebakaran", status: "Baik" },
-      { no: 6, item: "Winch / Jangkar & Rantai", status: "Baik" },
-      { no: 7, item: "Tali Temali (Mooring Line) & Fender", status: "Baik" },
-      { no: 8, item: "Pintu Kedap Air / Palka", status: "Baik" },
-      { no: 9, item: "Kebersihan Geladak (Deck)", status: "Baik" },
+      { no: 1, item: "Life Jacket (Jaket Penolong)", status: "Baik", keterangan: "" },
+      { no: 2, item: "Life Buoy (Pelampung Penolong)", status: "Baik", keterangan: "" },
+      { no: 3, item: "Inflatable Liferaft (ILR) / Sekoci", status: "Baik", keterangan: "" },
+      { no: 4, item: "APAR / Alat Pemadam Kebakaran", status: "Baik", keterangan: "" },
+      { no: 5, item: "Pompa Pemadam Kebakaran", status: "Baik", keterangan: "" },
+      { no: 6, item: "Winch / Jangkar & Rantai", status: "Baik", keterangan: "" },
+      { no: 7, item: "Tali Temali (Mooring Line) & Fender", status: "Baik", keterangan: "" },
+      { no: 8, item: "Pintu Kedap Air / Palka", status: "Baik", keterangan: "" },
+      { no: 9, item: "Kebersihan Geladak (Deck)", status: "Baik", keterangan: "" },
     ],
     jurnalOlahGerak: [
       { jamStart: "08:00", jamStop: "10:00", rute: "Dermaga - Perairan Mamuju", kecepatan: "12 Knot", endurance: "76 Jam", bbm: "82.64%", nahkoda: "Ansaruddin" },
@@ -251,32 +253,81 @@ const logbookDarat = [
       { no: 3, tanggal: "2026-10-05", dari: "Kantor", ke: "Pelabuhan", bbmSebelum: "85%", bbmSesudah: "70%", kmSebelum: "45.100", kmSesudah: "45.150", catatan: "Patroli pantai" },
     ],
     pemeriksaanHarian: [
-      { kategori: "Menjungkitkan Kabin", items: [
-        { item: "Oli Mesin", status: "Baik" },
-        { item: "Oli Power Steering", status: "Baik" },
-        { item: "Fan Belt", status: "Baik" },
-        { item: "Tutup Radiator", status: "Baik" },
+      { kategori: "A. Menjungkitkan Kabin", items: [
+        { item: "Oli Mesin", status: "Baik", keterangan: "" },
+        { item: "Oli Power Steering", status: "Baik", keterangan: "" },
+        { item: "Fan Belt", status: "Baik", keterangan: "" },
+        { item: "Tutup Radiator", status: "Baik", keterangan: "" },
       ]},
-      { kategori: "Dalam Kabin", items: [
-        { item: "Level Minyak Rem / Kopling", status: "Baik" },
-        { item: "Radio Komunikasi", status: "Baik" },
-        { item: "Seat Belt (Sabuk Pengaman)", status: "Baik" },
-        { item: "Sirine & Lightbar", status: "Baik" },
-        { item: "Instrumen Indikator", status: "Baik" },
-        { item: "Kemudahan Start Engine", status: "Baik" },
+      { kategori: "B. Dalam Kabin", items: [
+        { item: "Level Minyak Rem / Kopling", status: "Baik", keterangan: "" },
+        { item: "Radio Komunikasi", status: "Baik", keterangan: "" },
+        { item: "Seat Belt (Sabuk Pengaman)", status: "Baik", keterangan: "" },
+        { item: "Sirine & Lightbar", status: "Baik", keterangan: "" },
+        { item: "Gerak Bebas Pedal Rem", status: "Baik", keterangan: "" },
+        { item: "Gerak Bebas Kopling", status: "Baik", keterangan: "" },
+        { item: "Gerak Bebas Pedal Gas", status: "Baik", keterangan: "" },
+        { item: "Instrumen Indikator", status: "Baik", keterangan: "" },
+        { item: "Kemudahan Start Engine", status: "Baik", keterangan: "" },
+        { item: "Langkah Tuas Rem Parkir", status: "Baik", keterangan: "" },
+        { item: "Sapuan Wiper", status: "Baik", keterangan: "" },
+        { item: "Kaca Spion Dalam", status: "Baik", keterangan: "" },
+        { item: "Level Cairan Washer", status: "Baik", keterangan: "" },
+        { item: "Gerak Bebas Kemudi", status: "Baik", keterangan: "" },
+        { item: "Klakson", status: "Baik", keterangan: "" },
+        { item: "Level Bahan Bakar", status: "Baik", keterangan: "" },
+        { item: "Power Window / Door Lock", status: "Baik", keterangan: "" },
+        { item: "Kunci Roda & Toolkit", status: "Baik", keterangan: "" },
       ]},
-      { kategori: "Keliling Kendaraan", items: [
-        { item: "Lampu-Lampu", status: "Baik" },
-        { item: "Pegas Suspensi / Kaki-Kaki", status: "Baik" },
-        { item: "Kebocoran / Tetesan Fluid", status: "Baik" },
-        { item: "Kondisi Kaca-Kaca", status: "Baik" },
+      { kategori: "C. Keliling Kendaraan", items: [
+        { item: "Lampu-Lampu", status: "Baik", keterangan: "" },
+        { item: "Pegas Suspensi / Kaki-Kaki / Per Daun", status: "Baik", keterangan: "" },
+        { item: "Kebocoran / Tetesan Fluid", status: "Baik", keterangan: "" },
+        { item: "Kondisi Kaca-Kaca", status: "Baik", keterangan: "" },
+        { item: "Wiper", status: "Baik", keterangan: "" },
+        { item: "Saringan Bahan Bakar", status: "Baik", keterangan: "" },
+        { item: "Rolling Door Compartment", status: "Baik", keterangan: "" },
+        { item: "Engsel Pintu-Pintu", status: "Baik", keterangan: "" },
+        { item: "Kunci Pintu-Pintu", status: "Baik", keterangan: "" },
+        { item: "Towing", status: "Baik", keterangan: "" },
       ]},
-      { kategori: "Roda dan Ban", items: [
-        { item: "Tekanan Ban", status: "Baik" },
-        { item: "Tapak dan Dinding Ban", status: "Baik" },
-        { item: "Keausan Ban", status: "Baik" },
-        { item: "Pemasangan Velg", status: "Baik" },
+      { kategori: "D. Roda dan Ban", items: [
+        { item: "Tekanan Ban", status: "Baik", keterangan: "" },
+        { item: "Tapak dan Dinding Ban", status: "Baik", keterangan: "" },
+        { item: "Keausan Ban", status: "Baik", keterangan: "" },
+        { item: "Pemasangan Velg", status: "Baik", keterangan: "" },
       ]},
+    ],
+    pemeriksaanMingguan: [
+      { kategori: "1. Performa / Fungsi Sistem", items: [
+        { item: "Kerja AC", status: "Baik", keterangan: "" },
+        { item: "Kerja Rem", status: "Baik", keterangan: "" },
+        { item: "Kerja Kopling", status: "Baik", keterangan: "" },
+        { item: "Kerja Pedal Gas", status: "Baik", keterangan: "" },
+        { item: "Kerja Kaki-Kaki", status: "Baik", keterangan: "" },
+        { item: "Kerja Sistem 4WD", status: "Baik", keterangan: "" },
+      ]},
+      { kategori: "2. Keliling Kendaraan (Mingguan)", items: [
+        { item: "Kaca Depan", status: "Baik", keterangan: "" },
+        { item: "Spion Luar", status: "Baik", keterangan: "" },
+        { item: "Flooding Light System", status: "Baik", keterangan: "" },
+        { item: "Lampu-Lampu", status: "Baik", keterangan: "" },
+        { item: "Level Cairan Pendingin", status: "Baik", keterangan: "" },
+        { item: "APAR", status: "Baik", keterangan: "" },
+        { item: "Plat Nopol", status: "Baik", keterangan: "" },
+        { item: "Ban Cadangan", status: "Baik", keterangan: "" },
+        { item: "Kebersihan Kendaraan", status: "Baik", keterangan: "" },
+        { item: "Jok / Tempat Duduk", status: "Baik", keterangan: "" },
+        { item: "Kaca Film", status: "Baik", keterangan: "" },
+      ]},
+    ],
+    pemeriksaanBulanan: [
+      { kategori: "C. Pemeriksaan Bulanan", items: [
+        { item: "Winch", status: "Baik", keterangan: "" },
+      ]},
+    ],
+    itemTambahan: [
+      { item: "PengecekanWAP radio HT regu lapangan", status: "Baik", keterangan: "" },
     ],
   },
 ];
@@ -317,13 +368,26 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function OperatorPage() {
   const [activeTab, setActiveTab] = useState<"siaga" | "rib" | "kapal" | "darat">("siaga");
+  const [armadaFilter, setArmadaFilter] = useState<"Semua" | "Mobil" | "Motor" | "Kapal">("Semua");
 
+  // `armada` menentukan journal mana yang terlihat untuk tiap jenis armada
   const tabs = [
-    { id: "siaga" as const, label: "Jurnal Siaga Rutin", icon: FileText },
-    { id: "rib" as const, label: "Jurnal RIB", icon: Ship },
-    { id: "kapal" as const, label: "Logbook Kapal", icon: ClipboardCheck },
-    { id: "darat" as const, label: "Logbook Sarana Darat", icon: Package },
+    { id: "siaga" as const, label: "Jurnal Siaga Rutin", icon: FileText, armada: ["Mobil", "Motor", "Kapal"] },
+    { id: "rib" as const, label: "Jurnal RIB", icon: Ship, armada: ["Kapal"] },
+    { id: "kapal" as const, label: "Logbook Kapal", icon: ClipboardCheck, armada: ["Kapal"] },
+    { id: "darat" as const, label: "Logbook Sarana Darat", icon: Package, armada: ["Mobil", "Motor"] },
   ];
+
+  const visibleTabs = tabs.filter(
+    (tab) => armadaFilter === "Semua" || tab.armada.includes(armadaFilter)
+  );
+
+  // Auto-pindah ke tab pertama yang valid saat filter armada berubah
+  useEffect(() => {
+    if (!visibleTabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(visibleTabs[0]?.id ?? "siaga");
+    }
+  }, [armadaFilter, activeTab]);
 
   return (
     <div className="space-y-6">
@@ -371,10 +435,31 @@ export default function OperatorPage() {
         />
       </div>
 
-      {/* Tabs */}
+      {/* Filter Armada */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-slate-500">Filter Armada:</span>
+        <div className="flex gap-1">
+          {(["Semua", "Mobil", "Motor", "Kapal"] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setArmadaFilter(filter)}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
+                armadaFilter === filter
+                  ? "bg-primary text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              )}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs — difilter berdasarkan armada yang dipilih */}
       <div className="border-b border-slate-200">
         <nav className="flex gap-1 -mb-px overflow-x-auto">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -392,6 +477,15 @@ export default function OperatorPage() {
         </nav>
       </div>
 
+      {/* Empty state — armada tidak punya jurnal */}
+      {visibleTabs.length === 0 && (
+        <Card className="p-10 text-center">
+          <p className="text-sm text-slate-500">
+            Belum ada jurnal/logbook untuk armada {armadaFilter}.
+          </p>
+        </Card>
+      )}
+
       {/* Tab Content */}
       {activeTab === "siaga" && (
         <div className="space-y-6">
@@ -405,7 +499,7 @@ export default function OperatorPage() {
             </CardHeader>
             <CardContent>
               <div className="mb-4 p-4 bg-slate-50 rounded-lg">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
                   <div>
                     <span className="text-slate-500">Hari/Tanggal:</span>
                     <p className="font-medium text-slate-800">Kamis, 8 Oktober 2026</p>
@@ -417,6 +511,18 @@ export default function OperatorPage() {
                   <div>
                     <span className="text-slate-500">Lokasi:</span>
                     <p className="font-medium text-slate-800">Kantor P3KB Mamuju</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Endurance Awal:</span>
+                    <p className="font-medium text-slate-800">85%</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Pemakaian:</span>
+                    <p className="font-medium text-slate-800">Patroli & Koordinasi</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">BBM Akhir:</span>
+                    <p className="font-medium text-slate-800">78%</p>
                   </div>
                 </div>
               </div>
@@ -573,7 +679,7 @@ export default function OperatorPage() {
                   </div>
                 </div>
 
-                {/* Tabel Pengecekan */}
+                {/* Tabel Pengecekan dengan Gradasi Kerusakan */}
                 <div>
                   <SectionTitle>
                     <ClipboardCheck className="h-5 w-5 text-primary" />
@@ -584,7 +690,10 @@ export default function OperatorPage() {
                       <TableRow className="bg-slate-50">
                         <TableHead className="w-10 text-center">No</TableHead>
                         <TableHead>Uraian Pengecekan</TableHead>
-                        <TableHead className="w-24 text-center">Status</TableHead>
+                        <TableHead className="w-20 text-center">Baik</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                        <TableHead>Keterangan</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -593,8 +702,21 @@ export default function OperatorPage() {
                           <TableCell className="text-center text-slate-500">{item.no}</TableCell>
                           <TableCell className="text-slate-700">{item.item}</TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="success" className="text-xs">{item.status}</Badge>
+                            <Badge variant="success" className="text-xs">
+                              {item.status === "Baik" ? "✓" : ""}
+                            </Badge>
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="warning" className="text-xs">
+                              {item.status === "Rusak Ringan" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="danger" className="text-xs">
+                              {item.status === "Rusak Berat" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600 text-xs">{item.keterangan || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -616,6 +738,7 @@ export default function OperatorPage() {
                         <TableHead>Tujuan (Rute)</TableHead>
                         <TableHead className="w-20">Berangkat</TableHead>
                         <TableHead className="w-20">Kembali</TableHead>
+                        <TableHead>Keterangan</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -627,11 +750,52 @@ export default function OperatorPage() {
                           <TableCell className="text-slate-600">{item.rute}</TableCell>
                           <TableCell className="font-mono text-sm">{item.berangkat}</TableCell>
                           <TableCell className="font-mono text-sm">{item.kembali}</TableCell>
+                          <TableCell className="text-slate-600 text-xs">{item.keterangan || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* Tabel Pengisian BBM (RIB 02) */}
+                {rib.id === "rib-02" && (
+                  <div>
+                    <SectionTitle>
+                      <Fuel className="h-5 w-5 text-primary" />
+                      C. Pengisian BBM
+                    </SectionTitle>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50">
+                          <TableHead className="w-8 text-center">No</TableHead>
+                          <TableHead>Pengisian BBM</TableHead>
+                          <TableHead className="w-24 text-center">Liter</TableHead>
+                          <TableHead className="w-24 text-center">Persen (%)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="text-center text-slate-500">1</TableCell>
+                          <TableCell className="text-slate-700">Sisa Kemarin</TableCell>
+                          <TableCell className="text-center">-</TableCell>
+                          <TableCell className="text-center">45%</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center text-slate-500">2</TableCell>
+                          <TableCell className="text-slate-700">Penambahan</TableCell>
+                          <TableCell className="text-center">30 Liter</TableCell>
+                          <TableCell className="text-center">-</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center text-slate-500">3</TableCell>
+                          <TableCell className="text-slate-700 font-medium">Saldo Akhir</TableCell>
+                          <TableCell className="text-center">-</TableCell>
+                          <TableCell className="text-center font-medium">75%</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 {/* Catatan */}
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -713,7 +877,10 @@ export default function OperatorPage() {
                       <TableRow className="bg-slate-50">
                         <TableHead className="w-10 text-center">No</TableHead>
                         <TableHead>Item Pemeriksaan</TableHead>
-                        <TableHead className="w-24 text-center">Status</TableHead>
+                        <TableHead className="w-16 text-center">Baik</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                        <TableHead>Keterangan</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -722,8 +889,21 @@ export default function OperatorPage() {
                           <TableCell className="text-center text-slate-500">{item.no}</TableCell>
                           <TableCell className="text-slate-700">{item.item}</TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="success" className="text-xs">{item.status}</Badge>
+                            <Badge variant="success" className="text-xs">
+                              {item.status === "Baik" ? "✓" : ""}
+                            </Badge>
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="warning" className="text-xs">
+                              {item.status === "Rusak Ringan" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="danger" className="text-xs">
+                              {item.status === "Rusak Berat" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600 text-xs">{item.keterangan || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -741,7 +921,10 @@ export default function OperatorPage() {
                       <TableRow className="bg-slate-50">
                         <TableHead className="w-10 text-center">No</TableHead>
                         <TableHead>Item Pemeriksaan</TableHead>
-                        <TableHead className="w-24 text-center">Status</TableHead>
+                        <TableHead className="w-16 text-center">Baik</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                        <TableHead>Keterangan</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -750,8 +933,21 @@ export default function OperatorPage() {
                           <TableCell className="text-center text-slate-500">{item.no}</TableCell>
                           <TableCell className="text-slate-700">{item.item}</TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="success" className="text-xs">{item.status}</Badge>
+                            <Badge variant="success" className="text-xs">
+                              {item.status === "Baik" ? "✓" : ""}
+                            </Badge>
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="warning" className="text-xs">
+                              {item.status === "Rusak Ringan" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="danger" className="text-xs">
+                              {item.status === "Rusak Berat" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600 text-xs">{item.keterangan || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -769,7 +965,10 @@ export default function OperatorPage() {
                       <TableRow className="bg-slate-50">
                         <TableHead className="w-10 text-center">No</TableHead>
                         <TableHead>Item Pemeriksaan</TableHead>
-                        <TableHead className="w-24 text-center">Status</TableHead>
+                        <TableHead className="w-16 text-center">Baik</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                        <TableHead>Keterangan</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -778,8 +977,21 @@ export default function OperatorPage() {
                           <TableCell className="text-center text-slate-500">{item.no}</TableCell>
                           <TableCell className="text-slate-700">{item.item}</TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="success" className="text-xs">{item.status}</Badge>
+                            <Badge variant="success" className="text-xs">
+                              {item.status === "Baik" ? "✓" : ""}
+                            </Badge>
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="warning" className="text-xs">
+                              {item.status === "Rusak Ringan" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="danger" className="text-xs">
+                              {item.status === "Rusak Berat" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600 text-xs">{item.keterangan || "-"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -911,11 +1123,37 @@ export default function OperatorPage() {
                   </Table>
                 </div>
 
-                {/* Ceklist Perawatan */}
+                {/* Catatan Penggantian/Perbaikan */}
+                <div>
+                  <SectionTitle>
+                    <Wrench className="h-5 w-5 text-primary" />
+                    III. Catatan Penggantian, Perbaikan, dan Overhaul
+                  </SectionTitle>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50">
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Detail Pelaksanaan Pekerjaan</TableHead>
+                        <TableHead>Pelaksana</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {catatanPerbaikanDarat.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="text-slate-700">{item.tanggal}</TableCell>
+                          <TableCell className="text-slate-700">{item.detailPekerjaan}</TableCell>
+                          <TableCell className="text-slate-600">{item.pelaksana}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Ceklist Perawatan - Harian */}
                 <div>
                   <SectionTitle>
                     <ClipboardCheck className="h-5 w-5 text-primary" />
-                    III. Ceklist Perawatan Kendaraan
+                    IV. Ceklist Perawatan Harian
                   </SectionTitle>
                   <div className="space-y-4">
                     {kendaraan.pemeriksaanHarian.map((kategori) => (
@@ -925,7 +1163,10 @@ export default function OperatorPage() {
                           <TableHeader>
                             <TableRow className="bg-slate-50">
                               <TableHead>Item Pemeriksaan</TableHead>
-                              <TableHead className="w-24 text-center">Status</TableHead>
+                              <TableHead className="w-16 text-center">Baik</TableHead>
+                              <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                              <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                              <TableHead>Keterangan</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -933,7 +1174,76 @@ export default function OperatorPage() {
                               <TableRow key={idx}>
                                 <TableCell className="text-slate-700">{item.item}</TableCell>
                                 <TableCell className="text-center">
-                                  <Badge variant="success" className="text-xs">{item.status}</Badge>
+                                  <Badge variant="success" className="text-xs">
+                                    {item.status === "Baik" ? "✓" : ""}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="warning" className="text-xs">
+                                    {item.status === "Rusak Ringan" ? "✓" : ""}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="danger" className="text-xs">
+                                    {item.status === "Rusak Berat" ? "✓" : ""}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-slate-600 text-xs">{item.keterangan || "-"}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ceklist Perawatan - Mingguan & Bulanan */}
+                <div>
+                  <SectionTitle>
+                    <ClipboardCheck className="h-5 w-5 text-primary" />
+                    V. Ceklist Perawatan Mingguan & Bulanan
+                  </SectionTitle>
+                  <div className="space-y-4">
+                    {[
+                      ...kendaraan.pemeriksaanMingguan,
+                      ...kendaraan.pemeriksaanBulanan,
+                    ].map((kategori) => (
+                      <div key={kategori.kategori}>
+                        <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                          {kategori.kategori}
+                        </h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-slate-50">
+                              <TableHead>Item Pemeriksaan</TableHead>
+                              <TableHead className="w-16 text-center">Baik</TableHead>
+                              <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                              <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                              <TableHead>Keterangan</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {kategori.items.map((item, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="text-slate-700">{item.item}</TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="success" className="text-xs">
+                                    {item.status === "Baik" ? "✓" : ""}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="warning" className="text-xs">
+                                    {item.status === "Rusak Ringan" ? "✓" : ""}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="danger" className="text-xs">
+                                    {item.status === "Rusak Berat" ? "✓" : ""}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-slate-600 text-xs">
+                                  {item.keterangan || "-"}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -942,6 +1252,50 @@ export default function OperatorPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Item Tambahan */}
+                <div>
+                  <SectionTitle>
+                    <Wrench className="h-5 w-5 text-primary" />
+                    VI. Item Tambahan (Jika Ada)
+                  </SectionTitle>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50">
+                        <TableHead>Item Pemeriksaan</TableHead>
+                        <TableHead className="w-16 text-center">Baik</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Ringan</TableHead>
+                        <TableHead className="w-20 text-center">Rusak Berat</TableHead>
+                        <TableHead>Keterangan</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {kendaraan.itemTambahan.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="text-slate-700">{item.item}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="success" className="text-xs">
+                              {item.status === "Baik" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="warning" className="text-xs">
+                              {item.status === "Rusak Ringan" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="danger" className="text-xs">
+                              {item.status === "Rusak Berat" ? "✓" : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600 text-xs">
+                            {item.keterangan || "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>

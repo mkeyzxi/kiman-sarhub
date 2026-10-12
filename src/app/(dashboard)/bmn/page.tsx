@@ -31,9 +31,11 @@ import {
 
 const statusBadgeVariant: Record<StatusAset, "success" | "warning" | "danger" | "default"> = {
   Siaga: "success",
+  Operasi: "default",
   Dipinjam: "warning",
   Rusak: "danger",
-  Maintenance: "default",
+  Maintenance: "warning",
+  "Tidak Siap": "danger",
 };
 
 export default function MasterDataBMNPage() {

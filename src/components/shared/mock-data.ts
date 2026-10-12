@@ -118,8 +118,9 @@ export type KategoriAset =
   | "Medis"
   | "Dokumentasi";
 
-export type StatusAset = "Siaga" | "Dipinjam" | "Rusak" | "Maintenance";
+export type StatusAset = "Siaga" | "Operasi" | "Dipinjam" | "Rusak" | "Maintenance" | "Tidak Siap";
 export type KondisiAset = "Baik" | "Rusak Ringan" | "Rusak Berat";
+export type KondisiItem = "Baik" | "Rusak Ringan" | "Rusak Berat";
 
 export interface RiwayatAset {
   tanggal: string;
@@ -592,67 +593,146 @@ export interface ChecklistItem {
   id: string;
   label: string;
   wajib: boolean;
+  kondisi: KondisiItem;
+  keterangan: string;
 }
 
 export interface ChecklistTemplate {
   id: string;
   nama: string;
   kategori: KategoriAset;
+  periode: "Harian" | "Mingguan" | "Bulanan";
   items: ChecklistItem[];
 }
 
 export const checklistTemplates: ChecklistTemplate[] = [
+  // ─── CHECKLIST HARIAN ───────────────────────────────────────────────────────
   {
     id: "chk-001",
-    nama: "Checklist Kesiapan Perahu Karet",
+    nama: "Checklist Harian - Perahu Karet",
     kategori: "Peralatan SAR",
+    periode: "Harian",
     items: [
-      { id: "chk-001-01", label: "Hull tidak ada bocor atau kerusakan", wajib: true },
-      { id: "chk-001-02", label: "Pompa angin berfungsi normal", wajib: true },
-      { id: "chk-001-03", label: "Semua oar/paddles lengkap dan utuh", wajib: true },
-      { id: "chk-001-04", label: "Tali tambat (rope) tersedia", wajib: true },
-      { id: "chk-001-05", label: "Jacket pelampung cadangan sesuai kapasitas", wajib: false },
-      { id: "chk-001-06", label: "Kap alat (tool kit) di dalam perahu", wajib: false },
+      { id: "chk-001-01", label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-001-02", label: "Pompa angin berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-001-03", label: "Semua oar/paddles lengkap dan utuh", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-001-04", label: "Tali tambat (rope) tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-001-05", label: "Jacket pelampung cadangan sesuai kapasitas", wajib: false, kondisi: "Baik", keterangan: "" },
+      { id: "chk-001-06", label: "Kap alat (tool kit) di dalam perahu", wajib: false, kondisi: "Baik", keterangan: "" },
     ],
   },
   {
     id: "chk-002",
-    nama: "Checklist Kesiapan Kendaraan Ransel",
+    nama: "Checklist Harian - Kendaraan Ransel",
     kategori: "Kendaraan",
+    periode: "Harian",
     items: [
-      { id: "chk-002-01", label: "Mesin menyala dengan normal", wajib: true },
-      { id: "chk-002-02", label: "Bahan bakar penuh minimal 5 liter", wajib: true },
-      { id: "chk-002-03", label: "Rem depan dan belakang berfungsi baik", wajib: true },
-      { id: "chk-002-04", label: "Lampu utama dan sein menyala", wajib: true },
-      { id: "chk-002-05", label: "Ban dalam kondisi baik dan tekanan cukup", wajib: true },
-      { id: "chk-002-06", label: "Surat kendaraan dan SIM pengemudi siap", wajib: true },
-      { id: "chk-002-07", label: "Peralatan darurat (P3K, segitiga, dongkrak)", wajib: false },
+      { id: "chk-002-01", label: "Mesin menyala dengan normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-002-02", label: "Bahan bakar penuh minimal 5 liter", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-002-03", label: "Rem depan dan belakang berfungsi baik", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-002-04", label: "Lampu utama dan sein menyala", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-002-05", label: "Ban dalam kondisi baik dan tekanan cukup", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-002-06", label: "Surat kendaraan dan SIM pengemudi siap", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-002-07", label: "Peralatan darurat (P3K, segitiga, dongkrak)", wajib: false, kondisi: "Baik", keterangan: "" },
     ],
   },
   {
     id: "chk-003",
-    nama: "Checklist Kesiapan Peralatan Medis",
+    nama: "Checklist Harian - Peralatan Medis",
     kategori: "Medis",
+    periode: "Harian",
     items: [
-      { id: "chk-003-01", label: "Defibrillator baterai penuh dan electrode siap", wajib: true },
-      { id: "chk-003-02", label: "P3K lengkap sesuai daftar standar", wajib: true },
-      { id: "chk-003-03", label: "Tenda medis dalam kondisi baik", wajib: true },
-      { id: "chk-003-04", label: "Oksigen tabung penuh dan regulator normal", wajib: true },
-      { id: "chk-003-05", label: "Obat-obatan tidak kadaluwarsa", wajib: true },
-      { id: "chk-003-06", label: "Stretcher dan backboard siap pakai", wajib: true },
+      { id: "chk-003-01", label: "Defibrillator baterai penuh dan electrode siap", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-003-02", label: "P3K lengkap sesuai daftar standar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-003-03", label: "Tenda medis dalam kondisi baik", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-003-04", label: "Oksigen tabung penuh dan regulator normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-003-05", label: "Obat-obatan tidak kadaluwarsa", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-003-06", label: "Stretcher dan backboard siap pakai", wajib: true, kondisi: "Baik", keterangan: "" },
     ],
   },
   {
     id: "chk-004",
-    nama: "Checklist Kesiapan Peralatan Komunikasi",
+    nama: "Checklist Harian - Peralatan Komunikasi",
     kategori: "Komunikasi",
+    periode: "Harian",
     items: [
-      { id: "chk-004-01", label: "Radio HT baterai penuh dan berfungsi", wajib: true },
-      { id: "chk-004-02", label: "Baterai cadangan tersedia minimal 2 buah", wajib: true },
-      { id: "chk-004-03", label: "GPS terkoneksi satelit dan akurat", wajib: true },
-      { id: "chk-004-04", label: "Telepon satelit (jika ada) teraktivasi", wajib: false },
-      { id: "chk-004-05", label: "Daftar kontak darurat ter-update", wajib: true },
+      { id: "chk-004-01", label: "Radio HT baterai penuh dan berfungsi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-004-02", label: "Baterai cadangan tersedia minimal 2 buah", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-004-03", label: "GPS terkoneksi satelit dan akurat", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-004-04", label: "Telepon satelit (jika ada) teraktivasi", wajib: false, kondisi: "Baik", keterangan: "" },
+      { id: "chk-004-05", label: "Daftar kontak darurat ter-update", wajib: true, kondisi: "Baik", keterangan: "" },
     ],
+  },
+  // ─── CHECKLIST MINGGUAN ─────────────────────────────────────────────────────
+  {
+    id: "chk-005",
+    nama: "Checklist Mingguan - Kendaraan",
+    kategori: "Kendaraan",
+    periode: "Mingguan",
+    items: [
+      { id: "chk-005-01", label: "Kerja AC optimal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-02", label: "Kerja rem (rem parkir & rem kaki)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-03", label: "Kerja kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-04", label: "Kerja pedal gas", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-05", label: "Kerja kaki-kaki (suspensi)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-06", label: "Kerja sistem 4WD", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-07", label: "Kaca depan tidak retak/pecah", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-08", label: "Spion luar lengkap dan berfungsi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-09", label: "Floodlight system berfungsi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-10", label: "Lampu-lampu semua menyala", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-11", label: "Level cairan pendingin radiator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-12", label: "APAR masih berlaku", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-13", label: "Plat nopol jelas terbaca", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-14", label: "Ban cadangan tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-15", label: "Kebersihan kendaraan", wajib: false, kondisi: "Baik", keterangan: "" },
+      { id: "chk-005-16", label: "Jok/tempat duduk dalam kondisi baik", wajib: false, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+  // ─── CHECKLIST BULANAN ──────────────────────────────────────────────────────
+  {
+    id: "chk-006",
+    nama: "Checklist Bulanan - Kendaraan",
+    kategori: "Kendaraan",
+    periode: "Bulanan",
+    items: [
+      { id: "chk-006-01", label: "Winch berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+];
+
+// -----------------------------------------------------------------------------
+// 5b. DATA TAMBAHAN (BBM RIB 02, Catatan Perbaikan, dll)
+// -----------------------------------------------------------------------------
+
+// Pengisian BBM RIB 02 (format asli: Sisa Kemarin, Penambahan, Saldo Akhir)
+export const pengisianBBM_RIB02 = {
+  sisaKemarin: "45%",
+  penambahan: "30 Liter",
+  saldoAkhir: "75%",
+};
+
+// Catatan Penggantian/Perbaikan Sarana Darat
+export interface CatatanPerbaikan {
+  tanggal: string;
+  detailPekerjaan: string;
+  pelaksana: string;
+}
+
+export const catatanPerbaikanDarat: CatatanPerbaikan[] = [
+  {
+    tanggal: "2026-09-20",
+    detailPekerjaan: "Ganti oli mesin dan filter",
+    pelaksana: "Bengkel Resmi Toyota Mamuju",
+  },
+  {
+    tanggal: "2026-09-15",
+    detailPekerjaan: "Perbaikan sistem rem",
+    pelaksana: "Bengkel Resmi Toyota Mamuju",
+  },
+  {
+    tanggal: "2026-09-10",
+    detailPekerjaan: "Ganti ban depan kiri",
+    pelaksana: "Bengkel Resmi Toyota Mamuju",
   },
 ];
 

@@ -10,6 +10,8 @@ import {
   roleLabels,
   type NavGroup,
 } from "@/config/navigation";
+
+import Image from "next/image";
 import type { UserRole } from "@/components/shared/mock-data";
 
 // ─── Sidebar Content (shared antara desktop fixed sidebar & mobile drawer) ──
@@ -27,8 +29,10 @@ function SidebarContent({
     <>
       {/* Logo */}
       <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-200 shrink-0">
-        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-          <LifeBuoy className="h-6 w-6 text-white" />
+        <div className="w-10 h-10 rounded-lg  flex items-center justify-center">
+          {/* <LifeBuoy className="h-6 w-6 text-white" /> */}
+          {/* public\logo-transparant.png */}
+          <Image src="/logo-transparant.png" alt="Logo" width={40} height={40} />
         </div>
         <div className="min-w-0">
           <h1 className="text-sm font-bold text-slate-800 truncate">Siap SAR</h1>
@@ -102,14 +106,14 @@ function SidebarContent({
       {/* Footer — Role Info & Logout */}
       <div className="p-3 border-t border-slate-200 shrink-0">
         {/* Role badge */}
-        <div className="mb-2 px-3 py-2 rounded-lg bg-slate-50">
+        {/* <div className="mb-2 px-3 py-2 rounded-lg bg-slate-50">
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
             Masuk sebagai
           </p>
           <p className="text-xs font-semibold text-slate-700">
             {roleLabels[role] || role}
           </p>
-        </div>
+        </div> */}
         {/* Logout */}
         <Link
           href="/login"
