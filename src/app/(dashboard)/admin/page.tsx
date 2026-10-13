@@ -1,33 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Users,
-  UserPlus,
-  Search,
   Shield,
   Settings,
   Activity,
   CheckCircle2,
-  Clock,
-  Eye,
-  Pencil,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
-import { Input, Select } from "@/components/ui/input";
-import { users, logAktivitas, notifikasiList, formatTanggal } from "@/components/shared/mock-data";
+import { users, formatTanggal } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
 // ─── Data untuk halaman setting ──────────────────────────────────────────────
@@ -162,28 +146,8 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-      {children}
-    </h2>
-  );
-}
-
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("Semua");
-
-  const filteredUsers = users.filter((user) => {
-    const matchSearch =
-      user.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.nip.includes(searchQuery);
-    const matchRole = roleFilter === "Semua" || user.role === roleFilter;
-    return matchSearch && matchRole;
-  });
-
   const activeUsers = users.filter((u) => u.aktif).length;
   const totalUsers = users.length;
 
@@ -192,15 +156,15 @@ export default function AdminPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard Admin IT</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Dashboard Admin</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola pengguna, monitoring sistem, dan pengaturan
+            Monitoring sistem, konfigurasi, dan aktivitas pengguna
           </p>
         </div>
         <Link href="/admin/pengguna">
           <Button>
-            <UserPlus className="h-4 w-4" />
-            Tambah Pengguna
+            <Users className="h-4 w-4" />
+            Kelola Pengguna
           </Button>
         </Link>
       </div>
@@ -239,101 +203,6 @@ export default function AdminPage() {
         />
       </div>
 
-      {/* Search + Filter */}
-      <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Cari nama, email, atau NIP..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <Select
-            className="sm:w-48"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-            <option value="Semua">Semua Role</option>
-            <option value="ADMIN_IT">Admin IT</option>
-            <option value="PENGELOLA_BMN">Pengelola BMN</option>
-            <option value="KAKANSAR">Kepala Kantor</option>
-            <option value="OPERATOR_LAPANGAN">Operator Lapangan</option>
-          </Select>
-        </div>
-      </Card>
-
-      {/* Tabel Pengguna */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Daftar Pengguna Sistem
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Nama</TableHead>
-                <TableHead>NIP</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
-                        <span className="text-xs font-bold text-primary">
-                          {user.nama.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        </span>
-                      </div>
-                      <span className="font-medium text-slate-800">{user.nama}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-600">{user.nip}</TableCell>
-                  <TableCell className="text-slate-600">{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.aktif ? "success" : "danger"} className="text-xs">
-                      {user.aktif ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                    Tidak ada pengguna yang ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pengaturan Sistem */}

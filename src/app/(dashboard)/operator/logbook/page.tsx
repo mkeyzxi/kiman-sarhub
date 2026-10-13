@@ -29,131 +29,7 @@ import {
 } from "@/components/ui/table";
 import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-// ─── Data Logbook Perjalanan ─────────────────────────────────────────────────
-interface LogbookPerjalanan {
-  id: string;
-  tanggal: string;
-  jamBerangkat: string;
-  jamKembali: string;
-  rute: string;
-  tujuan: string;
-  jenisUnit: string;
-  nahkoda: string;
-  jumlahPersonel: number;
-  bbmSebelum: string;
-  bbmSesudah: string;
-  status: "Selesai" | "Berlangsung" | "Dijadwalkan";
-  catatan: string;
-}
-
-const logbookPerjalananData: LogbookPerjalanan[] = [
-  {
-    id: "lp-01",
-    tanggal: "2026-10-08",
-    jamBerangkat: "08:00",
-    jamKembali: "10:30",
-    rute: "Dermaga Mamuju - Perairan Mamuju",
-    tujuan: "Patroli rutin",
-    jenisUnit: "RIB 9 M",
-    nahkoda: "Siti Nurhaliza",
-    jumlahPersonel: 4,
-    bbmSebelum: "90%",
-    bbmSesudah: "75%",
-    status: "Selesai",
-    catatan: "Kondisi laut normal, tidak ada insiden",
-  },
-  {
-    id: "lp-02",
-    tanggal: "2026-10-08",
-    jamBerangkat: "11:00",
-    jamKembali: "13:00",
-    rute: "Perairan Mamuju - Pantai Karampuang",
-    tujuan: "Sosialisasi SAR",
-    jenisUnit: "RIB 12 M",
-    nahkoda: "Ahmad Fauzi",
-    jumlahPersonel: 5,
-    bbmSebelum: "85%",
-    bbmSesudah: "65%",
-    status: "Selesai",
-    catatan: "Sosialisasi keselamatan pantai kepada nelayan",
-  },
-  {
-    id: "lp-03",
-    tanggal: "2026-10-07",
-    jamBerangkat: "09:00",
-    jamKembali: "12:00",
-    rute: "Dermaga Mamuju - Perairan Binanga",
-    tujuan: "Operasi evakuasi",
-    jenisUnit: "RIB 9 M",
-    nahkoda: "Dewi Lestari",
-    jumlahPersonel: 6,
-    bbmSebelum: "95%",
-    bbmSesudah: "60%",
-    status: "Selesai",
-    catatan: "Evakuasi korban tenggelam, 2 orang selamat",
-  },
-  {
-    id: "lp-04",
-    tanggal: "2026-10-07",
-    jamBerangkat: "14:00",
-    jamKembali: "16:00",
-    rute: "Perairan Mamuju - Pos Pantai",
-    tujuan: "Patroli pantai",
-    jenisUnit: "RIB 12 M",
-    nahkoda: "Budi Santoso",
-    jumlahPersonel: 3,
-    bbmSebelum: "80%",
-    bbmSesudah: "70%",
-    status: "Selesai",
-    catatan: "Pantai ramai pengunjung, kondisi aman",
-  },
-  {
-    id: "lp-05",
-    tanggal: "2026-10-06",
-    jamBerangkat: "08:30",
-    jamKembali: "11:30",
-    rute: "Dermaga Mamuju - Perairan Mamuju",
-    tujuan: "Latihan SAR",
-    jenisUnit: "RIB 9 M",
-    nahkoda: "Medlyn R. Pagali",
-    jumlahPersonel: 8,
-    bbmSebelum: "100%",
-    bbmSesudah: "70%",
-    status: "Selesai",
-    catatan: "Latihan teknik penyelamatan korban di air",
-  },
-  {
-    id: "lp-06",
-    tanggal: "2026-10-09",
-    jamBerangkat: "08:00",
-    jamKembali: "",
-    rute: "Dermaga Mamuju - Perairan Mamuju",
-    tujuan: "Patroli rutin",
-    jenisUnit: "RIB 12 M",
-    nahkoda: "Kauluddin",
-    jumlahPersonel: 4,
-    bbmSebelum: "88%",
-    bbmSesudah: "",
-    status: "Berlangsung",
-    catatan: "Sedang dalam perjalanan",
-  },
-  {
-    id: "lp-07",
-    tanggal: "2026-10-09",
-    jamBerangkat: "14:00",
-    jamKembali: "",
-    rute: "Perairan Mamuju - Pos Pantai",
-    tujuan: "Patroli sore",
-    jenisUnit: "RIB 9 M",
-    nahkoda: "Rizky Pratama",
-    jumlahPersonel: 3,
-    bbmSebelum: "85%",
-    bbmSesudah: "",
-    status: "Dijadwalkan",
-    catatan: "Dijadwalkan untuk shift sore",
-  },
-];
+import { logbookPerjalananList } from "@/components/shared/mock-data";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
@@ -185,7 +61,7 @@ export default function LogbookPerjalananPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
 
-  const filteredLogbook = logbookPerjalananData.filter((log) => {
+  const filteredLogbook = logbookPerjalananList.filter((log) => {
     const matchSearch =
       log.rute.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.tujuan.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -195,9 +71,9 @@ export default function LogbookPerjalananPage() {
     return matchSearch && matchStatus;
   });
 
-  const totalPerjalanan = logbookPerjalananData.length;
-  const perjalananSelesai = logbookPerjalananData.filter((l) => l.status === "Selesai").length;
-  const perjalananBerlangsung = logbookPerjalananData.filter((l) => l.status === "Berlangsung").length;
+  const totalPerjalanan = logbookPerjalananList.length;
+  const perjalananSelesai = logbookPerjalananList.filter((l) => l.status === "Selesai").length;
+  const perjalananBerlangsung = logbookPerjalananList.filter((l) => l.status === "Berlangsung").length;
 
   return (
     <div className="space-y-6">
@@ -209,10 +85,12 @@ export default function LogbookPerjalananPage() {
             Catatan perjalanan operasional SAR
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Tambah Logbook
-        </Button>
+        <Link href="/operator/logbook/tambah">
+          <Button>
+            <Plus className="h-4 w-4" />
+            Tambah Logbook
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}
@@ -319,9 +197,11 @@ export default function LogbookPerjalananPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/operator/logbook/${log.id}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -347,47 +227,47 @@ export default function LogbookPerjalananPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {logbookPerjalananData[0] && (
+          {logbookPerjalananList[0] && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
                 <div>
                   <p className="text-xs text-slate-500">Tanggal</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananData[0].tanggal}</p>
+                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].tanggal}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Jam Berangkat</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananData[0].jamBerangkat}</p>
+                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].jamBerangkat}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Jam Kembali</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananData[0].jamKembali || "-"}</p>
+                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].jamKembali || "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Unit</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananData[0].jenisUnit}</p>
+                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].jenisUnit}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 border border-slate-200 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Rute</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananData[0].rute}</p>
+                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].rute}</p>
                 </div>
                 <div className="p-4 border border-slate-200 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Tujuan</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananData[0].tujuan}</p>
+                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].tujuan}</p>
                 </div>
                 <div className="p-4 border border-slate-200 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Nahkoda</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananData[0].nahkoda}</p>
+                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].nahkoda}</p>
                 </div>
                 <div className="p-4 border border-slate-200 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Jumlah Personel</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananData[0].jumlahPersonel} orang</p>
+                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].jumlahPersonel} orang</p>
                 </div>
               </div>
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs text-blue-600 mb-1">Catatan</p>
-                <p className="text-sm text-blue-800">{logbookPerjalananData[0].catatan}</p>
+                <p className="text-sm text-blue-800">{logbookPerjalananList[0].catatan}</p>
               </div>
             </div>
           )}

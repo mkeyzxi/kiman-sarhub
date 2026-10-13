@@ -8,10 +8,12 @@ import {
   Package,
   AlertTriangle,
   ClipboardCheck,
+  ClipboardList,
   FileText,
   Settings,
   BarChart3,
   Users,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/components/shared/mock-data";
@@ -70,12 +72,15 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
+        { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
+        { href: "/pimpinan/approval", label: "Persetujuan", icon: CheckCircle2 },
       ],
     },
     {
       title: "Sistem",
       items: [
-        { href: "/admin", label: "Kelola Pengguna", icon: Users },
+        { href: "/admin", label: "Dashboard Admin", icon: LayoutDashboard },
+        { href: "/admin/pengguna", label: "Kelola Pengguna", icon: Users },
         { href: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
       ],
     },
@@ -93,6 +98,8 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
+        { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
+        { href: "/pimpinan/approval", label: "Persetujuan", icon: CheckCircle2 },
       ],
     },
   ],
@@ -102,6 +109,8 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
+        { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
+        { href: "/pimpinan/approval", label: "Persetujuan", icon: CheckCircle2 },
       ],
     },
   ],

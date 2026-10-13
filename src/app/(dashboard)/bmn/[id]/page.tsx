@@ -9,6 +9,7 @@ import {
   User,
   Calendar,
   Wrench,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,10 +76,12 @@ export default async function DetailAsetPage({ params }: PageProps) {
             <QrCode className="h-4 w-4" />
             Cetak QR Code
           </Button>
-          <Button variant="outline">
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
+          <Link href={`/bmn/${aset.id}/edit`}>
+            <Button variant="outline">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -195,6 +198,23 @@ export default async function DetailAsetPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Keterangan */}
+      {aset.keterangan && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Keterangan Aset
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+              {aset.keterangan}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Riwayat Pemakaian */}
       <Card>

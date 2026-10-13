@@ -141,6 +141,7 @@ export interface Aset {
   gambar: string;
   kondisi: KondisiAset;
   penanggungJawab: string;
+  keterangan?: string;
   riwayat: RiwayatAset[];
 }
 
@@ -1043,8 +1044,410 @@ export const complianceRanking: ComplianceRanking[] = [
 ];
 
 // -----------------------------------------------------------------------------
+// 10. PENGAJUAN PERSETUJUAN
+// -----------------------------------------------------------------------------
+
+export type StatusApproval = "Menunggu" | "Disetujui" | "Ditolak";
+
+export interface Approval {
+  id: string;
+  kode: string;
+  namaAset: string;
+  kategori: KategoriAset;
+  pengajuanOleh: string;
+  tanggal: string;
+  status: StatusApproval;
+  alasan: string;
+  rincian: { label: string; value: string }[];
+}
+
+export const approvalList: Approval[] = [
+  {
+    id: "apr-001",
+    kode: "BMN-SAR-005",
+    namaAset: "Chain Stihl MS 261",
+    kategori: "Peralatan SAR",
+    pengajuanOleh: "usr-001",
+    tanggal: "2026-09-26",
+    status: "Menunggu",
+    alasan:
+      "Menggantikan chainsaw lama yang sudah tidak berfungsi optimal karena mata rantai aus.",
+    rincian: [
+      { label: "Kondisi Aset Lama", value: "Rusak Berat" },
+      { label: "Usia Pakai", value: "6 tahun" },
+      { label: "Estimasi Biaya", value: "Rp 4.500.000" },
+      { label: "Sumber Dana", value: "DIPA 2026" },
+    ],
+  },
+  {
+    id: "apr-002",
+    kode: "BMN-KOM-003",
+    namaAset: "Thermal Imaging Camera FLIR",
+    kategori: "Komunikasi",
+    pengajuanOleh: "usr-001",
+    tanggal: "2026-09-21",
+    status: "Ditolak",
+    alasan:
+      "Usulan tidak sesuai prioritas kebutuhan. Anggaran tahun ini sudah terpakai untuk kebutuhan komunikasi VHF.",
+    rincian: [
+      { label: "Kondisi Aset Lama", value: "Baik" },
+      { label: "Usia Pakai", value: "1 tahun" },
+      { label: "Estimasi Biaya", value: "Rp 38.000.000" },
+      { label: "Sumber Dana", value: "DIPA 2026" },
+    ],
+  },
+  {
+    id: "apr-003",
+    kode: "BMN-MED-003",
+    namaAset: "Tabung Oksigen 10L",
+    kategori: "Medis",
+    pengajuanOleh: "usr-002",
+    tanggal: "2026-09-24",
+    status: "Disetujui",
+    alasan:
+      "Menambah stok oksigen untuk tim medis lapangan agar siap pada setiap operasi evakuasi.",
+    rincian: [
+      { label: "Kondisi Aset Lama", value: "Habis Terpakai" },
+      { label: "Usia Pakai", value: "3 tahun" },
+      { label: "Estimasi Biaya", value: "Rp 1.750.000" },
+      { label: "Sumber Dana", value: "DIPA 2026" },
+    ],
+  },
+  {
+    id: "apr-004",
+    kode: "BMN-DOK-003",
+    namaAset: "Laptop Field Rugged Panasonic",
+    kategori: "Dokumentasi",
+    pengajuanOleh: "usr-003",
+    tanggal: "2026-09-18",
+    status: "Menunggu",
+    alasan:
+      "Laptop lama sering gagal menyala di lapangan karena kompresinya sudah tidak stabil.",
+    rincian: [
+      { label: "Kondisi Aset Lama", value: "Rusak Ringan" },
+      { label: "Usia Pakai", value: "5 tahun" },
+      { label: "Estimasi Biaya", value: "Rp 12.000.000" },
+      { label: "Sumber Dana", value: "DIPA 2026" },
+    ],
+  },
+  {
+    id: "apr-005",
+    kode: "BMN-KND-003",
+    namaAset: "Motor Honda CRF250R",
+    kategori: "Motor",
+    pengajuanOleh: "usr-001",
+    tanggal: "2026-09-20",
+    status: "Menunggu",
+    alasan:
+      "Menambah armada motor trail untuk memperbesar daya jangkau di wilayah pedalaman yang sulit dijangkau kendaraan roda empat.",
+    rincian: [
+      { label: "Kondisi Aset Lama", value: "Tidak Ada (Usulan Baru)" },
+      { label: "Usia Pakai", value: "-" },
+      { label: "Estimasi Biaya", value: "Rp 58.000.000" },
+      { label: "Sumber Dana", value: "DIPA 2026" },
+    ],
+  },
+];
+
+// -----------------------------------------------------------------------------
+// 11. LOGBOOK PERJALANAN
+// -----------------------------------------------------------------------------
+
+export interface LogbookPerjalanan {
+  id: string;
+  tanggal: string;
+  jamBerangkat: string;
+  jamKembali: string;
+  rute: string;
+  tujuan: string;
+  jenisUnit: string;
+  nahkoda: string;
+  jumlahPersonel: number;
+  bbmSebelum: string;
+  bbmSesudah: string;
+  status: "Selesai" | "Berlangsung" | "Dijadwalkan";
+  catatan: string;
+}
+
+export const logbookPerjalananList: LogbookPerjalanan[] = [
+  {
+    id: "lp-01",
+    tanggal: "2026-10-08",
+    jamBerangkat: "08:00",
+    jamKembali: "10:30",
+    rute: "Dermaga Mamuju - Perairan Mamuju",
+    tujuan: "Patroli rutin",
+    jenisUnit: "RIB 9 M",
+    nahkoda: "Siti Nurhaliza",
+    jumlahPersonel: 4,
+    bbmSebelum: "90%",
+    bbmSesudah: "75%",
+    status: "Selesai",
+    catatan: "Kondisi laut normal, tidak ada insiden",
+  },
+  {
+    id: "lp-02",
+    tanggal: "2026-10-08",
+    jamBerangkat: "11:00",
+    jamKembali: "13:00",
+    rute: "Perairan Mamuju - Pantai Karampuang",
+    tujuan: "Sosialisasi SAR",
+    jenisUnit: "RIB 12 M",
+    nahkoda: "Ahmad Fauzi",
+    jumlahPersonel: 5,
+    bbmSebelum: "85%",
+    bbmSesudah: "65%",
+    status: "Selesai",
+    catatan: "Sosialisasi keselamatan pantai kepada nelayan",
+  },
+  {
+    id: "lp-03",
+    tanggal: "2026-10-07",
+    jamBerangkat: "09:00",
+    jamKembali: "12:00",
+    rute: "Dermaga Mamuju - Perairan Binanga",
+    tujuan: "Operasi evakuasi",
+    jenisUnit: "RIB 9 M",
+    nahkoda: "Dewi Lestari",
+    jumlahPersonel: 6,
+    bbmSebelum: "95%",
+    bbmSesudah: "60%",
+    status: "Selesai",
+    catatan: "Evakuasi korban tenggelam, 2 orang selamat",
+  },
+  {
+    id: "lp-04",
+    tanggal: "2026-10-07",
+    jamBerangkat: "14:00",
+    jamKembali: "16:00",
+    rute: "Perairan Mamuju - Pos Pantai",
+    tujuan: "Patroli pantai",
+    jenisUnit: "RIB 12 M",
+    nahkoda: "Budi Santoso",
+    jumlahPersonel: 3,
+    bbmSebelum: "80%",
+    bbmSesudah: "70%",
+    status: "Selesai",
+    catatan: "Pantai ramai pengunjung, kondisi aman",
+  },
+  {
+    id: "lp-05",
+    tanggal: "2026-10-06",
+    jamBerangkat: "08:30",
+    jamKembali: "11:30",
+    rute: "Dermaga Mamuju - Perairan Mamuju",
+    tujuan: "Latihan SAR",
+    jenisUnit: "RIB 9 M",
+    nahkoda: "Medlyn R. Pagali",
+    jumlahPersonel: 8,
+    bbmSebelum: "100%",
+    bbmSesudah: "70%",
+    status: "Selesai",
+    catatan: "Latihan teknik penyelamatan korban di air",
+  },
+  {
+    id: "lp-06",
+    tanggal: "2026-10-09",
+    jamBerangkat: "08:00",
+    jamKembali: "",
+    rute: "Dermaga Mamuju - Perairan Mamuju",
+    tujuan: "Patroli rutin",
+    jenisUnit: "RIB 12 M",
+    nahkoda: "Kauluddin",
+    jumlahPersonel: 4,
+    bbmSebelum: "88%",
+    bbmSesudah: "",
+    status: "Berlangsung",
+    catatan: "Sedang dalam perjalanan",
+  },
+  {
+    id: "lp-07",
+    tanggal: "2026-10-09",
+    jamBerangkat: "14:00",
+    jamKembali: "",
+    rute: "Perairan Mamuju - Pos Pantai",
+    tujuan: "Patroli sore",
+    jenisUnit: "RIB 9 M",
+    nahkoda: "Rizky Pratama",
+    jumlahPersonel: 3,
+    bbmSebelum: "85%",
+    bbmSesudah: "",
+    status: "Dijadwalkan",
+    catatan: "Dijadwalkan untuk shift sore",
+  },
+];
+
+// -----------------------------------------------------------------------------
+// 12. CHECKLIST HARIAN (HASIL PENGECEKAN)
+// -----------------------------------------------------------------------------
+
+export type KondisiHasil = "Baik" | "Rusak Ringan" | "Rusak Berat" | "Belum Diperiksa";
+
+/** Hasil pemeriksaan satu item pada sebuah checklist harian. */
+export interface ItemHasilPengecekan {
+  label: string;
+  wajib: boolean;
+  kondisi: KondisiHasil;
+  keterangan: string;
+}
+
+export interface ChecklistHarian {
+  id: string;
+  tanggal: string;
+  unit: string;
+  jenisUnit: "Kapal" | "Mobil" | "Motor" | "Perahu";
+  /** Template asal checklist ini, dipakai untuk melihat daftar item standar. */
+  templateId?: string;
+  pemeriksa: string;
+  status: "Lengkap" | "Belum Lengkap";
+  /** Item yang benar-benar sudah diperiksa (dihitung dari `items`). */
+  itemChecked: number;
+  /** Total item pada template asal checklist ini. */
+  itemTotal: number;
+  /** Rincian hasil per item. */
+  items: ItemHasilPengecekan[];
+  catatan: string;
+}
+
+export const checklistHarianList: ChecklistHarian[] = [
+  {
+    id: "chk-001",
+    tanggal: "2026-10-08",
+    unit: "Perahu Karet Zodiac (RIB 9 M)",
+    jenisUnit: "Kapal",
+    templateId: "chk-001",
+    pemeriksa: "Siti Nurhaliza",
+    status: "Lengkap",
+    itemChecked: 6,
+    itemTotal: 6,
+    items: [
+      { label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pompa angin berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Semua oar/paddles lengkap dan utuh", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tali tambat (rope) tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Jacket pelampung cadangan sesuai kapasitas", wajib: false, kondisi: "Baik", keterangan: "" },
+      { label: "Kap alat (tool kit) di dalam perahu", wajib: false, kondisi: "Baik", keterangan: "" },
+    ],
+    catatan: "Semua item kondisi baik, siap operasional",
+  },
+  {
+    id: "chk-002",
+    tanggal: "2026-10-08",
+    unit: "Kendaraan Ransel Toyota Hilux (DA 1234 SAR)",
+    jenisUnit: "Mobil",
+    templateId: "chk-002",
+    pemeriksa: "Ahmad Fauzi",
+    status: "Lengkap",
+    itemChecked: 7,
+    itemTotal: 7,
+    items: [
+      { label: "Mesin menyala dengan normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Bahan bakar penuh minimal 5 liter", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Rem depan dan belakang berfungsi baik", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu utama dan sein menyala", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Ban dalam kondisi baik dan tekanan cukup", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Surat kendaraan dan SIM pengemudi siap", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Peralatan darurat (P3K, segitiga, dongkrak)", wajib: false, kondisi: "Baik", keterangan: "" },
+    ],
+    catatan: "Kendaraan siap operasional, semua sistem normal",
+  },
+  {
+    id: "chk-003",
+    tanggal: "2026-10-08",
+    unit: "Perahu Karet Zodiac (RIB 9 M)",
+    jenisUnit: "Perahu",
+    templateId: "chk-001",
+    pemeriksa: "Dewi Lestari",
+    status: "Lengkap",
+    itemChecked: 6,
+    itemTotal: 6,
+    items: [
+      { label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pompa angin berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Semua oar/paddles lengkap dan utuh", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tali tambat (rope) tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Jacket pelampung cadangan sesuai kapasitas", wajib: false, kondisi: "Baik", keterangan: "" },
+      { label: "Kap alat (tool kit) di dalam perahu", wajib: false, kondisi: "Baik", keterangan: "" },
+    ],
+    catatan: "Semua item tercentang, siap digunakan",
+  },
+  {
+    id: "chk-004",
+    tanggal: "2026-10-08",
+    unit: "Perahu Karet Zodiac (RIB 12 M)",
+    jenisUnit: "Perahu",
+    templateId: "chk-001",
+    pemeriksa: "Budi Santoso",
+    status: "Lengkap",
+    itemChecked: 6,
+    itemTotal: 6,
+    items: [
+      { label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pompa angin berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Semua oar/paddles lengkap dan utuh", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tali tambat (rope) tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Jacket pelampung cadangan sesuai kapasitas", wajib: false, kondisi: "Baik", keterangan: "" },
+      { label: "Kap alat (tool kit) di dalam perahu", wajib: false, kondisi: "Baik", keterangan: "" },
+    ],
+    catatan: "Pemeriksaan rutin, semua baik",
+  },
+  {
+    id: "chk-005",
+    tanggal: "2026-10-07",
+    unit: "Sepeda Motor Honda CRF150L",
+    jenisUnit: "Motor",
+    templateId: "chk-002",
+    pemeriksa: "Medlyn R. Pagali",
+    status: "Belum Lengkap",
+    itemChecked: 4,
+    itemTotal: 7,
+    items: [
+      { label: "Mesin menyala dengan normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Bahan bakar penuh minimal 5 liter", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Rem depan dan belakang berfungsi baik", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu utama dan sein menyala", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Ban dalam kondisi baik dan tekanan cukup", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+      { label: "Surat kendaraan dan SIM pengemudi siap", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+      { label: "Peralatan darurat (P3K, segitiga, dongkrak)", wajib: false, kondisi: "Belum Diperiksa", keterangan: "" },
+    ],
+    catatan: "Tekanan ban depan perlu pengecekan ulang",
+  },
+  {
+    id: "chk-006",
+    tanggal: "2026-10-07",
+    unit: "Perahu Karet Zodiac (RIB 12 M)",
+    jenisUnit: "Perahu",
+    templateId: "chk-001",
+    pemeriksa: "Kauluddin",
+    status: "Lengkap",
+    itemChecked: 6,
+    itemTotal: 6,
+    items: [
+      { label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pompa angin berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Semua oar/paddles lengkap dan utuh", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tali tambat (rope) tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Jacket pelampung cadangan sesuai kapasitas", wajib: false, kondisi: "Baik", keterangan: "" },
+      { label: "Kap alat (tool kit) di dalam perahu", wajib: false, kondisi: "Baik", keterangan: "" },
+    ],
+    catatan: "Unit siap untuk operasi besok",
+  },
+];
+
 // Helper Functions
 // -----------------------------------------------------------------------------
+
+export function getApprovalById(id: string): Approval | undefined {
+  return approvalList.find((a) => a.id === id);
+}
+
+export function getChecklistHarianById(id: string): ChecklistHarian | undefined {
+  return checklistHarianList.find((c) => c.id === id);
+}
+
+export function getLogbookPerjalananById(id: string): LogbookPerjalanan | undefined {
+  return logbookPerjalananList.find((l) => l.id === id);
+}
 
 export function getUserById(id: string): User | undefined {
   return users.find((u) => u.id === id);

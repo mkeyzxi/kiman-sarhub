@@ -8,6 +8,7 @@ import {
   Input,
   Select,
   Label,
+  Textarea,
 } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { users } from "@/components/shared/mock-data";
@@ -21,6 +22,7 @@ export default function TambahAsetPage() {
     kondisi: "" as string,
     tanggalPerkiraan: "",
     penanggungJawab: "",
+    keterangan: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -162,6 +164,29 @@ export default function TambahAsetPage() {
                 ))}
               </Select>
             </div>
+          </div>
+        </Card>
+
+        {/* Keterangan */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">
+            Keterangan
+          </h2>
+          <div className="space-y-2">
+            <Label htmlFor="keterangan">Catatan / Keterangan Aset</Label>
+            <Textarea
+              id="keterangan"
+              rows={4}
+              placeholder="Contoh: Unit Allison Transmission, digunakan untuk operasi di perairan terbuka."
+              value={formData.keterangan}
+              onChange={(e) =>
+                setFormData({ ...formData, keterangan: e.target.value })
+              }
+            />
+            <p className="text-xs text-slate-500">
+              Keterangan singkat tentang spesifikasi, fungsi, atau catatan
+              khusus aset ini.
+            </p>
           </div>
         </Card>
 

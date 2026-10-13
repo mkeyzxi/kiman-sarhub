@@ -32,89 +32,9 @@ import {
 import { Input, Select } from "@/components/ui/input";
 import { checklistTemplates, getUserById } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
+import { checklistHarianList } from "@/components/shared/mock-data";
 
 // ─── Data Checklist Perawatan ────────────────────────────────────────────────
-interface ChecklistHarian {
-  id: string;
-  tanggal: string;
-  unit: string;
-  jenisUnit: "Kapal" | "Mobil" | "Motor" | "Perahu";
-  pemeriksa: string;
-  status: "Lengkap" | "Belum Lengkap";
-  itemChecked: number;
-  itemTotal: number;
-  catatan: string;
-}
-
-const checklistHarianData: ChecklistHarian[] = [
-  {
-    id: "chk-001",
-    tanggal: "2026-10-08",
-    unit: "KN SAR MAMUJU 01",
-    jenisUnit: "Kapal",
-    pemeriksa: "Siti Nurhaliza",
-    status: "Lengkap",
-    itemChecked: 27,
-    itemTotal: 27,
-    catatan: "Semua item kondisi baik, siap operasional",
-  },
-  {
-    id: "chk-002",
-    tanggal: "2026-10-08",
-    unit: "Toyota Hilux (DA 1234 SAR)",
-    jenisUnit: "Mobil",
-    pemeriksa: "Ahmad Fauzi",
-    status: "Lengkap",
-    itemChecked: 28,
-    itemTotal: 28,
-    catatan: "Kendaraan siap operasional, semua sistem normal",
-  },
-  {
-    id: "chk-003",
-    tanggal: "2026-10-08",
-    unit: "RIB 9 M",
-    jenisUnit: "Perahu",
-    pemeriksa: "Dewi Lestari",
-    status: "Lengkap",
-    itemChecked: 17,
-    itemTotal: 17,
-    catatan: "Perahu karet siap, mesin normal",
-  },
-  {
-    id: "chk-004",
-    tanggal: "2026-10-07",
-    unit: "KN SAR MAMUJU 01",
-    jenisUnit: "Kapal",
-    pemeriksa: "Budi Santoso",
-    status: "Lengkap",
-    itemChecked: 27,
-    itemTotal: 27,
-    catatan: "Pemeriksaan rutin, semua baik",
-  },
-  {
-    id: "chk-005",
-    tanggal: "2026-10-07",
-    unit: "Honda CRF150L",
-    jenisUnit: "Motor",
-    pemeriksa: "Medlyn R. Pagali",
-    status: "Belum Lengkap",
-    itemChecked: 24,
-    itemTotal: 28,
-    catatan: "Ban depan perlu tekanan ulang, akan diperbaiki besok",
-  },
-  {
-    id: "chk-006",
-    tanggal: "2026-10-07",
-    unit: "RIB 12 M",
-    jenisUnit: "Perahu",
-    pemeriksa: "Kauluddin",
-    status: "Lengkap",
-    itemChecked: 17,
-    itemTotal: 17,
-    catatan: "Unit siap untuk operasi besok",
-  },
-];
-
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   label: string;
@@ -146,7 +66,7 @@ export default function ChecklistPerawatanPage() {
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
 
-  const filteredChecklist = checklistHarianData.filter((item) => {
+  const filteredChecklist = checklistHarianList.filter((item) => {
     const matchSearch =
       item.unit.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.pemeriksa.toLowerCase().includes(searchQuery.toLowerCase());
@@ -155,9 +75,9 @@ export default function ChecklistPerawatanPage() {
     return matchSearch && matchStatus && matchJenis;
   });
 
-  const totalChecklist = checklistHarianData.length;
-  const checklistLengkap = checklistHarianData.filter((c) => c.status === "Lengkap").length;
-  const checklistBelumLengkap = checklistHarianData.filter((c) => c.status === "Belum Lengkap").length;
+  const totalChecklist = checklistHarianList.length;
+  const checklistLengkap = checklistHarianList.filter((c) => c.status === "Lengkap").length;
+  const checklistBelumLengkap = checklistHarianList.filter((c) => c.status === "Belum Lengkap").length;
 
   return (
     <div className="space-y-6">
@@ -169,10 +89,12 @@ export default function ChecklistPerawatanPage() {
             Pemeriksaan harian dan perawatan unit SAR
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Buat Checklist
-        </Button>
+        <Link href="/operator/checklist/buat">
+          <Button>
+            <Plus className="h-4 w-4" />
+            Buat Checklist
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}
@@ -333,13 +255,17 @@ export default function ChecklistPerawatanPage() {
                   {template.items.length} item pemeriksaan
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Eye className="h-3 w-3 mr-1" />
-                    Lihat
-                  </Button>
-                  <Button size="sm" className="flex-1">
-                    Gunakan
-                  </Button>
+                  <Link href="/operator/checklist" className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Eye className="h-3 w-3 mr-1" />
+                      Lihat
+                    </Button>
+                  </Link>
+                  <Link href="/operator/checklist/buat" className="flex-1">
+                    <Button size="sm" className="w-full">
+                      Gunakan
+                    </Button>
+                  </Link>
                 </div>
               </div>
             ))}
