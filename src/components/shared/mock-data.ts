@@ -819,101 +819,142 @@ export interface LogAktivitas {
 export const logAktivitas: LogAktivitas[] = [
   {
     id: "log-001",
-    userId: "usr-001",
-    aksi: "LOGIN",
-    target: "Sistem",
-    tanggal: "2026-09-28T06:00:00",
-    detail: "Login berhasil dari IP 10.10.1.15",
+    userId: "usr-005",
+    aksi: "UPDATE_JURNAL_SIAGA",
+    target: "Jurnal Siaga Rutin",
+    tanggal: "2026-10-08T17:00:00",
+    detail: "Jurnal Siaga Rutin 8 Oktober 2026 diperbarui — Shift Pagi",
   },
   {
     id: "log-002",
-    userId: "usr-001",
-    aksi: "TAMBAH_ASET",
-    target: "ast-012",
-    tanggal: "2026-09-28T07:15:00",
-    detail: "Menambahkan aset baru: Winch Recovery 12000 lbs",
+    userId: "usr-006",
+    aksi: "SETOR_CHECKLIST",
+    target: "Checklist RIB 12M",
+    tanggal: "2026-10-08T08:30:00",
+    detail: "Checklist RIB 12 M jam 08.00 disetor — semua item OK",
   },
   {
     id: "log-003",
-    userId: "usr-002",
-    aksi: "VERIFIKASI_ASET",
-    target: "ver-002",
-    tanggal: "2026-09-28T08:30:00",
-    detail: "Menyetujui laporan kerusakan Tenda Medis - Rusak Ringan",
+    userId: "usr-008",
+    aksi: "UPDATE_LOGBOOK",
+    target: "Logbook Motor",
+    tanggal: "2026-10-08T09:00:00",
+    detail: "Logbook RESCUE MOTORCYCLE (Honda CRF150L) diperiksa harian",
   },
   {
     id: "log-004",
-    userId: "usr-005",
-    aksi: "PINJAM_ASET",
-    target: "ast-003",
-    tanggal: "2026-09-28T09:00:00",
-    detail: "Meminjam Radio HT Motorola GP328 hingga 30 September 2026",
+    userId: "usr-007",
+    aksi: "UPDATE_CHECKLIST",
+    target: "Checklist Medis",
+    tanggal: "2026-10-07T16:00:00",
+    detail: "Checklist harian peralatan medis disetor — P3K lengkap, AED baterai 100%",
   },
   {
     id: "log-005",
-    userId: "usr-004",
-    aksi: "UPDATE_ASET",
-    target: "ast-010",
-    tanggal: "2026-09-28T10:45:00",
-    detail: "Update firmware drone DJI Mavic 3 Classic",
+    userId: "usr-005",
+    aksi: "ABSENSI_SIAGA",
+    target: "Absensi Shift",
+    tanggal: "2026-10-07T07:00:00",
+    detail: "Absensi shift pagi — 6 personel hadir, 0 tidak hadir",
   },
   {
     id: "log-006",
     userId: "usr-006",
-    aksi: "BUAT_TICKET",
-    target: "ews-003",
-    tanggal: "2026-09-28T11:20:00",
-    detail: "Membuat EWS ticket: Radio HT Baterai Cepat Habis",
+    aksi: "SETOR_CHECKLIST",
+    target: "Checklist Perahu Karet",
+    tanggal: "2026-10-07T08:15:00",
+    detail: "Checklist harian Perahu Karet Zodiac MK III — hull OK, pompa OK",
   },
   {
     id: "log-007",
-    userId: "usr-002",
-    aksi: "UPDATE_STATUS",
-    target: "ews-001",
-    tanggal: "2026-09-28T13:00:00",
-    detail: "Update status ticket menjadi Diproses",
+    userId: "usr-001",
+    aksi: "UPDATE_LOGBOOK",
+    target: "Logbook Mobil",
+    tanggal: "2026-10-06T10:00:00",
+    detail: "Logbook Toyota Hilux — kembali dari bengkel, status Siaga",
   },
   {
     id: "log-008",
-    userId: "usr-001",
-    aksi: "KEMBALIKAN_ASET",
-    target: "ast-001",
-    tanggal: "2026-09-28T14:30:00",
-    detail: "Perahu Karet Zodiac dikembalikan ke gudang, status Siaga",
+    userId: "usr-005",
+    aksi: "UPDATE_JURNAL_SIAGA",
+    target: "Jurnal Siaga Rutin",
+    tanggal: "2026-10-06T17:00:00",
+    detail: "Jurnal Siaga Rutin 6 Oktober 2026 — Shift Sore, kondisi normal",
   },
   {
     id: "log-009",
-    userId: "usr-003",
-    aksi: "HAPUS_ASET",
-    target: "ast-009",
-    tanggal: "2026-09-28T15:00:00",
-    detail: "Mengarsipkan kamera DSLR Canon EOS 90D untuk maintenance lensa",
+    userId: "usr-007",
+    aksi: "SETOR_CHECKLIST",
+    target: "Checklist Komunikasi",
+    tanggal: "2026-10-05T09:00:00",
+    detail: "Checklist komunikasi — Radio HT OK, GPS Garmin terkoneksi satelit",
   },
   {
     id: "log-010",
-    userId: "usr-007",
-    aksi: "UPDATE_CHECKLIST",
-    target: "chk-003",
-    tanggal: "2026-09-28T16:00:00",
-    detail: "Memperbarui checklist kesiapan peralatan medis",
+    userId: "usr-006",
+    aksi: "PEMANASAN_RIB",
+    target: "RIB 9M",
+    tanggal: "2026-10-05T07:30:00",
+    detail: "Pemanasan mesin RIB 9M — RPM stabil, oli cukup, BBM 80%",
   },
   {
     id: "log-011",
-    userId: "usr-002",
-    aksi: "TOLAK_VERIFIKASI",
-    target: "ver-004",
-    tanggal: "2026-09-28T16:30:00",
-    detail: "Menolak pengajuan Thermal Imaging Camera karena melebihi pagu anggaran",
+    userId: "usr-008",
+    aksi: "ABSENSI_SIAGA",
+    target: "Absensi Shift",
+    tanggal: "2026-10-04T07:00:00",
+    detail: "Absensi shift pagi — 5 personel hadir, 1 cuti",
   },
   {
     id: "log-012",
-    userId: "usr-004",
-    aksi: "EXPORT_DATA",
-    target: "Aset",
-    tanggal: "2026-09-28T17:00:00",
-    detail: "Mengexport data aset BMN ke format Excel",
+    userId: "usr-005",
+    aksi: "SETOR_CHECKLIST",
+    target: "Checklist Selam",
+    tanggal: "2026-10-04T08:00:00",
+    detail: "Inspeksi peralatan selam — tabung 200 bar, regulator OK",
   },
 ];
+
+// -----------------------------------------------------------------------------
+// 7b. RIWAYAT OPERASI (Event Log — bukan statistik)
+// -----------------------------------------------------------------------------
+
+export type HasilOperasi = "Berhasil" | "Sebagian Berhasil" | "Tidak Berhasil";
+
+export interface RiwayatOperasi {
+  id: string;
+  tanggal: string;
+  jenis: string;
+  lokasi: string;
+  durasi: string;
+  personel: number;
+  hasil: HasilOperasi;
+  keterangan?: string;
+}
+
+export const riwayatOperasi: RiwayatOperasi[] = [
+  {
+    id: "op-001",
+    tanggal: "2026-10-02",
+    jenis: "Evakuasi Korban Tenggelam",
+    lokasi: "Desa Binanga, Mamuju",
+    durasi: "4 jam",
+    personel: 6,
+    hasil: "Berhasil",
+    keterangan: "1 korban dievakuasi selamat. Tim menggunakan RIB 12M dan peralatan selam.",
+  },
+  {
+    id: "op-002",
+    tanggal: "2026-09-15",
+    jenis: "Pencarian Korban Hilang",
+    lokasi: "Pantai Karampuang, Mamuju",
+    durasi: "2 jam",
+    personel: 3,
+    hasil: "Berhasil",
+    keterangan: "Korban ditemukan di area pantai selatan. Koordinasi dengan nelayan lokal.",
+  },
+];
+
 
 // -----------------------------------------------------------------------------
 // 8. READINESS STATS (Dashboard Eksekutif)

@@ -10,14 +10,10 @@ import {
   Settings,
   Activity,
   CheckCircle2,
-  XCircle,
   Clock,
   Eye,
   Pencil,
   Trash2,
-  MoreVertical,
-  Download,
-  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -401,35 +397,6 @@ export default function AdminPage() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            Aksi Cepat
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Button variant="outline" className="justify-start gap-2">
-              <Download className="h-4 w-4" />
-              Export Data
-            </Button>
-            <Button variant="outline" className="justify-start gap-2">
-              <Filter className="h-4 w-4" />
-              Filter Log
-            </Button>
-            <Button variant="outline" className="justify-start gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Verifikasi User
-            </Button>
-            <Button variant="outline" className="justify-start gap-2">
-              <XCircle className="h-4 w-4" />
-              Blokir User
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
