@@ -2,23 +2,15 @@
 
 import Link from "next/link";
 import {
-  Map,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Ship,
-  Package,
-  Users,
-  Fuel,
-  ArrowUpRight,
-  ArrowDownRight,
   Activity,
   ShieldCheck,
+  Users,
+  CheckCircle2,
   ClipboardList,
-  Eye,
+  Clock,
+  ArrowUpRight,
+  MapPin,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,24 +25,22 @@ import {
 } from "@/components/ui/table";
 import {
   readinessStats,
-  asetList,
   complianceRanking,
   notifikasiList,
   formatTanggal,
   getUserById,
   logAktivitas,
+  riwayatOperasi,
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, iconBg, iconColor, trend, trendValue }: {
+function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
   iconBg: string;
   iconColor: string;
-  trend?: "up" | "down";
-  trendValue?: string;
 }) {
   return (
     <Card className="p-6">
@@ -61,100 +51,11 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, trend, trendVal
         <div className="flex-1">
           <p className="text-2xl font-bold text-slate-800">{value}</p>
           <p className="text-sm text-slate-500">{label}</p>
-          {trend && (
-            <div className={cn("flex items-center gap-1 text-xs mt-1", trend === "up" ? "text-emerald-600" : "text-rose-600")}>
-              {trend === "up" ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {trendValue}
-            </div>
-          )}
         </div>
       </div>
     </Card>
   );
 }
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-      {children}
-    </h2>
-  );
-}
-
-// ─── Data Peta Kesiapsiagaan ─────────────────────────────────────────────────
-const petaKesiapsiagaan = [
-  {
-    id: "lok-01",
-    nama: "Pos SAR Mamuju",
-    lat: -2.6745,
-    lng: 118.8885,
-    status: "Aktif",
-    personel: 5,
-    kendaraan: 2,
-    perahu: 1,
-  },
-  {
-    id: "lok-02",
-    nama: "Basecamp Binanga",
-    lat: -2.7123,
-    lng: 118.9234,
-    status: "Aktif",
-    personel: 3,
-    kendaraan: 1,
-    perahu: 1,
-  },
-  {
-    id: "lok-03",
-    nama: "Pos Pantai Karampuang",
-    lat: -2.5890,
-    lng: 118.8456,
-    status: "Standby",
-    personel: 2,
-    kendaraan: 1,
-    perahu: 0,
-  },
-  {
-    id: "lok-04",
-    nama: "Pos Pegunungan",
-    lat: -2.7456,
-    lng: 118.9567,
-    status: "Aktif",
-    personel: 4,
-    kendaraan: 2,
-    perahu: 0,
-  },
-];
-
-// ─── Data Laporan ─────────────────────────────────────────────────────────────
-const laporanBulanan = [
-  {
-    id: "lap-01",
-    bulan: "September 2024",
-    totalOperasi: 12,
-    operasiBerhasil: 10,
-    operasiGagal: 2,
-    personelTerlibat: 45,
-    kendaraanTerpakai: 8,
-  },
-  {
-    id: "lap-02",
-    bulan: "Oktober 2024",
-    totalOperasi: 8,
-    operasiBerhasil: 7,
-    operasiGagal: 1,
-    personelTerlibat: 32,
-    kendaraanTerpakai: 6,
-  },
-  {
-    id: "lap-03",
-    bulan: "November 2024",
-    totalOperasi: 15,
-    operasiBerhasil: 13,
-    operasiGagal: 2,
-    personelTerlibat: 58,
-    kendaraanTerpakai: 10,
-  },
-];
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PimpinanPage() {
@@ -168,20 +69,18 @@ export default function PimpinanPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Dashboard Pimpinan</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Monitoring kesiapan SAR dan laporan operasional
+          Monitoring kesiapsiagaan SAR dan catatan operasional
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards — 3 kartu readiness, tanpa angka operasi */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="Readiness Index"
           value={`${readinessIndex}%`}
           icon={Activity}
           iconBg="bg-primary-light"
           iconColor="text-primary"
-          trend="up"
-          trendValue="2.3% dari bulan lalu"
         />
         <StatCard
           label="Aset Siaga"
@@ -189,15 +88,6 @@ export default function PimpinanPage() {
           icon={ShieldCheck}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-        />
-        <StatCard
-          label="Operasi Bulan Ini"
-          value={12}
-          icon={Ship}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-          trend="up"
-          trendValue="3 operasi baru"
         />
         <StatCard
           label="Personel Siaga"
@@ -212,7 +102,7 @@ export default function PimpinanPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+            <ShieldCheck className="h-5 w-5 text-primary" />
             Kesiapan per Kategori Aset
           </CardTitle>
         </CardHeader>
@@ -240,90 +130,6 @@ export default function PimpinanPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Peta Kesiapsiagaan */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Map className="h-5 w-5 text-primary" />
-                Peta Kesiapsiagaan
-              </CardTitle>
-              <Link href="/pimpinan/peta">
-                <Button variant="ghost" size="sm">
-                  Lihat Peta
-                  <ArrowUpRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {petaKesiapsiagaan.map((lokasi) => (
-                <div key={lokasi.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-3 h-3 rounded-full", lokasi.status === "Aktif" ? "bg-emerald-500" : "bg-amber-500")} />
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">{lokasi.nama}</p>
-                      <p className="text-xs text-slate-500">
-                        {lokasi.personel} personel • {lokasi.kendaraan} kendaraan
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant={lokasi.status === "Aktif" ? "success" : "warning"}>
-                    {lokasi.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Laporan Bulanan */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Laporan Bulanan
-              </CardTitle>
-              <Link href="/pimpinan/laporan">
-                <Button variant="ghost" size="sm">
-                  Detail
-                  <ArrowUpRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {laporanBulanan.map((laporan) => (
-                <div key={laporan.id} className="p-4 bg-slate-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium text-slate-800">{laporan.bulan}</h3>
-                    <Badge variant="outline">{laporan.totalOperasi} Operasi</Badge>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs text-slate-500">Berhasil</p>
-                      <p className="font-semibold text-emerald-600">{laporan.operasiBerhasil}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Gagal</p>
-                      <p className="font-semibold text-rose-600">{laporan.operasiGagal}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Personel</p>
-                      <p className="font-semibold text-slate-700">{laporan.personelTerlibat}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Compliance Ranking */}
       <Card>
@@ -395,6 +201,67 @@ export default function PimpinanPage() {
         </CardContent>
       </Card>
 
+      {/* Riwayat Operasi — event log, bukan statistik */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Riwayat Operasi
+            </CardTitle>
+            <Link href="/pimpinan/laporan">
+              <Button variant="ghost" size="sm">
+                Lihat Semua
+                <ArrowUpRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {riwayatOperasi.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Belum ada operasi tercatat</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {riwayatOperasi.map((op) => (
+                <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
+                  <div className="text-center shrink-0">
+                    <p className="text-lg font-bold text-slate-800">
+                      {new Date(op.tanggal).getDate()}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {new Date(op.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">{op.jenis}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> {op.lokasi}
+                      </span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> {op.durasi}
+                      </span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Users className="h-3 w-3" /> {op.personel} personel
+                      </span>
+                    </div>
+                    {op.keterangan && (
+                      <p className="text-xs text-slate-400 mt-1">{op.keterangan}</p>
+                    )}
+                  </div>
+                  <Badge variant={op.hasil === "Berhasil" ? "success" : op.hasil === "Sebagian Berhasil" ? "warning" : "danger"}>
+                    {op.hasil}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Notifikasi Terbaru */}
       <Card>
         <CardHeader>
@@ -447,7 +314,7 @@ export default function PimpinanPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-800">
                       <span className="font-medium">{user?.nama}</span>
-                      {" "}<span className="text-slate-500">{log.aksi.replace(/_/g, " ")}</span>
+                      {" "}<span className="text-slate-500">{log.aksi.replace(/_/g, " ").toLowerCase()}</span>
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">{log.detail}</p>
                     <p className="text-xs text-slate-400 mt-1">{formatTanggal(log.tanggal)}</p>

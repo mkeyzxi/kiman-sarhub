@@ -14,6 +14,7 @@ import {
   Ship,
   Package,
   Car,
+  Bike,
   Wrench,
   Calendar,
 } from "lucide-react";
@@ -37,7 +38,7 @@ interface ChecklistHarian {
   id: string;
   tanggal: string;
   unit: string;
-  jenisUnit: "Kapal" | "Kendaraan" | "Perahu";
+  jenisUnit: "Kapal" | "Mobil" | "Motor" | "Perahu";
   pemeriksa: string;
   status: "Lengkap" | "Belum Lengkap";
   itemChecked: number;
@@ -61,7 +62,7 @@ const checklistHarianData: ChecklistHarian[] = [
     id: "chk-002",
     tanggal: "2026-10-08",
     unit: "Toyota Hilux (DA 1234 SAR)",
-    jenisUnit: "Kendaraan",
+    jenisUnit: "Mobil",
     pemeriksa: "Ahmad Fauzi",
     status: "Lengkap",
     itemChecked: 28,
@@ -94,7 +95,7 @@ const checklistHarianData: ChecklistHarian[] = [
     id: "chk-005",
     tanggal: "2026-10-07",
     unit: "Honda CRF150L",
-    jenisUnit: "Kendaraan",
+    jenisUnit: "Motor",
     pemeriksa: "Medlyn R. Pagali",
     status: "Belum Lengkap",
     itemChecked: 24,
@@ -219,7 +220,8 @@ export default function ChecklistPerawatanPage() {
           >
             <option value="Semua">Semua Jenis</option>
             <option value="Kapal">Kapal</option>
-            <option value="Kendaraan">Kendaraan</option>
+            <option value="Mobil">Mobil</option>
+            <option value="Motor">Motor</option>
             <option value="Perahu">Perahu</option>
           </Select>
           <Select
@@ -258,7 +260,8 @@ export default function ChecklistPerawatanPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {item.jenisUnit === "Kapal" && <Ship className="h-4 w-4 text-blue-500" />}
-                        {item.jenisUnit === "Kendaraan" && <Car className="h-4 w-4 text-emerald-500" />}
+                        {item.jenisUnit === "Mobil" && <Car className="h-4 w-4 text-emerald-500" />}
+                        {item.jenisUnit === "Motor" && <Bike className="h-4 w-4 text-orange-500" />}
                         {item.jenisUnit === "Perahu" && <Package className="h-4 w-4 text-amber-500" />}
                         <span className="font-medium text-slate-800">{item.unit}</span>
                       </div>

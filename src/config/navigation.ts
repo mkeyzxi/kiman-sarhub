@@ -10,7 +10,6 @@ import {
   ClipboardCheck,
   FileText,
   Settings,
-  Map,
   BarChart3,
   Users,
   type LucideIcon,
@@ -69,7 +68,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
     {
       title: "Monitoring",
       items: [
-        { href: "/pimpinan", label: "Peta Kesiapsiagaan", icon: Map },
+        { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
       ],
     },
@@ -92,7 +91,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
     {
       title: "Monitoring",
       items: [
-        { href: "/pimpinan", label: "Peta Kesiapsiagaan", icon: Map },
+        { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
       ],
     },
@@ -101,7 +100,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
     {
       title: "Monitoring",
       items: [
-        { href: "/pimpinan", label: "Peta Kesiapsiagaan", icon: Map },
+        { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
       ],
     },
