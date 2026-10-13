@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 import Link from "next/link";
 import {
   Activity,
+  BarChart3,
   ShieldCheck,
   Users,
-  CheckCircle2,
   ClipboardList,
   Clock,
   ArrowUpRight,
@@ -25,14 +27,28 @@ import {
 } from "@/components/ui/table";
 import {
   readinessStats,
+  asetList,
   complianceRanking,
   notifikasiList,
   formatTanggal,
   getUserById,
   logAktivitas,
   riwayatOperasi,
+  type StatusAset,
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
+
+const statusAsetVariant: Record<
+  StatusAset,
+  "success" | "default" | "warning" | "danger" | "outline"
+> = {
+  Siaga: "success",
+  Operasi: "default",
+  Dipinjam: "warning",
+  Maintenance: "warning",
+  Rusak: "danger",
+  "Tidak Siap": "danger",
+};
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
@@ -59,9 +75,19 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PimpinanPage() {
+  const [asetFilter, setAsetFilter] = useState<"Semua" | "Siaga" | "Belum Lengkap">("Semua");
+
   const asetSiaga = readinessStats.siaga;
   const totalAset = readinessStats.totalAset;
   const readinessIndex = readinessStats.readinessIndex;
+
+  // Status aset yang dihitung "lengkap" = benar-benar siap operasional.
+  const SIAGA = ["Siaga", "Operasi"] as const;
+  const filteredAset = asetList.filter((aset) => {
+    if (asetFilter === "Siaga") return SIAGA.includes(aset.status as (typeof SIAGA)[number]);
+    if (asetFilter === "Belum Lengkap") return !SIAGA.includes(aset.status as (typeof SIAGA)[number]);
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -98,11 +124,100 @@ export default function PimpinanPage() {
         />
       </div>
 
+      {/* Rincian Aset Siaga &amp; Tidak Lengkap */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Rincian Kesiapan Aset
+            </CardTitle>
+            <div className="flex gap-1">
+              {(["Semua", "Siaga", "Belum Lengkap"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setAsetFilter(f)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    asetFilter === f
+                      ? "bg-primary text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="w-32">Kode</TableHead>
+                <TableHead>Nama Aset</TableHead>
+                <TableHead className="w-36">Kategori</TableHead>
+                <TableHead className="w-28">Kondisi</TableHead>
+                <TableHead className="w-32">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAset.map((aset) => (
+                <TableRow key={aset.id}>
+                  <TableCell className="font-mono text-xs text-slate-600">
+                    {aset.kode}
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/bmn/${aset.id}`}
+                      className="font-medium text-slate-800 hover:text-primary hover:underline"
+                    >
+                      {aset.nama}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {aset.kategori}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        aset.kondisi === "Baik"
+                          ? "success"
+                          : aset.kondisi === "Rusak Ringan"
+                            ? "warning"
+                            : "danger"
+                      }
+                      className="text-xs"
+                    >
+                      {aset.kondisi}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusAsetVariant[aset.status]} className="text-xs">
+                      {aset.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredAset.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-slate-500">
+                    Tidak ada aset pada filter ini.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Kesiapan per Kategori */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+            <BarChart3 className="h-5 w-5 text-primary" />
             Kesiapan per Kategori Aset
           </CardTitle>
         </CardHeader>

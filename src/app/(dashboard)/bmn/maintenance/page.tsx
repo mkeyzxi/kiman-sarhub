@@ -10,9 +10,7 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  XCircle,
   Calendar,
-  User,
   Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +25,8 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Input, Select } from "@/components/ui/input";
-import { ewsTickets, getAsetById, getUserById, formatTanggal } from "@/components/shared/mock-data";
+import { getAsetById, getUserById, formatTanggal } from "@/components/shared/mock-data";
+import { useTickets } from "@/components/shared/ticket-store";
 import { cn } from "@/lib/utils";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -57,11 +56,12 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function TiketMaintenancePage() {
+  const tickets = useTickets();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
 
-  const filteredTickets = ewsTickets.filter((ticket) => {
+  const filteredTickets = tickets.filter((ticket) => {
     const matchSearch =
       ticket.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.deskripsi.toLowerCase().includes(searchQuery.toLowerCase());
@@ -70,10 +70,10 @@ export default function TiketMaintenancePage() {
     return matchSearch && matchStatus && matchTingkat;
   });
 
-  const totalTickets = ewsTickets.length;
-  const ticketsMenunggu = ewsTickets.filter((t) => t.status === "Menunggu").length;
-  const ticketsDiproses = ewsTickets.filter((t) => t.status === "Diproses").length;
-  const ticketsSelesai = ewsTickets.filter((t) => t.status === "Selesai").length;
+  const totalTickets = tickets.length;
+  const ticketsMenunggu = tickets.filter((t) => t.status === "Menunggu").length;
+  const ticketsDiproses = tickets.filter((t) => t.status === "Diproses").length;
+  const ticketsSelesai = tickets.filter((t) => t.status === "Selesai").length;
 
   return (
     <div className="space-y-6">
@@ -85,10 +85,12 @@ export default function TiketMaintenancePage() {
             Kelola tiket perbaikan dan maintenance aset
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Buat Tiket
-        </Button>
+        <Link href="/bmn/maintenance/buat">
+          <Button>
+            <Plus className="h-4 w-4" />
+            Buat Tiket
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}
@@ -168,6 +170,7 @@ export default function TiketMaintenancePage() {
                 <TableHead>Judul</TableHead>
                 <TableHead>Aset</TableHead>
                 <TableHead className="text-center">Tingkat</TableHead>
+                <TableHead>Petugas</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tanggal</TableHead>
                 <TableHead className="text-center">Aksi</TableHead>
@@ -196,6 +199,9 @@ export default function TiketMaintenancePage() {
                           <p className="text-xs text-slate-400">{aset?.kode}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600">
+                      {assignedTo?.nama ?? "-"}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
@@ -228,9 +234,11 @@ export default function TiketMaintenancePage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Link href={`/bmn/maintenance/${ticket.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -258,7 +266,7 @@ export default function TiketMaintenancePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {ewsTickets
+            {tickets
               .filter((t) => t.tingkatKeparahan === "Tinggi")
               .map((ticket) => {
                 const aset = getAsetById(ticket.asetId);

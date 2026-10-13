@@ -1,0 +1,254 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  Bike,
+  Car,
+  Ship,
+  Package,
+  ClipboardCheck,
+  Calendar,
+  User,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  getChecklistHarianById,
+  checklistTemplates,
+  formatTanggal,
+  type KondisiHasil,
+} from "@/components/shared/mock-data";
+import { cn } from "@/lib/utils";
+
+const unitIcon = {
+  Kapal: Ship,
+  Mobil: Car,
+  Motor: Bike,
+  Perahu: Package,
+} as const;
+
+const kondisiVariant: Record<KondisiHasil, "success" | "warning" | "danger" | "outline"> = {
+  Baik: "success",
+  "Rusak Ringan": "warning",
+  "Rusak Berat": "danger",
+  "Belum Diperiksa": "outline",
+};
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function DetailChecklistPage({ params }: PageProps) {
+  const { id } = await params;
+  const checklist = getChecklistHarianById(id);
+
+  if (!checklist) {
+    notFound();
+  }
+
+  const Icon = unitIcon[checklist.jenisUnit] ?? Package;
+  const template = checklistTemplates.find((t) => t.id === checklist.templateId);
+  const persen =
+    checklist.itemTotal > 0
+      ? Math.round((checklist.itemChecked / checklist.itemTotal) * 100)
+      : 0;
+
+  const rusakCount = checklist.items.filter(
+    (i) => i.kondisi === "Rusak Ringan" || i.kondisi === "Rusak Berat"
+  ).length;
+  const belumCount = checklist.items.filter(
+    (i) => i.kondisi === "Belum Diperiksa"
+  ).length;
+
+  const info = [
+    { icon: Calendar, label: "Tanggal", value: formatTanggal(checklist.tanggal) },
+    { icon: User, label: "Pemeriksa", value: checklist.pemeriksa },
+    { icon: ClipboardCheck, label: "Template", value: template?.nama ?? "-" },
+    {
+      icon: CheckCircle2,
+      label: "Item Diperiksa",
+      value: `${checklist.itemChecked} / ${checklist.itemTotal}`,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/operator/checklist"
+            aria-label="Kembali ke daftar checklist"
+            className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary-light">
+              <Icon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">
+                Detail Checklist
+              </h1>
+              <p className="mt-0.5 text-sm text-slate-500">{checklist.unit}</p>
+            </div>
+          </div>
+        </div>
+        <Badge
+          variant={checklist.status === "Lengkap" ? "success" : "warning"}
+          className="w-fit px-3 py-1 text-sm"
+        >
+          {checklist.status}
+        </Badge>
+      </div>
+
+      {/* Ringkasan */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            Ringkasan Pemeriksaan
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {info.map((item) => (
+              <div key={item.label} className="flex items-start gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-light">
+                  <item.icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
+                    {item.label}
+                  </p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {item.value}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+              <span>Progres pengisian</span>
+              <span>
+                {checklist.itemChecked} dari {checklist.itemTotal} item
+              </span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-slate-100">
+              <div
+                className={cn(
+                  "h-2.5 rounded-full transition-all",
+                  persen === 100
+                    ? "bg-emerald-500"
+                    : persen >= 50
+                      ? "bg-amber-500"
+                      : "bg-rose-500"
+                )}
+                style={{ width: `${persen}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="success">
+              {checklist.itemChecked - rusakCount - belumCount} Baik
+            </Badge>
+            {rusakCount > 0 && (
+              <Badge variant="danger">{rusakCount} Rusak</Badge>
+            )}
+            {belumCount > 0 && (
+              <Badge variant="outline">{belumCount} Belum Diperiksa</Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Peringatan belum lengkap */}
+      {belumCount > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <p className="text-sm text-amber-800">
+            Checklist belum lengkap. Terdapat{" "}
+            <strong>{belumCount} item</strong> yang belum diperiksa dan harus
+            dilengkapi sebelum unit dinyatakan siap operasional.
+          </p>
+        </div>
+      )}
+
+      {/* Rincian item */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rincian Item Checklist</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="w-12 text-center">No</TableHead>
+                <TableHead>Item Pemeriksaan</TableHead>
+                <TableHead className="w-24 text-center">Wajib</TableHead>
+                <TableHead className="w-40 text-center">Kondisi</TableHead>
+                <TableHead>Keterangan</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {checklist.items.map((item, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-center text-slate-500">
+                    {i + 1}
+                  </TableCell>
+                  <TableCell className="text-slate-700">{item.label}</TableCell>
+                  <TableCell className="text-center">
+                    {item.wajib ? (
+                      <Badge variant="outline" className="text-xs">
+                        Wajib
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-slate-400">Opsional</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      variant={kondisiVariant[item.kondisi]}
+                      className="text-xs"
+                    >
+                      {item.kondisi}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-600">
+                    {item.keterangan || "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Catatan */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Catatan Pemeriksa</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+            {checklist.catatan || "Tidak ada catatan."}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
