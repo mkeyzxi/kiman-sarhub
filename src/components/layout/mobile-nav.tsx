@@ -88,7 +88,7 @@ export function MobileNav({ role }: { role?: UserRole }) {
               )}
             >
               {isActive && (
-                <span className="absolute left-1/2 top-0 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary" />
+                <span className="absolute left-1/2 top-0 h-0.5 w-8 -translate-x-1/2 rounded-full " />
               )}
               <Icon className="h-5 w-5" />
               <span className="text-[10px] font-medium leading-tight">
