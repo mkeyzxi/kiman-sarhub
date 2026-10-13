@@ -112,7 +112,8 @@ export const users: User[] = [
 // -----------------------------------------------------------------------------
 
 export type KategoriAset =
-  | "Kendaraan"
+  | "Mobil"
+  | "Motor"
   | "Peralatan SAR"
   | "Komunikasi"
   | "Medis"
@@ -292,7 +293,7 @@ export const asetList: Aset[] = [
     id: "ast-007",
     nama: "Kendaraan Ransel Toyota Hilux",
     kode: "BMN-KND-001",
-    kategori: "Kendaraan",
+    kategori: "Mobil",
     status: "Maintenance",
     lokasi: "Bengkel Resmi Toyota Mamuju",
     tanggalPerkiraan: "2026-10-02",
@@ -318,7 +319,7 @@ export const asetList: Aset[] = [
     id: "ast-008",
     nama: "Sepeda Motor Honda CRF150L",
     kode: "BMN-KND-002",
-    kategori: "Kendaraan",
+    kategori: "Motor",
     status: "Siaga",
     lokasi: "Parkiran Utama",
     tanggalPerkiraan: "2026-09-28",
@@ -624,7 +625,7 @@ export const checklistTemplates: ChecklistTemplate[] = [
   {
     id: "chk-002",
     nama: "Checklist Harian - Kendaraan Ransel",
-    kategori: "Kendaraan",
+    kategori: "Mobil",
     periode: "Harian",
     items: [
       { id: "chk-002-01", label: "Mesin menyala dengan normal", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -667,7 +668,7 @@ export const checklistTemplates: ChecklistTemplate[] = [
   {
     id: "chk-005",
     nama: "Checklist Mingguan - Kendaraan",
-    kategori: "Kendaraan",
+    kategori: "Mobil",
     periode: "Mingguan",
     items: [
       { id: "chk-005-01", label: "Kerja AC optimal", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -692,7 +693,7 @@ export const checklistTemplates: ChecklistTemplate[] = [
   {
     id: "chk-006",
     nama: "Checklist Bulanan - Kendaraan",
-    kategori: "Kendaraan",
+    kategori: "Mobil",
     periode: "Bulanan",
     items: [
       { id: "chk-006-01", label: "Winch berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -941,7 +942,8 @@ export const readinessStats: ReadinessStats = {
   maintenance: 1,
   readinessIndex: 58.3,
   kesiapanPerKategori: [
-    { kategori: "Kendaraan", total: 2, siaga: 1, persentase: 50.0 },
+    { kategori: "Mobil", total: 1, siaga: 1, persentase: 100.0 },
+    { kategori: "Motor", total: 1, siaga: 0, persentase: 0.0 },
     { kategori: "Peralatan SAR", total: 4, siaga: 4, persentase: 100.0 },
     { kategori: "Komunikasi", total: 2, siaga: 1, persentase: 50.0 },
     { kategori: "Medis", total: 2, siaga: 1, persentase: 50.0 },

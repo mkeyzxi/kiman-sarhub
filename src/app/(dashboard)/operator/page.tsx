@@ -15,6 +15,8 @@ import {
   Users,
   ChevronRight,
   Wrench,
+  Bike,
+  Car,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { catatanPerbaikanDarat, pengisianBBM_RIB02 } from "@/components/shared/mock-data";
 
 // ─── Data Jurnal Siaga Rutin ─────────────────────────────────────────────────
-const jurnalSiagaRutin = [
+const jurnalSiagaRutinMobil = [
   {
     no: 1,
     jam: "08:00",
@@ -100,20 +102,158 @@ const jurnalSiagaRutin = [
   },
 ];
 
+const jurnalSiagaRutinMotor = [
+  {
+    no: 1,
+    jam: "08:00",
+    uraian: "Apel pagi shift I, briefing tugas dan tanggung jawab",
+    ket: "Hadir 5 orang",
+  },
+  {
+    no: 2,
+    jam: "08:30",
+    uraian: "Pengecekan kelengkapan peralatan SAR di gudang",
+    ket: "Siap",
+  },
+  {
+    no: 3,
+    jam: "09:00",
+    uraian: "Pengecekan kelengkapan motor trail dan perahu karet",
+    ket: "Siap",
+  },
+  {
+    no: 4,
+    jam: "10:00",
+    uraian: "Koordinasi dengan Basarnas Makassar via radio",
+    ket: "Normal",
+  },
+  {
+    no: 5,
+    jam: "11:00",
+    uraian: "Patroli jalur trail sekitar Perairan Mamuju",
+    ket: "Aman",
+  },
+  {
+    no: 6,
+    jam: "12:00",
+    uraian: "Istirahat dan makan siang",
+    ket: "-",
+  },
+  {
+    no: 7,
+    jam: "13:00",
+    uraian: "Pengecekan ulang peralatan komunikasi",
+    ket: "Normal",
+  },
+  {
+    no: 8,
+    jam: "14:00",
+    uraian: "Laporan cuaca dari BMKG, kondisi laut normal",
+    ket: "Normal",
+  },
+  {
+    no: 9,
+    jam: "15:00",
+    uraian: "Maintenance ringan motor trail",
+    ket: "Selesai",
+  },
+  {
+    no: 10,
+    jam: "16:00",
+    uraian: "Koordinasi dengan Polsek setempat",
+    ket: "Normal",
+  },
+  {
+    no: 11,
+    jam: "17:00",
+    uraian: "Serah terima tugas shift II",
+    ket: "Selesai",
+  },
+];
+
+const jurnalSiagaRutinKapal = [
+  {
+    no: 1,
+    jam: "08:00",
+    uraian: "Apel pagi shift I, briefing tugas dan tanggung jawab",
+    ket: "Hadir 5 orang",
+  },
+  {
+    no: 2,
+    jam: "08:30",
+    uraian: "Pengecekan kelengkapan peralatan SAR di gudang",
+    ket: "Siap",
+  },
+  {
+    no: 3,
+    jam: "09:00",
+    uraian: "Pengecekan kelengkapan kapal dan perahu karet",
+    ket: "Siap",
+  },
+  {
+    no: 4,
+    jam: "10:00",
+    uraian: "Koordinasi dengan Basarnas Makassar via radio",
+    ket: "Normal",
+  },
+  {
+    no: 5,
+    jam: "11:00",
+    uraian: "Patroli perairan sekitar Perairan Mamuju",
+    ket: "Aman",
+  },
+  {
+    no: 6,
+    jam: "12:00",
+    uraian: "Istirahat dan makan siang",
+    ket: "-",
+  },
+  {
+    no: 7,
+    jam: "13:00",
+    uraian: "Pengecekan ulang peralatan komunikasi",
+    ket: "Normal",
+  },
+  {
+    no: 8,
+    jam: "14:00",
+    uraian: "Laporan cuaca dari BMKG, kondisi laut normal",
+    ket: "Normal",
+  },
+  {
+    no: 9,
+    jam: "15:00",
+    uraian: "Maintenance ringan mesin kapal",
+    ket: "Selesai",
+  },
+  {
+    no: 10,
+    jam: "16:00",
+    uraian: "Koordinasi dengan Polsek setempat",
+    ket: "Normal",
+  },
+  {
+    no: 11,
+    jam: "17:00",
+    uraian: "Serah terima tugas shift II",
+    ket: "Selesai",
+  },
+];
+
 const absensiShiftI = [
-  { no: 1, nama: "Siti Nurhaliza", ket: "Hadir" },
+  { no: 1, nama: "Siti Nurhaliza", ket: "Siaga" },
   { no: 2, nama: "Ahmad Fauzi", ket: "Hadir" },
-  { no: 3, nama: "Dewi Lestari", ket: "Hadir" },
-  { no: 4, nama: "Budi Santoso", ket: "Hadir" },
+  { no: 3, nama: "Dewi Lestari", ket: "Tidak Hadir" },
+  { no: 4, nama: "Budi Santoso", ket: "Siaga" },
   { no: 5, nama: "Medlyn R. Pagali", ket: "Hadir" },
 ];
 
 const absensiShiftII = [
-  { no: 1, nama: "Kauluddin", ket: "Hadir" },
-  { no: 2, nama: "Rizky Pratama", ket: "Hadir" },
-  { no: 3, nama: "Ansaruddin", ket: "Hadir" },
+  { no: 1, nama: "Kauluddin", ket: "Siaga" },
+  { no: 2, nama: "Rizky Pratama", ket: "Tidak Hadir" },
+  { no: 3, nama: "Ansaruddin", ket: "Siaga" },
   { no: 4, nama: "Dewi Lestari", ket: "Hadir" },
-  { no: 5, nama: "Budi Santoso", ket: "Hadir" },
+  { no: 5, nama: "Budi Santoso", ket: "Cuti" },
 ];
 
 // ─── Data Jurnal RIB ─────────────────────────────────────────────────────────
@@ -247,6 +387,7 @@ const logbookDarat = [
     tipe: "Double Cabin 4x4",
     km: "45.230",
     bbm: "75%",
+    jenisUnit: "Mobil",
     riwayatPenggunaan: [
       { no: 1, tanggal: "2026-10-07", dari: "Kantor", ke: "Desa Binanga", bbmSebelum: "80%", bbmSesudah: "65%", kmSebelum: "45.200", kmSesudah: "45.230", catatan: "Operasi evakuasi pasca banjir" },
       { no: 2, tanggal: "2026-10-06", dari: "Kantor", ke: "Bandara", bbmSebelum: "90%", bbmSesudah: "80%", kmSebelum: "45.150", kmSesudah: "45.200", catatan: "Antar jemput tim SAR" },
@@ -330,6 +471,68 @@ const logbookDarat = [
       { item: "PengecekanWAP radio HT regu lapangan", status: "Baik", keterangan: "" },
     ],
   },
+  {
+    id: "dar-02",
+    jenisKendaraan: "RESCUE MOTORCYCLE",
+    noPolisi: "B 3184 PKQ",
+    tahun: "-",
+    tipe: "Trail",
+    km: "-",
+    bbm: "85%",
+    jenisUnit: "Motor",
+    riwayatPenggunaan: [
+      { no: 1, tanggal: "2026-10-07", dari: "Kantor", ke: "Desa Binanga", bbmSebelum: "70%", bbmSesudah: "60%", kmSebelum: "15.300", kmSesudah: "15.400", catatan: "Patroli pantai koordinat dengan tim darat" },
+      { no: 2, tanggal: "2026-10-06", dari: "Kantor", ke: "Bandara", bbmSebelum: "80%", bbmSesudah: "75%", kmSebelum: "15.200", kmSesudah: "15.300", catatan: "Diterima tugas evakuasi ringan" },
+    ],
+    pemeriksaanHarian: [
+      { kategori: "Bagian 1", items: [
+        { item: "Level Bahan Bakar", status: "Baik", keterangan: "" },
+        { item: "Level Oli Mesin", status: "Rusak Ringan", keterangan: "" },
+        { item: "Kondisi Ban", status: "Baik", keterangan: "" },
+        { item: "Tekanan Ban", status: "Baik", keterangan: "" },
+        { item: "Keausan", status: "Baik", keterangan: "" },
+        { item: "Rantai Penggerak", status: "Baik", keterangan: "" },
+        { item: "Baut Mur dan Pengencangan", status: "Baik", keterangan: "" },
+        { item: "Stang (Bergerak Lancar)", status: "Baik", keterangan: "" },
+        { item: "Level Minyak Rem", status: "Baik", keterangan: "" },
+        { item: "Kampas Rem", status: "Baik", keterangan: "" },
+        { item: "Kerja Gas", status: "Baik", keterangan: "" },
+        { item: "Tuas Kopling", status: "Baik", keterangan: "" },
+        { item: "Klakson", status: "Baik", keterangan: "" },
+      ]},
+      { kategori: "Bagian 2", items: [
+        { item: "Lampu Depan", status: "Baik", keterangan: "" },
+        { item: "Lampu Belakang/Rem", status: "Baik", keterangan: "" },
+        { item: "Lampu Sein", status: "Rusak Ringan", keterangan: "" },
+        { item: "Engine Stop Switch", status: "Baik", keterangan: "" },
+        { item: "Standar Samping", status: "Baik", keterangan: "" },
+        { item: "Indikator Spedometer", status: "Baik", keterangan: "" },
+        { item: "Kaca Spion", status: "Baik", keterangan: "" },
+      ]},
+    ],
+    pemeriksaanMingguan: [
+      { kategori: "Pemeriksaan Mingguan", items: [
+        { item: "Level Oli Mesin", status: "Baik", keterangan: "" },
+        { item: "Rantai Penggerak", status: "Baik", keterangan: "" },
+        { item: "Kampas Rem", status: "Baik", keterangan: "" },
+        { item: "Tekanan Ban", status: "Baik", keterangan: "" },
+        { item: "Lampu-Lampu", status: "Baik", keterangan: "" },
+        { item: "Klakson", status: "Baik", keterangan: "" },
+        { item: "Kerja Gas", status: "Baik", keterangan: "" },
+      ]},
+    ],
+    pemeriksaanBulanan: [
+      { kategori: "Pemeriksaan Bulanan", items: [
+        { item: "Baut Mur dan Pengencangan", status: "Baik", keterangan: "" },
+        { item: "Kondisi Rantai", status: "Baik", keterangan: "" },
+        { item: "Kampas Rem", status: "Baik", keterangan: "" },
+      ]},
+    ],
+    itemTambahan: [
+      { item: "Engine Stop Switch", status: "Baik", keterangan: "" },
+      { item: "Standar Samping", status: "Baik", keterangan: "" },
+    ],
+  },
 ];
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -367,7 +570,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function OperatorPage() {
-  const [activeTab, setActiveTab] = useState<"siaga" | "rib" | "kapal" | "darat">("siaga");
+  const [activeTab, setActiveTab] = useState<"siaga" | "rib" | "kapal" | "mobil" | "motor">("siaga");
   const [armadaFilter, setArmadaFilter] = useState<"Semua" | "Mobil" | "Motor" | "Kapal">("Semua");
 
   // `armada` menentukan journal mana yang terlihat untuk tiap jenis armada
@@ -375,7 +578,8 @@ export default function OperatorPage() {
     { id: "siaga" as const, label: "Jurnal Siaga Rutin", icon: FileText, armada: ["Mobil", "Motor", "Kapal"] },
     { id: "rib" as const, label: "Jurnal RIB", icon: Ship, armada: ["Kapal"] },
     { id: "kapal" as const, label: "Logbook Kapal", icon: ClipboardCheck, armada: ["Kapal"] },
-    { id: "darat" as const, label: "Logbook Sarana Darat", icon: Package, armada: ["Mobil", "Motor"] },
+    { id: "mobil" as const, label: "Logbook Mobil", icon: Car, armada: ["Mobil"] },
+    { id: "motor" as const, label: "Logbook Motor", icon: Bike, armada: ["Motor"] },
   ];
 
   const visibleTabs = tabs.filter(
@@ -410,9 +614,9 @@ export default function OperatorPage() {
           subText="Shift I & II"
         />
         <StatCard
-          label="Kendaraan Siaga"
-          value={8}
-          icon={Package}
+          label={armadaFilter === "Motor" ? "Motor Siaga" : "Kendaraan Siaga"}
+          value={armadaFilter === "Motor" ? 1 : 8}
+          icon={armadaFilter === "Motor" ? Bike : Package}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
           subText="Siap operasional"
@@ -536,7 +740,7 @@ export default function OperatorPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {jurnalSiagaRutin.map((item) => (
+                  {(armadaFilter === "Kapal" ? jurnalSiagaRutinKapal : armadaFilter === "Motor" ? jurnalSiagaRutinMotor : jurnalSiagaRutinMobil).map((item) => (
                     <TableRow key={item.no}>
                       <TableCell className="text-center text-slate-500">{item.no}</TableCell>
                       <TableCell className="font-mono text-sm">{item.jam}</TableCell>
@@ -570,15 +774,18 @@ export default function OperatorPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {absensiShiftI.map((item) => (
-                      <TableRow key={item.no}>
-                        <TableCell className="text-center text-slate-500">{item.no}</TableCell>
-                        <TableCell className="font-medium text-slate-800">{item.nama}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="success" className="text-xs">{item.ket}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {absensiShiftI.map((item) => {
+              const ketVariant = item.ket === "Siaga" ? "warning" : item.ket === "Hadir" ? "success" : item.ket === "Tidak Hadir" ? "danger" : "outline";
+              return (
+                <TableRow key={item.no}>
+                  <TableCell className="text-center text-slate-500">{item.no}</TableCell>
+                  <TableCell className="font-medium text-slate-800">{item.nama}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={ketVariant} className="text-xs">{item.ket}</Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -601,15 +808,18 @@ export default function OperatorPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {absensiShiftII.map((item) => (
-                      <TableRow key={item.no}>
-                        <TableCell className="text-center text-slate-500">{item.no}</TableCell>
-                        <TableCell className="font-medium text-slate-800">{item.nama}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="success" className="text-xs">{item.ket}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {absensiShiftII.map((item) => {
+                      const ketVariant = item.ket === "Siaga" ? "warning" : item.ket === "Hadir" ? "success" : item.ket === "Tidak Hadir" ? "danger" : "outline";
+                      return (
+                        <TableRow key={item.no}>
+                          <TableCell className="text-center text-slate-500">{item.no}</TableCell>
+                          <TableCell className="font-medium text-slate-800">{item.nama}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={ketVariant} className="text-xs">{item.ket}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -1037,9 +1247,11 @@ export default function OperatorPage() {
         </div>
       )}
 
-      {activeTab === "darat" && (
+      {(activeTab === "mobil" || activeTab === "motor") && (
         <div className="space-y-6">
-          {logbookDarat.map((kendaraan) => (
+          {logbookDarat
+            .filter((kendaraan) => kendaraan.jenisUnit === (activeTab === "mobil" ? "Mobil" : "Motor"))
+            .map((kendaraan) => (
             <Card key={kendaraan.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">

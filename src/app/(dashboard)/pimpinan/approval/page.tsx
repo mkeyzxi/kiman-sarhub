@@ -70,7 +70,7 @@ const approvalData: ApprovalItem[] = [
     id: "apr-005",
     kode: "BMN-KND-003",
     namaAset: "Motor Honda CRF250R",
-    kategori: "Kendaraan",
+    kategori: "Motor",
     pengajuanOleh: "usr-001",
     tanggal: "2026-09-20",
     status: "Menunggu",

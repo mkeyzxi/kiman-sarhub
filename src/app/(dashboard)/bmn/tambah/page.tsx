@@ -88,7 +88,8 @@ export default function TambahAsetPage() {
                 required
               >
                 <option value="">Pilih kategori</option>
-                <option value="Kendaraan">Kendaraan</option>
+                <option value="Mobil">Mobil</option>
+                <option value="Motor">Motor</option>
                 <option value="Peralatan SAR">Peralatan SAR</option>
                 <option value="Komunikasi">Komunikasi</option>
                 <option value="Medis">Medis</option>
