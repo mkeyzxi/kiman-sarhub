@@ -14,7 +14,7 @@ export default function NotFound() {
         {/* Latar Belakang Abstrak & Dekorasi Melayang */}
         <div className="absolute top-10 left-10 w-96 h-96 bg-orange-200/40 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-rose-200/40 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob animation-delay-2000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-slate-100/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-50" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-slate-100/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-50" />
 
         {/* Ikon-ikon dekoratif yang tersebar */}
         <Home className="absolute top-[20%] left-[20%] w-12 h-12 text-orange-200 -rotate-12 animate-[bounce_4s_ease-in-out_infinite]" />
@@ -25,13 +25,13 @@ export default function NotFound() {
           
           {/* Teks 404 Super Besar & Menyatu dengan background */}
           <div className="relative flex justify-center items-center w-full">
-            <h1 className="text-[12rem] md:text-[18rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-slate-200 to-slate-300/40 select-none drop-shadow-sm tracking-tighter">
+            <h1 className="text-[12rem] md:text-[18rem] leading-none font-black text-transparent bg-clip-text bg-linear-to-br from-slate-200 to-slate-300/40 select-none drop-shadow-sm tracking-tighter">
               404
             </h1>
             
             {/* Box Ikon Melayang di Tengah Angka 404 */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-tr from-[#EF6905] to-[#ff8c33] rounded-3xl md:rounded-[2rem] rotate-12 flex items-center justify-center shadow-2xl shadow-orange-500/40 animate-[bounce_3s_ease-in-out_infinite]">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-linear-to-tr from-[#EF6905] to-[#ff8c33] rounded-3xl md:rounded-4xl rotate-12 flex items-center justify-center shadow-2xl shadow-orange-500/40 animate-[bounce_3s_ease-in-out_infinite]">
                 <ShieldAlert className="w-12 h-12 md:w-16 md:h-16 text-white -rotate-12" />
               </div>
             </div>
