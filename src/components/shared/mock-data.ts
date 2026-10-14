@@ -114,6 +114,7 @@ export const users: User[] = [
 export type KategoriAset =
   | "Mobil"
   | "Motor"
+  | "Kapal"
   | "Peralatan SAR"
   | "Komunikasi"
   | "Medis"
@@ -122,6 +123,9 @@ export type KategoriAset =
 export type StatusAset = "Siaga" | "Operasi" | "Dipinjam" | "Rusak" | "Maintenance" | "Tidak Siap";
 export type KondisiAset = "Baik" | "Rusak Ringan" | "Rusak Berat";
 export type KondisiItem = "Baik" | "Rusak Ringan" | "Rusak Berat";
+
+/** Jenis armada sesuai form fisik kantor (dokumentasi_utuh.md Bagian 4). */
+export type JenisArmada = "Kapal" | "RIB" | "RBB" | "Mobil" | "Motor" | "Lainnya";
 
 export interface RiwayatAset {
   tanggal: string;
@@ -597,6 +601,14 @@ export interface ChecklistItem {
   wajib: boolean;
   kondisi: KondisiItem;
   keterangan: string;
+  /** Item kritis: kondisi "Rusak Berat" otomatis mengunci armada (EWS). */
+  isKritis?: boolean;
+}
+
+/** Kelompok item di dalam satu template, mis. "Kamar Mesin" atau "Dalam Kabin". */
+export interface ChecklistKategori {
+  nama: string;
+  items: ChecklistItem[];
 }
 
 export interface ChecklistTemplate {
@@ -605,6 +617,10 @@ export interface ChecklistTemplate {
   kategori: KategoriAset;
   periode: "Harian" | "Mingguan" | "Bulanan";
   items: ChecklistItem[];
+  /** Kategori armada agar template bisa difilter per kendaraan di form. */
+  jenisArmada: JenisArmada;
+  /** Keterangan singkat asal form fisik, mis. "Jurnal RIB 01 & 02". */
+  sumber?: string;
 }
 
 export const checklistTemplates: ChecklistTemplate[] = [
@@ -614,8 +630,10 @@ export const checklistTemplates: ChecklistTemplate[] = [
     nama: "Checklist Harian - Perahu Karet",
     kategori: "Peralatan SAR",
     periode: "Harian",
+    jenisArmada: "RIB",
+    sumber: "Ceklist Perawatan RIB",
     items: [
-      { id: "chk-001-01", label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-001-01", label: "Hull tidak ada bocor atau kerusakan", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
       { id: "chk-001-02", label: "Pompa angin berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
       { id: "chk-001-03", label: "Semua oar/paddles lengkap dan utuh", wajib: true, kondisi: "Baik", keterangan: "" },
       { id: "chk-001-04", label: "Tali tambat (rope) tersedia", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -628,6 +646,8 @@ export const checklistTemplates: ChecklistTemplate[] = [
     nama: "Checklist Harian - Kendaraan Ransel",
     kategori: "Mobil",
     periode: "Harian",
+    jenisArmada: "Mobil",
+    sumber: "Logbook Sarana Darat",
     items: [
       { id: "chk-002-01", label: "Mesin menyala dengan normal", wajib: true, kondisi: "Baik", keterangan: "" },
       { id: "chk-002-02", label: "Bahan bakar penuh minimal 5 liter", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -643,6 +663,7 @@ export const checklistTemplates: ChecklistTemplate[] = [
     nama: "Checklist Harian - Peralatan Medis",
     kategori: "Medis",
     periode: "Harian",
+    jenisArmada: "Lainnya",
     items: [
       { id: "chk-003-01", label: "Defibrillator baterai penuh dan electrode siap", wajib: true, kondisi: "Baik", keterangan: "" },
       { id: "chk-003-02", label: "P3K lengkap sesuai daftar standar", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -657,6 +678,7 @@ export const checklistTemplates: ChecklistTemplate[] = [
     nama: "Checklist Harian - Peralatan Komunikasi",
     kategori: "Komunikasi",
     periode: "Harian",
+    jenisArmada: "Lainnya",
     items: [
       { id: "chk-004-01", label: "Radio HT baterai penuh dan berfungsi", wajib: true, kondisi: "Baik", keterangan: "" },
       { id: "chk-004-02", label: "Baterai cadangan tersedia minimal 2 buah", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -671,6 +693,8 @@ export const checklistTemplates: ChecklistTemplate[] = [
     nama: "Checklist Mingguan - Kendaraan",
     kategori: "Mobil",
     periode: "Mingguan",
+    jenisArmada: "Mobil",
+    sumber: "Ceklist Perawatan Kendaraan",
     items: [
       { id: "chk-005-01", label: "Kerja AC optimal", wajib: true, kondisi: "Baik", keterangan: "" },
       { id: "chk-005-02", label: "Kerja rem (rem parkir & rem kaki)", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -696,11 +720,277 @@ export const checklistTemplates: ChecklistTemplate[] = [
     nama: "Checklist Bulanan - Kendaraan",
     kategori: "Mobil",
     periode: "Bulanan",
+    jenisArmada: "Mobil",
+    sumber: "Ceklist Perawatan Kendaraan",
     items: [
-      { id: "chk-006-01", label: "Winch berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "chk-006-01", label: "Winch berfungsi normal", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEMPLATE ARMADA LENGKAP
+  // Katalog item diambil dari form fisik kantor sesuai dokumentasi_utuh.md
+  // Bagian 5. Semua item wajib diisi sebelum submit (Validasi V1).
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ─── MOTOR TRAIL — HARIAN (20 item) ─────────────────────────────────────────
+  {
+    id: "arm-motor-harian",
+    nama: "Ceklist Perawatan Motor Trail (Harian)",
+    kategori: "Motor",
+    periode: "Harian",
+    jenisArmada: "Motor",
+    sumber: "Ceklist Motor Trail B 3184 PKQ",
+    items: [
+      // Bagian 1 — Pemeriksaan Utama
+      { id: "arm-motor-harian-01", label: "Level Bahan Bakar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-02", label: "Level Oli Mesin", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-03", label: "Kondisi Ban", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-04", label: "Tekanan Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-05", label: "Keausan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-06", label: "Rantai Penggerak", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-07", label: "Baut Mur dan Pengencangan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-08", label: "Stang (Bergerak Lancar)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-09", label: "Level Minyak Rem", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-10", label: "Kampas Rem", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-11", label: "Kerja Gas", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-12", label: "Tuas Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-13", label: "Klakson", wajib: true, kondisi: "Baik", keterangan: "" },
+      // Bagian 2 — Kelistrikan & Perlengkapan
+      { id: "arm-motor-harian-14", label: "Lampu Depan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-15", label: "Lampu Belakang / Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-16", label: "Lampu Sein", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-17", label: "Engine Stop Switch", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-18", label: "Standar Samping", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-19", label: "Indikator Spedometer", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-20", label: "Kaca Spion", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+
+  // ─── MOBIL — HARIAN (36 item) ──────────────────────────────────────────────
+  {
+    id: "arm-mobil-harian",
+    nama: "Ceklist Perawatan Kendaraan (Harian)",
+    kategori: "Mobil",
+    periode: "Harian",
+    jenisArmada: "Mobil",
+    sumber: "Ceklist Perawatan Kendaraan",
+    items: [
+      // A. Menjungkitkan Kabin
+      { id: "arm-mobil-harian-01", label: "Oli Mesin", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-02", label: "Oli Power Steering", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-03", label: "Fan Belt", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-04", label: "Tutup Radiator", wajib: true, kondisi: "Baik", keterangan: "" },
+      // B. Dalam Kabin
+      { id: "arm-mobil-harian-05", label: "Level Minyak Rem / Kopling", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-06", label: "Radio Komunikasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-07", label: "Seat Belt (Sabuk Pengaman)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-08", label: "Sirine & Lightbar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-09", label: "Gerak Bebas Pedal Rem", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-10", label: "Gerak Bebas Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-11", label: "Gerak Bebas Pedal Gas", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-12", label: "Instrumen Indikator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-13", label: "Kemudahan Start Engine", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-14", label: "Langkah Tuas Rem Parkir", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-15", label: "Sapuan Wiper", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-16", label: "Kaca Spion Dalam", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-17", label: "Level Cairan Washer", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-18", label: "Gerak Bebas Kemudi", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-19", label: "Klakson", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-20", label: "Level Bahan Bakar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-21", label: "Power Window / Door Lock", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-22", label: "Kunci Roda & Toolkit", wajib: true, kondisi: "Baik", keterangan: "" },
+      // C. Keliling Kendaraan
+      { id: "arm-mobil-harian-23", label: "Lampu-Lampu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-24", label: "Pegas Suspensi / Kaki-Kaki / Per Daun", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-25", label: "Kebocoran / Tetesan Fluid", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-26", label: "Kondisi Kaca-Kaca", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-27", label: "Wiper", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-28", label: "Saringan Bahan Bakar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-29", label: "Rolling Door Compartment", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-30", label: "Engsel Pintu-Pintu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-31", label: "Kunci Pintu-Pintu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-32", label: "Towing", wajib: true, kondisi: "Baik", keterangan: "" },
+      // D. Roda dan Ban
+      { id: "arm-mobil-harian-33", label: "Tekanan Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-34", label: "Tapak dan Dinding Ban", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-harian-35", label: "Keausan Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-harian-36", label: "Pemasangan Velg", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+    ],
+  },
+
+  // ─── MOBIL — MINGGUAN (17 item) ────────────────────────────────────────────
+  {
+    id: "arm-mobil-mingguan",
+    nama: "Ceklist Perawatan Kendaraan (Mingguan)",
+    kategori: "Mobil",
+    periode: "Mingguan",
+    jenisArmada: "Mobil",
+    sumber: "Ceklist Perawatan Kendaraan",
+    items: [
+      // Performa / Fungsi Sistem
+      { id: "arm-mobil-mingguan-01", label: "Kerja AC", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-02", label: "Kerja Rem", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-mobil-mingguan-03", label: "Kerja Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-04", label: "Kerja Pedal Gas", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-05", label: "Kerja Kaki-Kaki", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-06", label: "Kerja Sistem 4WD", wajib: true, kondisi: "Baik", keterangan: "" },
+      // Keliling Kendaraan (Mingguan)
+      { id: "arm-mobil-mingguan-07", label: "Kaca Depan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-08", label: "Spion Luar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-09", label: "Flooding Light System", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-10", label: "Lampu-Lampu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-11", label: "Level Cairan Pendingin", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-12", label: "APAR", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-13", label: "Plat Nopol", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-14", label: "Ban Cadangan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-15", label: "Kebersihan Kendaraan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-16", label: "Jok / Tempat Duduk", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-mobil-mingguan-17", label: "Kaca Film", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+
+  // ─── MOBIL — BULANAN (1 item) ──────────────────────────────────────────────
+  {
+    id: "arm-mobil-bulanan",
+    nama: "Ceklist Perawatan Kendaraan (Bulanan)",
+    kategori: "Mobil",
+    periode: "Bulanan",
+    jenisArmada: "Mobil",
+    sumber: "Ceklist Perawatan Kendaraan",
+    items: [
+      { id: "arm-mobil-bulanan-01", label: "Winch", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+    ],
+  },
+
+  // ─── RIB — PEMELIHARAAN (17 item, RIB 01 & RIB 02 identik) ────────────────
+  {
+    id: "arm-rib-pemeliharaan",
+    nama: "Ceklist Pemeliharaan RIB",
+    kategori: "Kapal",
+    periode: "Harian",
+    jenisArmada: "RIB",
+    sumber: "Jurnal RIB 01 & 02",
+    items: [
+      { id: "arm-rib-01", label: "Tali Tros", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-02", label: "Lunas", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-03", label: "Ban Pelampung", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-04", label: "Deck", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-05", label: "Transom (Stand Mesin)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-06", label: "Starting Engine", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-07", label: "Kap Mesin Kanan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-08", label: "Kap Mesin Kiri", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-09", label: "Karburator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-10", label: "Selang BBM", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-11", label: "Busi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-12", label: "Dinamo Stater", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-13", label: "Dinamo Strom", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-14", label: "Hydraulic Mesin", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-15", label: "Aki / Baterai", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-16", label: "GPS Furuno", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-17", label: "GPS Stracking", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+
+  // ─── KN SAR — HARIAN (27 item, 3 kategori) ─────────────────────────────────
+  {
+    id: "arm-kapalar-harian",
+    nama: "Ceklist Kapal Khusus SAR (Harian)",
+    kategori: "Kapal",
+    periode: "Harian",
+    jenisArmada: "Kapal",
+    sumber: "Logbook Kapal SAR KN SAR MAMUJU 01",
+    items: [
+      // Kamar Mesin (9)
+      { id: "arm-kapalar-01", label: "Level Oli Mesin Utama (Main Engine)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-02", label: "Level Oli Genset (Auxiliary Engine)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-03", label: "Sistem Pendingin Air Laut & Air Tawar", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-04", label: "Level Bahan Bakar (Harian)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-05", label: "Filter BBM & Separator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-06", label: "Sistem Kemudi / Hydraulic Steering", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-07", label: "Pompa Bilga (Bilge Pump) & Automatic Switch", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-08", label: "Tegangan Baterai / Accu Start", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-09", label: "Kebocoran Pipa / Valve / Tetesan Oli", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      // Anjungan & Navigasi / Komunikasi (9)
+      { id: "arm-kapalar-10", label: "Radar Navigasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-11", label: "GPS Navigasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-12", label: "AIS (Automatic Identification System)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-13", label: "Radio Komunikasi VHF / HF", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-14", label: "Echo Sounder / Fishfinder", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-15", label: "Kompas Magnet / Gyro", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-16", label: "Lampu-Lampu Navigasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-17", label: "Lampu Sorot (Searchlight) & Sirine", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-18", label: "Wiper Kaca Anjungan", wajib: true, kondisi: "Baik", keterangan: "" },
+      // Geladak & Alat Keselamatan (9)
+      { id: "arm-kapalar-19", label: "Life Jacket (Jaket Penolong)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-20", label: "Life Buoy (Pelampung Penolong)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-21", label: "Inflatable Liferaft (ILR) / Sekoci", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-22", label: "APAR / Alat Pemadam Kebakaran", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-kapalar-23", label: "Pompa Pemadam Kebakaran", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-24", label: "Winch / Jangkar & Rantai", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-25", label: "Tali Temali (Mooring Line) & Fender", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-26", label: "Pintu Kedap Air / Palka", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-kapalar-27", label: "Kebersihan Geladak (Deck)", wajib: true, kondisi: "Baik", keterangan: "" },
     ],
   },
 ];
+
+/**
+ * Kelompokkan item template berdasarkan kategori/bagian yang relevan.
+ * Pemetaan mengikuti urutan item pada form fisik (dokumentasi_utuh.md Bagian 5).
+ * `upto` adalah indeks item terakhir (1-based) pada bagian tersebut.
+ */
+const BAGIAN_TEMPLATE: Record<string, ReadonlyArray<{ nama: string; upto: number }>> = {
+  "arm-motor-harian": [
+    { nama: "Bagian 1 — Pemeriksaan Utama", upto: 13 },
+    { nama: "Bagian 2 — Kelistrikan & Perlengkapan", upto: 20 },
+  ],
+  "arm-mobil-harian": [
+    { nama: "A. Menjungkitkan Kabin", upto: 4 },
+    { nama: "B. Dalam Kabin", upto: 22 },
+    { nama: "C. Keliling Kendaraan", upto: 32 },
+    { nama: "D. Roda dan Ban", upto: 36 },
+  ],
+  "arm-mobil-mingguan": [
+    { nama: "Performa / Fungsi Sistem", upto: 6 },
+    { nama: "Keliling Kendaraan (Mingguan)", upto: 17 },
+  ],
+  "arm-rib-pemeliharaan": [{ nama: "Pemeliharaan RIB", upto: 17 }],
+  "arm-kapalar-harian": [
+    { nama: "Kamar Mesin", upto: 9 },
+    { nama: "Anjungan & Navigasi / Komunikasi", upto: 18 },
+    { nama: "Geladak & Alat Keselamatan", upto: 27 },
+  ],
+};
+
+/** Kembalikan item template sebagai daftar kategori/bagian sesuai form fisik. */
+export function getKategoriTemplate(templateId: string): ChecklistKategori[] {
+  const template = checklistTemplates.find((t) => t.id === templateId);
+  if (!template) return [];
+
+  const bagian = BAGIAN_TEMPLATE[templateId];
+  if (!bagian) {
+    return [{ nama: template.nama, items: template.items }];
+  }
+
+  let dari = 0;
+  return bagian.map((b) => {
+    const items = template.items.slice(dari, b.upto);
+    dari = b.upto;
+    return { nama: b.nama, items };
+  });
+}
+
+/** Total item kritis pada sebuah template (dasar aturan EWS). */
+export function countItemKritis(templateId: string): number {
+  const template = checklistTemplates.find((t) => t.id === templateId);
+  return template?.items.filter((i) => i.isKritis).length ?? 0;
+}
+
+/** Daftar template untuk armada tertentu, dipakai filter di halaman form. */
+export function getTemplateByArmada(jenisArmada: JenisArmada): ChecklistTemplate[] {
+  return checklistTemplates.filter((t) => t.jenisArmada === jenisArmada);
+}
 
 // -----------------------------------------------------------------------------
 // 5b. DATA TAMBAHAN (BBM RIB 02, Catatan Perbaikan, dll)
@@ -1160,11 +1450,17 @@ export interface LogbookPerjalanan {
   jamKembali: string;
   rute: string;
   tujuan: string;
+  /** Kategori induk: Kapal, RIB, Mobil, Motor */
+  kategoriUnit?: "Kapal" | "RIB" | "Mobil" | "Motor";
   jenisUnit: string;
+  /** Nahkoda (laut) atau Pengemudi (darat) */
   nahkoda: string;
   jumlahPersonel: number;
   bbmSebelum: string;
   bbmSesudah: string;
+  /** Kilometer — khusus kendaraan darat */
+  kmSebelum?: string;
+  kmSesudah?: string;
   status: "Selesai" | "Berlangsung" | "Dijadwalkan";
   catatan: string;
 }
@@ -1267,6 +1563,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jamKembali: "",
     rute: "Perairan Mamuju - Pos Pantai",
     tujuan: "Patroli sore",
+    kategoriUnit: "RIB",
     jenisUnit: "RIB 9 M",
     nahkoda: "Rizky Pratama",
     jumlahPersonel: 3,
@@ -1274,6 +1571,61 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSesudah: "",
     status: "Dijadwalkan",
     catatan: "Dijadwalkan untuk shift sore",
+  },
+  // ─── LOGBOOK DARAT (Mobil & Motor) ──────────────────────────────────────────
+  {
+    id: "lp-08",
+    tanggal: "2026-10-08",
+    jamBerangkat: "07:30",
+    jamKembali: "11:00",
+    rute: "Kantor SAR Mamuju - Desa Binanga",
+    tujuan: "Distribusi logistik bantuan",
+    kategoriUnit: "Mobil",
+    jenisUnit: "Toyota Hilux (DA 1234 SAR)",
+    nahkoda: "Ahmad Fauzi",
+    jumlahPersonel: 3,
+    bbmSebelum: "90%",
+    bbmSesudah: "55%",
+    kmSebelum: "45230",
+    kmSesudah: "45312",
+    status: "Selesai",
+    catatan: "Jalan menuju Desa Binanga berlubang, perlu hati-hati pada KM 67-69",
+  },
+  {
+    id: "lp-09",
+    tanggal: "2026-10-07",
+    jamBerangkat: "09:00",
+    jamKembali: "12:30",
+    rute: "Kantor SAR Mamuju - Pantai Karampuang",
+    tujuan: "Survey lokasi sosialisasi",
+    kategoriUnit: "Motor",
+    jenisUnit: "Honda CRF150L (B 3184 PKQ)",
+    nahkoda: "Budi Santoso",
+    jumlahPersonel: 1,
+    bbmSebelum: "80%",
+    bbmSesudah: "50%",
+    kmSebelum: "12450",
+    kmSesudah: "12520",
+    status: "Selesai",
+    catatan: "Akses jalan ke pantai cukup baik, kondisi motor normal",
+  },
+  {
+    id: "lp-10",
+    tanggal: "2026-10-09",
+    jamBerangkat: "13:00",
+    jamKembali: "",
+    rute: "Kantor SAR Mamuju - Kecamatan Kalukku",
+    tujuan: "Evakuasi korban banjir",
+    kategoriUnit: "Mobil",
+    jenisUnit: "Toyota Hilux (DA 1234 SAR)",
+    nahkoda: "Medlyn R. Pagali",
+    jumlahPersonel: 5,
+    bbmSebelum: "100%",
+    bbmSesudah: "",
+    kmSebelum: "45312",
+    kmSesudah: "",
+    status: "Berlangsung",
+    catatan: "Operasi evakuasi pasca banjir di Kalukku",
   },
 ];
 
@@ -1432,6 +1784,165 @@ export const checklistHarianList: ChecklistHarian[] = [
     ],
     catatan: "Unit siap untuk operasi besok",
   },
+
+  // ─── CHECKLIST ARMADA DARI FORM FISIK ───────────────────────────────────────
+
+  {
+    id: "arm-001",
+    tanggal: "2026-10-10",
+    unit: "Rescue Motorcycle Honda CRF150L (B 3184 PKQ)",
+    jenisUnit: "Motor",
+    templateId: "arm-motor-harian",
+    pemeriksa: "Medlyn R. Pagali",
+    status: "Belum Lengkap",
+    itemChecked: 18,
+    itemTotal: 20,
+    items: [
+      { label: "Level Bahan Bakar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Oli Mesin", wajib: true, kondisi: "Rusak Ringan", keterangan: "Oli sudah encer, perlu diganti" },
+      { label: "Kondisi Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tekanan Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Keausan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Rantai Penggerak", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Baut Mur dan Pengencangan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Stang (Bergerak Lancar)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Minyak Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kampas Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kerja Gas", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tuas Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Klakson", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu Depan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu Belakang / Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu Sein", wajib: true, kondisi: "Rusak Ringan", keterangan: "Lampu sein kanan mati" },
+      { label: "Engine Stop Switch", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Standar Samping", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Indikator Spedometer", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+      { label: "Kaca Spion", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+    ],
+    catatan: "Level oli mesin perlu diganti, lampu sein kanan mati",
+  },
+  {
+    id: "arm-002",
+    tanggal: "2026-10-10",
+    unit: "Kendaraan Toyota Hilux Double Cabin 4x4 (DA 1234 SAR)",
+    jenisUnit: "Mobil",
+    templateId: "arm-mobil-harian",
+    pemeriksa: "Ahmad Fauzi",
+    status: "Belum Lengkap",
+    itemChecked: 33,
+    itemTotal: 36,
+    items: [
+      { label: "Oli Mesin", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Oli Power Steering", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Fan Belt", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tutup Radiator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Minyak Rem / Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Radio Komunikasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Seat Belt (Sabuk Pengaman)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Sirine & Lightbar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Gerak Bebas Pedal Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Gerak Bebas Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Gerak Bebas Pedal Gas", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Instrumen Indikator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kemudahan Start Engine", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Langkah Tuas Rem Parkir", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Sapuan Wiper", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kaca Spion Dalam", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Cairan Washer", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Gerak Bebas Kemudi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Klakson", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Bahan Bakar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Power Window / Door Lock", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kunci Roda & Toolkit", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu-Lampu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pegas Suspensi / Kaki-Kaki / Per Daun", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kebocoran / Tetesan Fluid", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+      { label: "Kondisi Kaca-Kaca", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Wiper", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Saringan Bahan Bakar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Rolling Door Compartment", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Engsel Pintu-Pintu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kunci Pintu-Pintu", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Towing", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tekanan Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tapak dan Dinding Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Keausan Ban", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+      { label: "Pemasangan Velg", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+    ],
+    catatan: "Dua item belum diperiksa: Kebocoran/Tetesan Fluid dan Keausan Ban",
+  },
+  {
+    id: "arm-003",
+    tanggal: "2026-10-09",
+    unit: "KN SAR MAMUJU 01",
+    jenisUnit: "Kapal",
+    templateId: "arm-kapalar-harian",
+    pemeriksa: "Budi Santoso",
+    status: "Lengkap",
+    itemChecked: 27,
+    itemTotal: 27,
+    items: [
+      { label: "Level Oli Mesin Utama (Main Engine)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Oli Genset (Auxiliary Engine)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Sistem Pendingin Air Laut & Air Tawar", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Level Bahan Bakar (Harian)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Filter BBM & Separator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Sistem Kemudi / Hydraulic Steering", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pompa Bilga (Bilge Pump) & Automatic Switch", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tegangan Baterai / Accu Start", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kebocoran Pipa / Valve / Tetesan Oli", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Radar Navigasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "GPS Navigasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "AIS (Automatic Identification System)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Radio Komunikasi VHF / HF", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Echo Sounder / Fishfinder", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kompas Magnet / Gyro", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu-Lampu Navigasi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lampu Sorot (Searchlight) & Sirine", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Wiper Kaca Anjungan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Life Jacket (Jaket Penolong)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Life Buoy (Pelampung Penolong)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Inflatable Liferaft (ILR) / Sekoci", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "APAR / Alat Pemadam Kebakaran", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pompa Pemadam Kebakaran", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Winch / Jangkar & Rantai", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Tali Temali (Mooring Line) & Fender", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Pintu Kedap Air / Palka", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kebersihan Geladak (Deck)", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+    catatan: "Semua 27 item dalam kondisi baik, kapal siap beroperasi",
+  },
+  {
+    id: "arm-004",
+    tanggal: "2026-10-09",
+    unit: "RIB 01 (Perahu Karet Zodiac RIB 9 M)",
+    jenisUnit: "Perahu",
+    templateId: "arm-rib-pemeliharaan",
+    pemeriksa: "Agustang",
+    status: "Belum Lengkap",
+    itemChecked: 16,
+    itemTotal: 17,
+    items: [
+      { label: "Tali Tros", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Lunas", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Ban Pelampung", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Deck", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Transom (Stand Mesin)", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Starting Engine", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kap Mesin Kanan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Kap Mesin Kiri", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Karburator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Selang BBM", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Busi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Dinamo Stater", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Dinamo Strom", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Hydraulic Mesin", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "Aki / Baterai", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "GPS Furuno", wajib: true, kondisi: "Baik", keterangan: "" },
+      { label: "GPS Stracking", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
+    ],
+    catatan: "GPS Stracking belum diperiksa, perlu cek kelengkapan perangkat",
+  },
 ];
 
 // Helper Functions
@@ -1443,6 +1954,10 @@ export function getApprovalById(id: string): Approval | undefined {
 
 export function getChecklistHarianById(id: string): ChecklistHarian | undefined {
   return checklistHarianList.find((c) => c.id === id);
+}
+
+export function getChecklistTemplateById(id: string): ChecklistTemplate | undefined {
+  return checklistTemplates.find((t) => t.id === id);
 }
 
 export function getLogbookPerjalananById(id: string): LogbookPerjalanan | undefined {

@@ -1,12 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Ship, MapPin, Fuel, Users } from "lucide-react";
+import { ArrowLeft, Ship, MapPin, Fuel, Users, Car, Bike, Anchor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { users } from "@/components/shared/mock-data";
+import { users, asetList, type JenisArmada } from "@/components/shared/mock-data";
+import { cn } from "@/lib/utils";
+
+/**
+ * Kategori unit untuk logbook perjalanan.
+ * Masing-masing kategori menarik daftar unit dari asetList sesuai mapping KategoriAset.
+ */
+type KategoriLogbook = "Kapal" | "RIB" | "Mobil" | "Motor";
+
+const kategoriLogbookOptions: { value: KategoriLogbook; label: string; icon: React.ElementType }[] = [
+  { value: "RIB", label: "RIB / Perahu", icon: Ship },
+  { value: "Kapal", label: "Kapal", icon: Anchor },
+  { value: "Mobil", label: "Mobil", icon: Car },
+  { value: "Motor", label: "Motor", icon: Bike },
+];
+
+/** Daftar unit berdasarkan kategori, termasuk unit-unit standar yang tetap + dari asetList. */
+function getUnitOptions(kategori: KategoriLogbook): { value: string; label: string }[] {
+  const staticUnits: Record<KategoriLogbook, { value: string; label: string }[]> = {
+    RIB: [
+      { value: "RIB 9 M", label: "RIB 9 M" },
+      { value: "RIB 12 M", label: "RIB 12 M" },
+    ],
+    Kapal: [
+      { value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" },
+    ],
+    Mobil: [],
+    Motor: [],
+  };
+
+  // Tambahkan dari asetList yang cocok kategori
+  const kategoriMap: Record<KategoriLogbook, string[]> = {
+    RIB: ["Peralatan SAR"],
+    Kapal: ["Kapal"],
+    Mobil: ["Mobil"],
+    Motor: ["Motor"],
+  };
+
+  const asetUnits = asetList
+    .filter((a) => kategoriMap[kategori].includes(a.kategori))
+    .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
+
+  // Gabungkan tanpa duplikat (berdasarkan value)
+  const merged = [...staticUnits[kategori]];
+  asetUnits.forEach((u) => {
+    if (!merged.some((m) => m.value === u.value)) {
+      merged.push(u);
+    }
+  });
+
+  return merged;
+}
+
+/** Apakah kategori ini kendaraan darat (butuh KM) */
+function isDarat(kategori: KategoriLogbook) {
+  return kategori === "Mobil" || kategori === "Motor";
+}
+
+/** Label operator unit tergantung kategori */
+function getOperatorLabel(kategori: KategoriLogbook) {
+  if (kategori === "Kapal" || kategori === "RIB") return "Nahkoda";
+  if (kategori === "Motor") return "Pengemudi";
+  return "Pengemudi / Driver";
+}
 
 export default function TambahLogbookPage() {
   const [formData, setFormData] = useState({
@@ -15,20 +78,57 @@ export default function TambahLogbookPage() {
     jamKembali: "",
     rute: "",
     tujuan: "",
+    kategoriUnit: "RIB" as KategoriLogbook,
     jenisUnit: "RIB 9 M",
-    nahkoda: "",
+    operator: "",
     jumlahPersonel: "1",
     bbmSebelum: "",
     bbmSesudah: "",
+    kmSebelum: "",
+    kmSesudah: "",
     status: "Dijadwalkan",
     catatan: "",
   });
+
+  const unitOptions = useMemo(
+    () => getUnitOptions(formData.kategoriUnit),
+    [formData.kategoriUnit]
+  );
+
+  // Reset jenisUnit ketika kategori berubah
+  const handleKategoriChange = (kategori: KategoriLogbook) => {
+    const units = getUnitOptions(kategori);
+    setFormData({
+      ...formData,
+      kategoriUnit: kategori,
+      jenisUnit: units[0]?.value ?? "",
+      // reset km jika beralih ke laut
+      kmSebelum: isDarat(kategori) ? formData.kmSebelum : "",
+      kmSesudah: isDarat(kategori) ? formData.kmSesudah : "",
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement form submission
     console.log("Form data:", formData);
   };
+
+  const KategoriIcon = kategoriLogbookOptions.find(
+    (k) => k.value === formData.kategoriUnit
+  )?.icon ?? Ship;
+
+  const rutePlaceholder = isDarat(formData.kategoriUnit)
+    ? "Contoh: Kantor SAR Mamuju - Desa Binanga"
+    : "Contoh: Dermaga Mamuju - Perairan Mamuju";
+
+  const tujuanPlaceholder = isDarat(formData.kategoriUnit)
+    ? "Contoh: Patroli darat, Evakuasi korban, Distribusi logistik"
+    : "Contoh: Patroli rutin, Operasi evakuasi, Sosialisasi";
+
+  const catatanPlaceholder = isDarat(formData.kategoriUnit)
+    ? "Kondisi jalan, cuaca, insiden, atau keterangan lain..."
+    : "Kondisi laut, cuaca, insiden, atau keterangan lain...";
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -122,7 +222,7 @@ export default function TambahLogbookPage() {
               <Label htmlFor="rute">Rute</Label>
               <Input
                 id="rute"
-                placeholder="Contoh: Dermaga Mamuju - Perairan Mamuju"
+                placeholder={rutePlaceholder}
                 value={formData.rute}
                 onChange={(e) =>
                   setFormData({ ...formData, rute: e.target.value })
@@ -134,7 +234,7 @@ export default function TambahLogbookPage() {
               <Label htmlFor="tujuan">Tujuan Kegiatan</Label>
               <Input
                 id="tujuan"
-                placeholder="Contoh: Patroli rutin, Operasi evakuasi, Sosialisasi"
+                placeholder={tujuanPlaceholder}
                 value={formData.tujuan}
                 onChange={(e) =>
                   setFormData({ ...formData, tujuan: e.target.value })
@@ -148,9 +248,37 @@ export default function TambahLogbookPage() {
         {/* Unit & Personel */}
         <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
-            <Ship className="h-5 w-5 text-primary" />
+            <KategoriIcon className="h-5 w-5 text-primary" />
             Unit &amp; Personel
           </h2>
+
+          {/* Pilihan Kategori Unit — visual toggle */}
+          <div className="mb-5">
+            <Label>Kategori Unit</Label>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {kategoriLogbookOptions.map((opt) => {
+                const isActive = formData.kategoriUnit === opt.value;
+                const IconComp = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleKategoriChange(opt.value)}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    )}
+                  >
+                    <IconComp className="h-4 w-4" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="jenisUnit">Jenis Unit</Label>
@@ -161,22 +289,34 @@ export default function TambahLogbookPage() {
                   setFormData({ ...formData, jenisUnit: e.target.value })
                 }
               >
-                <option value="RIB 9 M">RIB 9 M</option>
-                <option value="RIB 12 M">RIB 12 M</option>
-                <option value="KN SAR MAMUJU 01">KN SAR MAMUJU 01</option>
+                {unitOptions.length === 0 && (
+                  <option value="">— Tidak ada unit tersedia —</option>
+                )}
+                {unitOptions.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
               </Select>
+              <p className="text-xs text-slate-500">
+                {isDarat(formData.kategoriUnit)
+                  ? "Pilih unit kendaraan darat yang digunakan"
+                  : "Pilih unit kapal/RIB yang digunakan"}
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nahkoda">Nahkoda</Label>
+              <Label htmlFor="operator">
+                {getOperatorLabel(formData.kategoriUnit)}
+              </Label>
               <Select
-                id="nahkoda"
-                value={formData.nahkoda}
+                id="operator"
+                value={formData.operator}
                 onChange={(e) =>
-                  setFormData({ ...formData, nahkoda: e.target.value })
+                  setFormData({ ...formData, operator: e.target.value })
                 }
                 required
               >
-                <option value="">Pilih nahkoda</option>
+                <option value="">Pilih {getOperatorLabel(formData.kategoriUnit).toLowerCase()}</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.nama}>
                     {user.nama}
@@ -200,11 +340,11 @@ export default function TambahLogbookPage() {
           </div>
         </Card>
 
-        {/* BBM & Catatan */}
+        {/* BBM, KM & Catatan */}
         <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Fuel className="h-5 w-5 text-primary" />
-            BBM &amp; Catatan
+            BBM{isDarat(formData.kategoriUnit) ? ", Kilometer" : ""} &amp; Catatan
           </h2>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -238,12 +378,46 @@ export default function TambahLogbookPage() {
                 />
               </div>
             </div>
+
+            {/* KM hanya untuk kendaraan darat */}
+            {isDarat(formData.kategoriUnit) && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="kmSebelum">Kilometer Sebelum (KM)</Label>
+                  <Input
+                    id="kmSebelum"
+                    type="number"
+                    min={0}
+                    placeholder="Contoh: 45230"
+                    value={formData.kmSebelum}
+                    onChange={(e) =>
+                      setFormData({ ...formData, kmSebelum: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="kmSesudah">Kilometer Sesudah (KM)</Label>
+                  <Input
+                    id="kmSesudah"
+                    type="number"
+                    min={0}
+                    placeholder="Kosongkan bila belum kembali"
+                    value={formData.kmSesudah}
+                    onChange={(e) =>
+                      setFormData({ ...formData, kmSesudah: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="catatan">Catatan</Label>
               <Textarea
                 id="catatan"
                 rows={4}
-                placeholder="Kondisi laut,cuaca, insiden, atau keterangan lain..."
+                placeholder={catatanPlaceholder}
                 value={formData.catatan}
                 onChange={(e) =>
                   setFormData({ ...formData, catatan: e.target.value })

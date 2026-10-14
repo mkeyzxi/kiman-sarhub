@@ -2,12 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ClipboardCheck, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { checklistTemplates, users, type KondisiHasil } from "@/components/shared/mock-data";
+import {
+  checklistTemplates,
+  getKategoriTemplate,
+  asetList,
+  users,
+  type KondisiHasil,
+  type JenisArmada,
+} from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
 const kondisiOptions: KondisiHasil[] = [
@@ -17,10 +24,62 @@ const kondisiOptions: KondisiHasil[] = [
   "Belum Diperiksa",
 ];
 
+const jenisArmadaOptions: { value: JenisArmada; label: string; icon: React.ElementType }[] = [
+  { value: "Kapal", label: "Kapal", icon: Anchor },
+  { value: "RIB", label: "RIB / Perahu", icon: Ship },
+  { value: "RBB", label: "RBB", icon: Ship },
+  { value: "Mobil", label: "Mobil", icon: Car },
+  { value: "Motor", label: "Motor", icon: Bike },
+  { value: "Lainnya", label: "Peralatan Lainnya", icon: Wrench },
+];
+
+/**
+ * Mapping dari JenisArmada ke KategoriAset di asetList.
+ * Digunakan untuk menyajikan dropdown unit yang relevan.
+ */
+const kategoriAsetMapping: Record<JenisArmada, string[]> = {
+  Kapal: ["Kapal"],
+  RIB: ["Peralatan SAR"],
+  RBB: ["Peralatan SAR"],
+  Mobil: ["Mobil"],
+  Motor: ["Motor"],
+  Lainnya: ["Medis", "Komunikasi", "Dokumentasi", "Peralatan SAR"],
+};
+
+/** Daftar unit yang tersedia berdasarkan jenis armada. */
+function getUnitOptionsForArmada(jenisArmada: JenisArmada): { value: string; label: string }[] {
+  const staticUnits: Record<string, { value: string; label: string }[]> = {
+    RIB: [
+      { value: "RIB 9 M", label: "RIB 9 M" },
+      { value: "RIB 12 M", label: "RIB 12 M" },
+    ],
+    Kapal: [
+      { value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" },
+    ],
+    RBB: [
+      { value: "RBB 309 MAMUJU", label: "RBB 309 MAMUJU" },
+    ],
+  };
+
+  const kategoriList = kategoriAsetMapping[jenisArmada] ?? [];
+  const asetUnits = asetList
+    .filter((a) => kategoriList.includes(a.kategori))
+    .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
+
+  const merged = [...(staticUnits[jenisArmada] ?? [])];
+  asetUnits.forEach((u) => {
+    if (!merged.some((m) => m.value === u.value)) {
+      merged.push(u);
+    }
+  });
+
+  return merged;
+}
+
 export default function BuatChecklistPage() {
   const [tanggal, setTanggal] = useState("");
   const [unit, setUnit] = useState("");
-  const [jenisUnit, setJenisUnit] = useState("Kapal");
+  const [jenisUnit, setJenisUnit] = useState<JenisArmada>("Kapal");
   const [pemeriksa, setPemeriksa] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [catatan, setCatatan] = useState("");
@@ -34,10 +93,52 @@ export default function BuatChecklistPage() {
     [templateId]
   );
 
+  // Template yang relevan untuk armada terpilih, plus template peralatan umum.
+  const templateTersedia = useMemo(
+    () =>
+      checklistTemplates.filter(
+        (t) => t.jenisArmada === jenisUnit || t.jenisArmada === "Lainnya"
+      ),
+    [jenisUnit]
+  );
+
+  // Unit options berdasarkan jenis armada
+  const unitOptions = useMemo(
+    () => getUnitOptionsForArmada(jenisUnit),
+    [jenisUnit]
+  );
+
+  // Item dikelompokkan mengikuti bagian pada form fisik (mis. "Kamar Mesin").
+  const kelompokItem = useMemo(
+    () => (template ? getKategoriTemplate(template.id) : []),
+    [template]
+  );
+
   const sudahDiperiksa = template
     ? template.items.filter((i) => hasil[i.label] && hasil[i.label] !== "Belum Diperiksa")
         .length
     : 0;
+
+  // Validasi V1: semua item wajib dijawab, V2: kondisi rusak wajib keterangan.
+  const itemBelumDijawab = template
+    ? template.items.filter((i) => !hasil[i.label]).length
+    : 0;
+  const itemRusakTanpaKeterangan = template
+    ? template.items.filter(
+        (i) =>
+          hasil[i.label] &&
+          hasil[i.label] !== "Baik" &&
+          (keterangan[i.label] ?? "").trim().length < 5
+      ).length
+    : 0;
+
+  const handleJenisArmadaChange = (newJenis: JenisArmada) => {
+    setJenisUnit(newJenis);
+    setTemplateId("");
+    setUnit("");
+    setHasil({});
+    setKeterangan({});
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,29 +181,6 @@ export default function BuatChecklistPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="jenisUnit">Jenis Unit</Label>
-              <Select
-                id="jenisUnit"
-                value={jenisUnit}
-                onChange={(e) => setJenisUnit(e.target.value)}
-              >
-                <option value="Kapal">Kapal</option>
-                <option value="Perahu">Perahu</option>
-                <option value="Mobil">Mobil</option>
-                <option value="Motor">Motor</option>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unit yang Diperiksa</Label>
-              <Input
-                id="unit"
-                placeholder="Contoh: RIB 12 M"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="pemeriksa">Pemeriksa</Label>
               <Select
                 id="pemeriksa"
@@ -119,6 +197,91 @@ export default function BuatChecklistPage() {
               </Select>
             </div>
           </div>
+
+          {/* Jenis Armada — Visual Toggle */}
+          <div className="mt-5">
+            <Label>Jenis Armada</Label>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {jenisArmadaOptions.map((opt) => {
+                const isActive = jenisUnit === opt.value;
+                const hasTemplates = checklistTemplates.some(
+                  (t) => t.jenisArmada === opt.value || t.jenisArmada === "Lainnya"
+                );
+                const templateCount = checklistTemplates.filter(
+                  (t) => t.jenisArmada === opt.value
+                ).length;
+                const IconComp = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleJenisArmadaChange(opt.value)}
+                    className={cn(
+                      "relative flex flex-col items-center gap-1.5 rounded-lg border px-3 py-3 text-xs font-medium transition-all",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    )}
+                  >
+                    <IconComp className="h-5 w-5" />
+                    <span>{opt.label}</span>
+                    {templateCount > 0 && (
+                      <span
+                        className={cn(
+                          "text-[10px] rounded-full px-1.5 py-0.5",
+                          isActive
+                            ? "bg-primary/20 text-primary"
+                            : "bg-slate-100 text-slate-400"
+                        )}
+                      >
+                        {templateCount} template
+                      </span>
+                    )}
+                    {templateCount === 0 && opt.value !== "Lainnya" && (
+                      <span className="text-[10px] text-slate-400">
+                        Belum ada
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Unit Dropdown */}
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unit yang Diperiksa</Label>
+              {unitOptions.length > 0 ? (
+                <Select
+                  id="unit"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  required
+                >
+                  <option value="">Pilih unit</option>
+                  {unitOptions.map((u) => (
+                    <option key={u.value} value={u.value}>
+                      {u.label}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  id="unit"
+                  placeholder="Masukkan nama unit..."
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  required
+                />
+              )}
+              <p className="text-xs text-slate-500">
+                {unitOptions.length > 0
+                  ? "Pilih unit dari daftar yang tersedia"
+                  : "Ketik manual nama unit yang diperiksa"}
+              </p>
+            </div>
+          </div>
         </Card>
 
         {/* Template */}
@@ -129,28 +292,70 @@ export default function BuatChecklistPage() {
           </h2>
           <div className="space-y-2">
             <Label htmlFor="templateId">Pilih Template</Label>
-            <Select
-              id="templateId"
-              value={templateId}
-              onChange={(e) => {
-                setTemplateId(e.target.value);
-                setHasil({});
-                setKeterangan({});
-              }}
-              required
-            >
-              <option value="">Pilih template</option>
-              {checklistTemplates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nama} ({t.periode})
-                </option>
-              ))}
-            </Select>
-            <p className="mt-1 text-xs text-slate-500">
-              Daftar item mengikuti template yang dipilih. Pilih ulang template
-              akan mengosongkan hasil yang sudah diisi.
-            </p>
+            {templateTersedia.length > 0 ? (
+              <Select
+                id="templateId"
+                value={templateId}
+                onChange={(e) => {
+                  setTemplateId(e.target.value);
+                  setHasil({});
+                  setKeterangan({});
+                }}
+                required
+              >
+                <option value="">Pilih template</option>
+                {templateTersedia.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nama} ({t.periode} — {t.items.length} item)
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <p className="text-xs text-amber-800">
+                  Belum ada template checklist untuk jenis armada{" "}
+                  <strong>
+                    {jenisArmadaOptions.find((j) => j.value === jenisUnit)?.label ?? jenisUnit}
+                  </strong>
+                  . Hubungi admin untuk menambahkan template, atau pilih jenis armada lain.
+                </p>
+              </div>
+            )}
+            {template?.sumber && (
+              <p className="mt-1 text-xs text-slate-500">
+                Sumber form: {template.sumber}. Daftar item mengikuti template yang
+                dipilih. Pilih ulang template akan mengosongkan hasil yang sudah
+                diisi.
+              </p>
+            )}
+            {templateTersedia.length > 0 && !template?.sumber && (
+              <p className="mt-1 text-xs text-slate-500">
+                Daftar item mengikuti template yang dipilih. Pilih ulang template
+                akan mengosongkan hasil yang sudah diisi.
+              </p>
+            )}
           </div>
+
+          {/* Info ringkasan template terpilih */}
+          {template && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge variant="outline">
+                {template.jenisArmada}
+              </Badge>
+              <Badge variant="outline">
+                {template.periode}
+              </Badge>
+              <Badge variant="outline">
+                {template.items.length} item
+              </Badge>
+              {template.items.some((i) => i.isKritis) && (
+                <Badge variant="warning">
+                  {template.items.filter((i) => i.isKritis).length} kritis
+                </Badge>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Hasil Pemeriksaan */}
@@ -166,76 +371,124 @@ export default function BuatChecklistPage() {
                 </Badge>
               </div>
 
-              <div className="space-y-3">
-                {template.items.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "rounded-lg border p-4",
-                      hasil[item.label] && hasil[item.label] !== "Belum Diperiksa"
-                        ? "border-slate-200 bg-white"
-                        : "border-slate-200 bg-slate-50"
-                    )}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                      <div className="flex min-w-0 flex-1 items-start gap-3">
-                        <span className="mt-0.5 w-6 shrink-0 text-xs text-slate-400">
-                          {idx + 1}.
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm text-slate-700">{item.label}</p>
-                          {item.wajib && (
-                            <Badge variant="outline" className="mt-1 text-xs">
-                              Wajib
-                            </Badge>
+              {template.items.some((i) => i.isKritis) && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <p className="text-xs text-amber-800">
+                    Item bertanda <strong>Kritis</strong>: bila berstatus
+                    &quot;Rusak Berat&quot;, armada akan otomatis terkunci dan
+                    dibuatkan tiket perbaikan.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                {kelompokItem.map((kelompok) => (
+                  <div key={kelompok.nama} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-700">
+                        {kelompok.nama}
+                      </h3>
+                      <span className="text-xs text-slate-400">
+                        {kelompok.items.length} item
+                      </span>
+                    </div>
+
+                    {kelompok.items.map((item) => {
+                      const kondisi = hasil[item.label];
+                      const perluKeterangan =
+                        kondisi &&
+                        kondisi !== "Baik" &&
+                        (keterangan[item.label] ?? "").trim().length < 5;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "rounded-lg border p-4",
+                            kondisi && kondisi !== "Belum Diperiksa"
+                              ? "border-slate-200 bg-white"
+                              : "border-slate-200 bg-slate-50"
                           )}
-                        </div>
-                      </div>
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                            <div className="flex min-w-0 flex-1 items-start gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm text-slate-700">
+                                  {item.label}
+                                </p>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {item.wajib && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Wajib
+                                    </Badge>
+                                  )}
+                                  {item.isKritis && (
+                                    <Badge variant="warning" className="text-xs">
+                                      Kritis
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
 
-                      <div className="flex shrink-0 gap-2 sm:w-52">
-                        {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
-                          (k) => (
-                            <button
-                              key={k}
-                              type="button"
-                              onClick={() =>
-                                setHasil((prev) => ({ ...prev, [item.label]: k }))
+                            <div className="flex shrink-0 gap-2 sm:w-52">
+                              {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
+                                (k) => (
+                                  <button
+                                    key={k}
+                                    type="button"
+                                    onClick={() =>
+                                      setHasil((prev) => ({
+                                        ...prev,
+                                        [item.label]: k,
+                                      }))
+                                    }
+                                    aria-pressed={kondisi === k}
+                                    className={cn(
+                                      "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
+                                      kondisi === k
+                                        ? k === "Baik"
+                                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                          : k === "Rusak Ringan"
+                                            ? "border-amber-500 bg-amber-50 text-amber-700"
+                                            : "border-rose-500 bg-rose-50 text-rose-700"
+                                        : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    {kondisi === k && (
+                                      <CheckCircle2 className="h-3 w-3" />
+                                    )}
+                                    {k === "Rusak Ringan" ? "Ringan" : k}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pl-9">
+                            <Input
+                              placeholder={
+                                kondisi && kondisi !== "Baik"
+                                  ? "Keterangan wajib diisi (min. 5 karakter)"
+                                  : "Keterangan (opsional)"
                               }
-                              aria-pressed={hasil[item.label] === k}
                               className={cn(
-                                "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
-                                hasil[item.label] === k
-                                  ? k === "Baik"
-                                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                    : k === "Rusak Ringan"
-                                      ? "border-amber-500 bg-amber-50 text-amber-700"
-                                      : "border-rose-500 bg-rose-50 text-rose-700"
-                                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                "text-xs",
+                                perluKeterangan && "border-rose-400 focus-visible:ring-rose-400"
                               )}
-                            >
-                              {hasil[item.label] === k && (
-                                <CheckCircle2 className="h-3 w-3" />
-                              )}
-                              {k === "Rusak Ringan" ? "Ringan" : k}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pl-9">
-                      <Input
-                        placeholder="Keterangan (opsional)"
-                        className="text-xs"
-                        value={keterangan[item.label] ?? ""}
-                        onChange={(e) =>
-                          setKeterangan((prev) => ({
-                            ...prev,
-                            [item.label]: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
+                              value={keterangan[item.label] ?? ""}
+                              onChange={(e) =>
+                                setKeterangan((prev) => ({
+                                  ...prev,
+                                  [item.label]: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -257,12 +510,42 @@ export default function BuatChecklistPage() {
           </div>
         </Card>
 
+        {/* Validasi sebelum simpan */}
+        {template && (itemBelumDijawab > 0 || itemRusakTanpaKeterangan > 0) && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div className="text-sm text-amber-800">
+              {itemBelumDijawab > 0 && (
+                <p>
+                  <strong>{itemBelumDijawab} item</strong> belum dijawab. Semua
+                  item template wajib diisi sebelum disimpan.
+                </p>
+              )}
+              {itemRusakTanpaKeterangan > 0 && (
+                <p className="mt-1">
+                  <strong>{itemRusakTanpaKeterangan} item</strong> berstatus
+                  rusak tanpa keterangan. Keterangan wajib diisi minimal 5 karakter.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
           <Link href="/operator/checklist">
             <Button variant="outline">Batal</Button>
           </Link>
-          <Button type="submit">Simpan Checklist</Button>
+          <Button
+            type="submit"
+            disabled={
+              !template ||
+              itemBelumDijawab > 0 ||
+              itemRusakTanpaKeterangan > 0
+            }
+          >
+            Simpan Checklist
+          </Button>
         </div>
       </form>
     </div>

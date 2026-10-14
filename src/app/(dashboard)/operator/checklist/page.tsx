@@ -30,7 +30,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Input, Select } from "@/components/ui/input";
-import { checklistTemplates, getUserById } from "@/components/shared/mock-data";
+import { checklistTemplates, countItemKritis, getUserById } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 import { checklistHarianList } from "@/components/shared/mock-data";
 
@@ -141,10 +141,10 @@ export default function ChecklistPerawatanPage() {
             onChange={(e) => setJenisFilter(e.target.value)}
           >
             <option value="Semua">Semua Jenis</option>
-            <option value="Kapal">Kapal</option>
+            <option value="Kapal">Kapal (KN SAR)</option>
+            <option value="Perahu">Perahu (RIB)</option>
             <option value="Mobil">Mobil</option>
             <option value="Motor">Motor</option>
-            <option value="Perahu">Perahu</option>
           </Select>
           <Select
             className="sm:w-40"
@@ -252,7 +252,10 @@ export default function ChecklistPerawatanPage() {
                   <Badge variant="outline" className="text-xs">{template.kategori}</Badge>
                 </div>
                 <p className="text-sm text-slate-500 mb-3">
-                  {template.items.length} item pemeriksaan
+                  {template.items.length} item pemeriksaan · {template.periode}
+                  {countItemKritis(template.id) > 0 && (
+                    <> · {countItemKritis(template.id)} item kritis</>
+                  )}
                 </p>
                 <div className="flex items-center gap-2">
                   <Link href="/operator/checklist" className="flex-1">
