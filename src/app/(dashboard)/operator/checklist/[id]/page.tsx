@@ -14,19 +14,11 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import RincianItemTable from "./rincian-item-table";
 import {
   getChecklistHarianById,
   checklistTemplates,
   formatTanggal,
-  type KondisiHasil,
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -36,13 +28,6 @@ const unitIcon = {
   Motor: Bike,
   Perahu: Package,
 } as const;
-
-const kondisiVariant: Record<KondisiHasil, "success" | "warning" | "danger" | "outline"> = {
-  Baik: "success",
-  "Rusak Ringan": "warning",
-  "Rusak Berat": "danger",
-  "Belum Diperiksa": "outline",
-};
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -194,47 +179,7 @@ export default async function DetailChecklistPage({ params }: PageProps) {
           <CardTitle>Rincian Item Checklist</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="w-12 text-center">No</TableHead>
-                <TableHead>Item Pemeriksaan</TableHead>
-                <TableHead className="w-24 text-center">Wajib</TableHead>
-                <TableHead className="w-40 text-center">Kondisi</TableHead>
-                <TableHead>Keterangan</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {checklist.items.map((item, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-center text-slate-500">
-                    {i + 1}
-                  </TableCell>
-                  <TableCell className="text-slate-700">{item.label}</TableCell>
-                  <TableCell className="text-center">
-                    {item.wajib ? (
-                      <Badge variant="outline" className="text-xs">
-                        Wajib
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-slate-400">Opsional</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={kondisiVariant[item.kondisi]}
-                      className="text-xs"
-                    >
-                      {item.kondisi}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-600">
-                    {item.keterangan || "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <RincianItemTable items={checklist.items} />
         </CardContent>
       </Card>
 

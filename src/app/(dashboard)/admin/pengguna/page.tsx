@@ -6,14 +6,7 @@ import { UserPlus, Search, Users, ShieldCheck, UserX, ArrowRight } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { users } from "@/components/shared/mock-data";
 import { roleLabels, roleDescriptions } from "@/config/navigation";
@@ -164,75 +157,91 @@ export default function PenggunaPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Nama</TableHead>
-                <TableHead>NIP</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <Link
-                      href={`/admin/pengguna/${user.id}`}
-                      className="group flex items-center gap-3"
-                    >
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-light">
-                        <span className="text-xs font-bold text-primary">
-                          {initials(user.nama)}
-                        </span>
-                      </div>
-                      <span className="font-medium text-slate-800 group-hover:text-primary">
-                        {user.nama}
-                      </span>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-600">
-                    {user.nip}
-                  </TableCell>
-                  <TableCell className="text-slate-600">{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {roleLabels[user.role]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={user.aktif ? "success" : "danger"}
-                      className="text-xs"
-                    >
-                      {user.aktif ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      href={`/admin/pengguna/${user.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-hover"
-                    >
-                      Detail
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-8 text-center text-slate-500"
+          <ResponsiveTable
+            data={filteredUsers}
+            getKey={(row) => row.id}
+            cardTitle={(row) => row.nama}
+            cardSubtitle={(row) => row.nip}
+            cardBadge={(row) => (
+              <Badge variant={row.aktif ? "success" : "danger"} className="text-xs">
+                {row.aktif ? "Aktif" : "Nonaktif"}
+              </Badge>
+            )}
+            cardPreviewCount={2}
+            detailLabel="Lihat detail pengguna"
+            emptyMessage="Tidak ada pengguna yang ditemukan"
+            fields={[
+              {
+                key: "nama",
+                header: "Nama",
+                render: (row) => (
+                  <Link
+                    href={`/admin/pengguna/${row.id}`}
+                    className="group flex items-center gap-3"
                   >
-                    Tidak ada pengguna yang ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-light">
+                      <span className="text-xs font-bold text-primary">
+                        {initials(row.nama)}
+                      </span>
+                    </span>
+                    <span className="font-medium text-slate-800 group-hover:text-primary">
+                      {row.nama}
+                    </span>
+                  </Link>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "nip",
+                header: "NIP",
+                render: (row) => row.nip,
+                cellClassName: "font-mono text-xs text-slate-600",
+              },
+              {
+                key: "email",
+                header: "Email",
+                render: (row) => row.email,
+                cellClassName: "break-all text-slate-600",
+              },
+              {
+                key: "role",
+                header: "Role",
+                render: (row) => (
+                  <Badge variant="outline" className="text-xs">
+                    {roleLabels[row.role]}
+                  </Badge>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (row) => (
+                  <Badge
+                    variant={row.aktif ? "success" : "danger"}
+                    className="text-xs"
+                  >
+                    {row.aktif ? "Aktif" : "Nonaktif"}
+                  </Badge>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "aksi",
+                header: "Aksi",
+                render: (row) => (
+                  <Link
+                    href={`/admin/pengguna/${row.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-hover"
+                  >
+                    Detail
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                ),
+                headClassName: "text-right",
+                hideBelowLg: true,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

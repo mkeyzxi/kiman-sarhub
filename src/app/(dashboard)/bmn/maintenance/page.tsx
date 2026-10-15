@@ -16,14 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { getAsetById, getUserById, formatTanggal } from "@/components/shared/mock-data";
 import { useTickets } from "@/components/shared/ticket-store";
@@ -160,99 +153,133 @@ export default function TiketMaintenancePage() {
         </div>
       </Card>
 
-      {/* Tabel Tiket */}
+      {/* Tabel Tiket — otomatis menjadi kartu di layar kecil */}
       <Card>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>ID</TableHead>
-                <TableHead>Judul</TableHead>
-                <TableHead>Aset</TableHead>
-                <TableHead className="text-center">Tingkat</TableHead>
-                <TableHead>Petugas</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTickets.map((ticket) => {
-                const aset = getAsetById(ticket.asetId);
-                const assignedTo = getUserById(ticket.assignedTo);
-                return (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-mono text-xs text-slate-600">
-                      {ticket.id.toUpperCase()}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-800">{ticket.judul}</p>
-                        <p className="text-xs text-slate-500 line-clamp-1">{ticket.deskripsi}</p>
+          <ResponsiveTable
+            data={filteredTickets}
+            getKey={(row) => row.id}
+            cardTitle={(row) => row.judul}
+            cardSubtitle={(row) => row.id.toUpperCase()}
+            cardBadge={(row) => (
+              <Badge
+                variant={
+                  row.status === "Selesai"
+                    ? "success"
+                    : row.status === "Diproses"
+                      ? "default"
+                      : "warning"
+                }
+              >
+                {row.status}
+              </Badge>
+            )}
+            cardPreviewCount={2}
+            detailLabel="Lihat detail tiket"
+            emptyMessage="Tidak ada tiket yang ditemukan"
+            fields={[
+              {
+                key: "id",
+                header: "ID",
+                render: (row) => row.id.toUpperCase(),
+                cellClassName: "font-mono text-xs text-slate-600",
+                hideBelowXl: true,
+                hideOnCard: true,
+              },
+              {
+                key: "judul",
+                header: "Judul",
+                render: (row) => (
+                  <div>
+                    <p className="font-medium text-slate-800">{row.judul}</p>
+                    <p className="line-clamp-1 text-xs text-slate-500">{row.deskripsi}</p>
+                  </div>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "aset",
+                header: "Aset",
+                render: (row) => {
+                  const aset = getAsetById(row.asetId);
+                  return (
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Package className="h-4 w-4 shrink-0 text-slate-400" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-slate-700">{aset?.nama ?? "-"}</p>
+                        <p className="truncate text-xs text-slate-400">{aset?.kode}</p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-slate-400" />
-                        <div>
-                          <p className="text-sm text-slate-700">{aset?.nama ?? "-"}</p>
-                          <p className="text-xs text-slate-400">{aset?.kode}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-600">
-                      {assignedTo?.nama ?? "-"}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={
-                          ticket.tingkatKeparahan === "Tinggi"
-                            ? "danger"
-                            : ticket.tingkatKeparahan === "Sedang"
-                              ? "warning"
-                              : "default"
-                        }
-                      >
-                        {ticket.tingkatKeparahan}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          ticket.status === "Selesai"
-                            ? "success"
-                            : ticket.status === "Diproses"
-                              ? "default"
-                              : "warning"
-                        }
-                      >
-                        {ticket.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {formatTanggal(ticket.tanggalBuat)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center">
-                        <Link href={`/bmn/maintenance/${ticket.id}`}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {filteredTickets.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                    Tidak ada tiket yang ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    </div>
+                  );
+                },
+              },
+              {
+                key: "petugas",
+                header: "Petugas",
+                render: (row) => getUserById(row.assignedTo)?.nama ?? "-",
+                cellClassName: "text-sm text-slate-600",
+                hideBelowXl: true,
+              },
+              {
+                key: "tingkatKeparahan",
+                header: "Tingkat",
+                render: (row) => (
+                  <Badge
+                    variant={
+                      row.tingkatKeparahan === "Tinggi"
+                        ? "danger"
+                        : row.tingkatKeparahan === "Sedang"
+                          ? "warning"
+                          : "default"
+                    }
+                  >
+                    {row.tingkatKeparahan}
+                  </Badge>
+                ),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (row) => (
+                  <Badge
+                    variant={
+                      row.status === "Selesai"
+                        ? "success"
+                        : row.status === "Diproses"
+                          ? "default"
+                          : "warning"
+                    }
+                  >
+                    {row.status}
+                  </Badge>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "tanggal",
+                header: "Tanggal",
+                render: (row) => formatTanggal(row.tanggalBuat),
+                cellClassName: "text-slate-600",
+              },
+              {
+                key: "aksi",
+                header: "Aksi",
+                render: (row) => (
+                  <div className="flex items-center justify-center">
+                    <Link href={`/bmn/maintenance/${row.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                ),
+                headClassName: "text-center",
+                hideBelowLg: true,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

@@ -2,15 +2,8 @@
 
 import { Users, TrendingUp, AlertOctagon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   complianceRanking,
   getUserById,
@@ -40,6 +33,11 @@ export default function AuditPage() {
     (sum, p) => sum + p.telatKembali + p.abaikanChecklist,
     0
   );
+
+  // Diurutkan dari skor tertinggi, dengan peringkat yang sudah dilampirkan.
+  const ranking = [...complianceRanking]
+    .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
+    .map((item, i) => ({ ...item, rank: i + 1 }));
 
   const stats = [
     {
@@ -96,79 +94,103 @@ export default function AuditPage() {
 
       {/* Compliance Table */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
-              <TableHead className="text-center">Ranking</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead>Jabatan</TableHead>
-              <TableHead className="text-center">Telat Kembali</TableHead>
-              <TableHead className="text-center">Abaikan Checklist</TableHead>
-              <TableHead className="text-center">Skor Kepatuhan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {complianceRanking
-              .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
-              .map((personel, index) => {
-                const user = getUserById(personel.personelId);
-                return (
-                  <TableRow key={personel.personelId}>
-                    <TableCell className="text-center">
-                      <span
-                        className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                          index === 0
-                            ? "bg-primary text-white"
-                            : index === 1
-                              ? "bg-slate-200 text-slate-700"
-                              : index === 2
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {index + 1}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-medium text-slate-800">
-                      {personel.nama}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{user?.role ?? "-"}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={`font-medium ${
-                          personel.telatKembali > 0
-                            ? "text-rose-600"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        {personel.telatKembali}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={`font-medium ${
-                          personel.abaikanChecklist > 0
-                            ? "text-rose-600"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        {personel.abaikanChecklist}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={getSkorBadgeVariant(personel.skorKepatuhan)}>
-                        <span className={getSkorColor(personel.skorKepatuhan)}>
-                          {personel.skorKepatuhan}
-                        </span>
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-          </TableBody>
-        </Table>
+        <ResponsiveTable
+          data={ranking}
+          getKey={(row) => row.personelId}
+          cardTitle={(row) => row.nama}
+          cardSubtitle={(row) => getUserById(row.personelId)?.role ?? "-"}
+          cardBadge={(row) => (
+            <Badge variant={getSkorBadgeVariant(row.skorKepatuhan)}>
+              <span className={getSkorColor(row.skorKepatuhan)}>
+                Skor {row.skorKepatuhan}
+              </span>
+            </Badge>
+          )}
+          cardPreviewCount={2}
+          detailLabel="Lihat detail kepatuhan"
+          emptyMessage="Belum ada data kepatuhan personel."
+          fields={[
+            {
+              key: "rank",
+              header: "Ranking",
+              render: (row) => (
+                <span
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                    row.rank === 1
+                      ? "bg-primary text-white"
+                      : row.rank === 2
+                        ? "bg-slate-200 text-slate-700"
+                        : row.rank === 3
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {row.rank}
+                </span>
+              ),
+              headClassName: "text-center",
+              cellClassName: "text-center",
+            },
+            {
+              key: "nama",
+              header: "Nama",
+              render: (row) => row.nama,
+              cellClassName: "font-medium text-slate-800",
+              hideOnCard: true,
+            },
+            {
+              key: "role",
+              header: "Jabatan",
+              render: (row) => (
+                <Badge variant="outline">{getUserById(row.personelId)?.role ?? "-"}</Badge>
+              ),
+              hideOnCard: true,
+            },
+            {
+              key: "telatKembali",
+              header: "Telat Kembali",
+              render: (row) => (
+                <span
+                  className={`font-medium ${
+                    row.telatKembali > 0 ? "text-rose-600" : "text-slate-600"
+                  }`}
+                >
+                  {row.telatKembali}
+                </span>
+              ),
+              headClassName: "text-center",
+              cellClassName: "text-center",
+            },
+            {
+              key: "abaikanChecklist",
+              header: "Abaikan Checklist",
+              render: (row) => (
+                <span
+                  className={`font-medium ${
+                    row.abaikanChecklist > 0 ? "text-rose-600" : "text-slate-600"
+                  }`}
+                >
+                  {row.abaikanChecklist}
+                </span>
+              ),
+              headClassName: "text-center",
+              cellClassName: "text-center",
+            },
+            {
+              key: "skorKepatuhan",
+              header: "Skor Kepatuhan",
+              render: (row) => (
+                <Badge variant={getSkorBadgeVariant(row.skorKepatuhan)}>
+                  <span className={getSkorColor(row.skorKepatuhan)}>
+                    {row.skorKepatuhan}
+                  </span>
+                </Badge>
+              ),
+              headClassName: "text-center",
+              cellClassName: "text-center",
+            },
+          ]}
+        />
       </Card>
     </div>
   );

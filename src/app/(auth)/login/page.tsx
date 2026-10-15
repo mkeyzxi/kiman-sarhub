@@ -9,6 +9,8 @@ import { roleLabels, roleDescriptions, getDefaultPageForRole } from "@/config/na
 import type { UserRole } from "@/components/shared/mock-data";
 import Image from "next/image";
 
+const LOGIN_BACKGROUND = "/login-background.webp";
+
 const roles: UserRole[] = [
   "ADMIN_IT",
   "PENGELOLA_BMN",
@@ -29,47 +31,53 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full bg-white">
-      
-      {/* Bagian Kiri - Branding (Membentang ke ujung kiri) */}
-      <div className="hidden w-1/2 flex-col items-center justify-center border-r border-slate-200 bg-slate-50 p-12 lg:flex">
-        <div className="relative mb-8 flex size-40 items-center justify-center rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+
+      {/* Bagian Kiri - Branding (Hanya muncul di Desktop) */}
+      <div
+        className="relative hidden w-1/2 flex-col items-center justify-center bg-cover bg-center p-12 lg:flex"
+        style={{ backgroundImage: `url(${LOGIN_BACKGROUND})` }}
+      >
+        {/* Overlay gelap agar teks putih tetap kontras */}
+        <div className="absolute inset-0 bg-black/60"></div>
+
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Logo muncul di desktop (kiri) dengan ukuran proporsional */}
           <Image 
             src="/logo-transparant.png" 
             alt="Logo Siap SAR" 
-            width={120} 
-            height={120} 
-            className="object-contain" 
+            width={140} 
+            height={140} 
+            className="mb-6 drop-shadow-lg"
           />
+          <h1 className="text-center text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
+            Siap SAR
+          </h1>
+          <p className="mt-4 max-w-md text-center text-base font-medium leading-relaxed text-slate-100 drop-shadow">
+            Sistem Informasi Aset Terpadu
+            <br />
+            Kantor Pencarian dan Pertolongan Kelas B Mamuju
+          </p>
         </div>
-        <h1 className="text-center text-4xl font-extrabold tracking-tight text-slate-800">
-          Siap SAR
-        </h1>
-        <p className="mt-4 max-w-md text-center text-base font-medium leading-relaxed text-slate-500">
-          Sistem Informasi Aset Terpadu
-          <br />
-          Kantor Pencarian dan Pertolongan Kelas B Mamuju
-        </p>
       </div>
 
-      {/* Bagian Kanan - Form Autentikasi (Membentang ke ujung kanan) */}
+      {/* Bagian Kanan - Form Autentikasi */}
       <div className="flex w-full items-center justify-center p-8 sm:p-12 lg:w-1/2">
         <div className="w-full max-w-md">
-          
-          {/* Header untuk mobile (muncul saat layar kecil karena panel kiri hilang) */}
+
+          {/* Header Mobile: Logo muncul di sini karena panel kiri disembunyikan */}
           <div className="mb-10 flex flex-col items-center text-center lg:hidden">
-             <div className="relative mb-6 flex size-24 items-center justify-center rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-              <Image 
-                src="/logo-transparant.png" 
-                alt="Logo Siap SAR" 
-                width={64} 
-                height={64} 
-                className="object-contain" 
-              />
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">Siap SAR</h1>
-            <p className="mt-2 text-sm text-slate-500">Kantor Pencarian dan Pertolongan Kelas B Mamuju</p>
+            <Image 
+              src="/logo-transparant.png" 
+              alt="Logo Siap SAR" 
+              width={80} 
+              height={80} 
+              className="mb-4"
+            />
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Siap SAR</h1>
+            <p className="mt-2 text-sm font-medium text-slate-500">Kantor Pencarian dan Pertolongan Kelas B Mamuju</p>
           </div>
 
+          {/* Header Desktop: Tanpa logo agar tidak redundan dengan panel kiri */}
           <div className="mb-8 hidden lg:block">
             <h2 className="text-3xl font-bold text-slate-800">Selamat Datang</h2>
             <p className="mt-2 text-base text-slate-500">Silakan masuk ke akun Anda untuk melanjutkan.</p>
@@ -172,7 +180,7 @@ export default function LoginPage() {
               ))}
             </div>
           </div>
-          
+
           {/* Footer */}
           <p className="mt-12 text-center text-xs font-medium text-slate-400">
             &copy; {new Date().getFullYear()} Kantor Pencarian dan Pertolongan Kelas B Mamuju. All rights reserved.
