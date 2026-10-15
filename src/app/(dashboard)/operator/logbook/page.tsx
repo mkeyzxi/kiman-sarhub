@@ -19,14 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { logbookPerjalananList } from "@/components/shared/mock-data";
@@ -144,77 +137,123 @@ export default function LogbookPerjalananPage() {
         </div>
       </Card>
 
-      {/* Tabel Logbook */}
+      {/* Tabel Logbook — otomatis menjadi kartu di layar kecil */}
       <Card>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Jam</TableHead>
-                <TableHead>Rute / Tujuan</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Nahkoda</TableHead>
-                <TableHead className="text-center">Personel</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogbook.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-slate-700">{log.tanggal}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p className="font-mono">{log.jamBerangkat}</p>
-                      {log.jamKembali && <p className="text-slate-400 font-mono">{log.jamKembali}</p>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">{log.rute}</p>
-                      <p className="text-xs text-slate-500">{log.tujuan}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">{log.jenisUnit}</Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-700">{log.nahkoda}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Users className="h-3 w-3 text-slate-400" />
-                      <span className="text-sm">{log.jumlahPersonel}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        log.status === "Selesai" ? "success" : log.status === "Berlangsung" ? "warning" : "default"
-                      }
-                    >
-                      {log.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center">
-                      <Link href={`/operator/logbook/${log.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredLogbook.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-slate-500">
-                    Tidak ada logbook yang ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            data={filteredLogbook}
+            getKey={(row) => row.id}
+            cardTitle={(row) => row.rute}
+            cardSubtitle={(row) => row.tujuan}
+            cardBadge={(row) => (
+              <Badge
+                variant={
+                  row.status === "Selesai"
+                    ? "success"
+                    : row.status === "Berlangsung"
+                      ? "warning"
+                      : "default"
+                }
+              >
+                {row.status}
+              </Badge>
+            )}
+            cardPreviewCount={3}
+            detailLabel="Lihat detail perjalanan"
+            emptyMessage="Tidak ada logbook yang ditemukan"
+            fields={[
+              {
+                key: "tanggal",
+                header: "Tanggal",
+                render: (row) => row.tanggal,
+                cellClassName: "text-slate-700",
+              },
+              {
+                key: "jam",
+                header: "Jam",
+                render: (row) => (
+                  <div className="text-sm">
+                    <p className="font-mono">{row.jamBerangkat}</p>
+                    {row.jamKembali && (
+                      <p className="font-mono text-slate-400">{row.jamKembali}</p>
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: "rute",
+                header: "Rute / Tujuan",
+                render: (row) => (
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{row.rute}</p>
+                    <p className="text-xs text-slate-500">{row.tujuan}</p>
+                  </div>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "jenisUnit",
+                header: "Unit",
+                render: (row) => (
+                  <Badge variant="outline" className="text-xs">
+                    {row.jenisUnit}
+                  </Badge>
+                ),
+              },
+              {
+                key: "nahkoda",
+                header: "Nahkoda",
+                render: (row) => row.nahkoda,
+                cellClassName: "text-slate-700",
+              },
+              {
+                key: "jumlahPersonel",
+                header: "Personel",
+                render: (row) => (
+                  <div className="flex items-center justify-center gap-1">
+                    <Users className="h-3 w-3 text-slate-400" />
+                    <span className="text-sm">{row.jumlahPersonel}</span>
+                  </div>
+                ),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+                hideBelowXl: true,
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (row) => (
+                  <Badge
+                    variant={
+                      row.status === "Selesai"
+                        ? "success"
+                        : row.status === "Berlangsung"
+                          ? "warning"
+                          : "default"
+                    }
+                  >
+                    {row.status}
+                  </Badge>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "aksi",
+                header: "Aksi",
+                render: (row) => (
+                  <div className="flex items-center justify-center">
+                    <Link href={`/operator/logbook/${row.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                ),
+                headClassName: "text-center",
+                hideBelowLg: true,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

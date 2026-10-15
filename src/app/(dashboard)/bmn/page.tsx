@@ -14,14 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
@@ -149,65 +142,80 @@ export default function MasterDataBMNPage() {
         </div>
       </Card>
 
-      {/* Table */}
+      {/* Table — otomatis menjadi kartu di layar kecil */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
-              <TableHead>Kode</TableHead>
-              <TableHead>Nama Aset</TableHead>
-              <TableHead>Kategori</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Kondisi</TableHead>
-              <TableHead>Lokasi</TableHead>
-              <TableHead className="text-center">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAset.map((aset) => (
-              <TableRow key={aset.id}>
-                <TableCell className="font-mono text-xs text-slate-600">
-                  {aset.kode}
-                </TableCell>
-                <TableCell className="font-medium text-slate-800">
-                  {aset.nama}
-                </TableCell>
-                <TableCell>{aset.kategori}</TableCell>
-                <TableCell>
-                  <Badge variant={statusBadgeVariant[aset.status]}>
-                    {aset.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{aset.kondisi}</TableCell>
-                <TableCell>{aset.lokasi}</TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-1">
-                    <Link href={`/bmn/${aset.id}`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href={`/bmn/${aset.id}/edit`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filteredAset.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center py-8 text-slate-500"
-                >
-                  Tidak ada aset yang ditemukan
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <ResponsiveTable
+          data={filteredAset}
+          getKey={(row) => row.id}
+          cardTitle={(row) => row.nama}
+          cardSubtitle={(row) => `${row.kode} \u00b7 ${row.kategori}`}
+          cardBadge={(row) => (
+            <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+          )}
+          cardPreviewCount={2}
+          detailLabel="Lihat detail aset"
+          emptyMessage="Tidak ada aset yang ditemukan"
+          fields={[
+            {
+              key: "kode",
+              header: "Kode",
+              render: (row) => row.kode,
+              cellClassName: "font-mono text-xs text-slate-600",
+            },
+            {
+              key: "nama",
+              header: "Nama Aset",
+              render: (row) => row.nama,
+              cellClassName: "font-medium text-slate-800",
+              hideOnCard: true,
+            },
+            {
+              key: "kategori",
+              header: "Kategori",
+              render: (row) => row.kategori,
+              hideBelowXl: true,
+              hideOnCard: true,
+            },
+            {
+              key: "status",
+              header: "Status",
+              render: (row) => (
+                <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+              ),
+              hideOnCard: true,
+            },
+            {
+              key: "kondisi",
+              header: "Kondisi",
+              render: (row) => row.kondisi,
+            },
+            {
+              key: "lokasi",
+              header: "Lokasi",
+              render: (row) => row.lokasi,
+            },
+            {
+              key: "aksi",
+              header: "Aksi",
+              render: (row) => (
+                <div className="flex items-center justify-center gap-1">
+                  <Link href={`/bmn/${row.id}`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href={`/bmn/${row.id}/edit`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              ),
+              headClassName: "text-center",
+              hideBelowLg: true,
+            },
+          ]}
+        />
       </Card>
     </div>
   );

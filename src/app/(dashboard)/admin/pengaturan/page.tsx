@@ -212,7 +212,7 @@ export default function PengaturanPage() {
 
       {/* Tabs */}
       <div className="border-b border-slate-200">
-        <nav className="flex gap-1 -mb-px overflow-x-auto">
+        <nav className="-mb-px flex flex-wrap gap-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}

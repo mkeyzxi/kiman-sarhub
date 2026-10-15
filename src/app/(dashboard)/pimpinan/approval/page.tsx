@@ -4,15 +4,8 @@ import Link from "next/link";
 import { Eye, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   getUserById,
   approvalList,
@@ -90,69 +83,76 @@ export default function ApprovalPage() {
         ))}
       </div>
 
-      {/* Table */}
+      {/* Table — otomatis menjadi kartu di layar kecil */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
-              <TableHead>Kode</TableHead>
-              <TableHead>Nama Aset</TableHead>
-              <TableHead>Kategori</TableHead>
-              <TableHead>Pengajuan Oleh</TableHead>
-              <TableHead>Tanggal</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {approvals.map((approval) => {
-              const user = getUserById(approval.pengajuanOleh);
-              return (
-                <TableRow key={approval.id}>
-                  <TableCell className="font-mono text-xs text-slate-600">
-                    {approval.kode}
-                  </TableCell>
-                  <TableCell className="font-medium text-slate-800">
-                    {approval.namaAset}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{approval.kategori}</Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-600">
-                    {user?.nama ?? "-"}
-                  </TableCell>
-                  <TableCell className="text-slate-600">
-                    {formatTanggal(approval.tanggal)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant[approval.status]}>
-                      {approval.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center">
-                      <Link href={`/pimpinan/approval/${approval.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {approvals.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center py-8 text-slate-500"
-                >
-                  Tidak ada data approval
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <ResponsiveTable
+          data={approvals}
+          getKey={(row) => row.id}
+          cardTitle={(row) => row.namaAset}
+          cardSubtitle={(row) => `${row.kode} \u00b7 ${formatTanggal(row.tanggal)}`}
+          cardBadge={(row) => (
+            <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+          )}
+          cardPreviewCount={2}
+          detailLabel="Lihat detail pengajuan"
+          emptyMessage="Tidak ada data approval"
+          fields={[
+            {
+              key: "kode",
+              header: "Kode",
+              render: (row) => row.kode,
+              cellClassName: "font-mono text-xs text-slate-600",
+            },
+            {
+              key: "namaAset",
+              header: "Nama Aset",
+              render: (row) => row.namaAset,
+              cellClassName: "font-medium text-slate-800",
+              hideOnCard: true,
+            },
+            {
+              key: "kategori",
+              header: "Kategori",
+              render: (row) => <Badge variant="outline">{row.kategori}</Badge>,
+            },
+            {
+              key: "pengajuanOleh",
+              header: "Pengajuan Oleh",
+              render: (row) => getUserById(row.pengajuanOleh)?.nama ?? "-",
+              cellClassName: "text-slate-600",
+            },
+            {
+              key: "tanggal",
+              header: "Tanggal",
+              render: (row) => formatTanggal(row.tanggal),
+              cellClassName: "text-slate-600",
+              hideOnCard: true,
+            },
+            {
+              key: "status",
+              header: "Status",
+              render: (row) => (
+                <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+              ),
+              hideOnCard: true,
+            },
+            {
+              key: "aksi",
+              header: "Aksi",
+              render: (row) => (
+                <div className="flex items-center justify-center">
+                  <Link href={`/pimpinan/approval/${row.id}`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              ),
+              headClassName: "text-center",
+              hideBelowLg: true,
+            },
+          ]}
+        />
       </Card>
     </div>
   );

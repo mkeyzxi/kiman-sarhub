@@ -67,7 +67,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="h-screen flex">
+    <div className="flex h-screen overflow-x-clip">
       {/* Sidebar — desktop: fixed left | mobile: drawer overlay */}
       <Sidebar
         open={sidebarOpen}
@@ -75,16 +75,22 @@ export default function DashboardLayout({
         role={role}
       />
 
-      {/* Main wrapper — offset oleh lebar sidebar di desktop */}
-      <div className="flex-1 flex flex-col md:pl-64 min-h-0">
+      {/* Main wrapper — offset oleh lebar sidebar di desktop.
+          `min-w-0` WAJIB: sebagai flex item, default `min-width: auto`
+          membuatnya tidak mau menyempit di bawah lebar min-content
+          elemen di dalamnya. Tanpa itu, konten lebar memaksa halaman
+          ikut melebar dan bisa digeser ke samping. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:pl-64">
         {/* Header — hamburger menu terhubung ke sidebar drawer */}
         <Header
           onMenuClick={() => setSidebarOpen(true)}
           role={role}
         />
 
-        {/* Konten halaman — hanya area ini yang scroll */}
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-6 pb-20 md:pb-6">
+        {/* Konten halaman — hanya area ini yang scroll.
+            `min-w-0` + `overflow-x-clip` menjaga agar tidak ada
+            elemen yang membuat halaman bisa digeser ke samping. */}
+        <main className="flex-1 overflow-y-auto overflow-x-clip min-w-0 bg-slate-50 p-4 md:p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>

@@ -21,14 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { checklistTemplates, countItemKritis, getUserById } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
@@ -158,80 +151,107 @@ export default function ChecklistPerawatanPage() {
         </div>
       </Card>
 
-      {/* Tabel Checklist */}
+      {/* Tabel Checklist — otomatis menjadi kartu di layar kecil */}
       <Card>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Jenis</TableHead>
-                <TableHead>Pemeriksa</TableHead>
-                <TableHead className="text-center">Progress</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredChecklist.map((item) => {
-                const pemeriksa = getUserById(item.pemeriksa);
-                return (
-                  <TableRow key={item.id}>
-                    <TableCell className="text-slate-700">{item.tanggal}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {item.jenisUnit === "Kapal" && <Ship className="h-4 w-4 text-blue-500" />}
-                        {item.jenisUnit === "Mobil" && <Car className="h-4 w-4 text-emerald-500" />}
-                        {item.jenisUnit === "Motor" && <Bike className="h-4 w-4 text-orange-500" />}
-                        {item.jenisUnit === "Perahu" && <Package className="h-4 w-4 text-amber-500" />}
-                        <span className="font-medium text-slate-800">{item.unit}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{item.jenisUnit}</Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-700">{pemeriksa?.nama ?? item.pemeriksa}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-16 bg-slate-100 rounded-full h-2">
-                          <div
-                            className={cn(
-                              "h-2 rounded-full",
-                              item.status === "Lengkap" ? "bg-emerald-500" : "bg-amber-500"
-                            )}
-                            style={{ width: `${(item.itemChecked / item.itemTotal) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-slate-500">
-                          {item.itemChecked}/{item.itemTotal}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={item.status === "Lengkap" ? "success" : "warning"}>
-                        {item.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {filteredChecklist.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                    Tidak ada checklist yang ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            data={filteredChecklist}
+            getKey={(row) => row.id}
+            cardTitle={(row) => row.unit}
+            cardSubtitle={(row) => row.tanggal}
+            cardBadge={(row) => (
+              <Badge variant={row.status === "Lengkap" ? "success" : "warning"}>
+                {row.status}
+              </Badge>
+            )}
+            cardPreviewCount={2}
+            detailLabel="Lihat detail checklist"
+            emptyMessage="Tidak ada checklist yang ditemukan"
+            fields={[
+              {
+                key: "tanggal",
+                header: "Tanggal",
+                render: (row) => row.tanggal,
+                cellClassName: "text-slate-700",
+              },
+              {
+                key: "unit",
+                header: "Unit",
+                render: (row) => (
+                  <div className="flex items-center gap-2">
+                    {row.jenisUnit === "Kapal" && <Ship className="h-4 w-4 text-blue-500" />}
+                    {row.jenisUnit === "Mobil" && <Car className="h-4 w-4 text-emerald-500" />}
+                    {row.jenisUnit === "Motor" && <Bike className="h-4 w-4 text-orange-500" />}
+                    {row.jenisUnit === "Perahu" && <Package className="h-4 w-4 text-amber-500" />}
+                    <span className="font-medium text-slate-800">{row.unit}</span>
+                  </div>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "jenisUnit",
+                header: "Jenis",
+                render: (row) => (
+                  <Badge variant="outline" className="text-xs">
+                    {row.jenisUnit}
+                  </Badge>
+                ),
+                hideBelowXl: true,
+                hideOnCard: true,
+              },
+              {
+                key: "pemeriksa",
+                header: "Pemeriksa",
+                render: (row) => getUserById(row.pemeriksa)?.nama ?? row.pemeriksa,
+                cellClassName: "text-slate-700",
+              },
+              {
+                key: "progress",
+                header: "Progress",
+                render: (row) => (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-2 w-16 rounded-full bg-slate-100">
+                      <div
+                        className={cn(
+                          "h-2 rounded-full",
+                          row.status === "Lengkap" ? "bg-emerald-500" : "bg-amber-500"
+                        )}
+                        style={{ width: `${(row.itemChecked / row.itemTotal) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      {row.itemChecked}/{row.itemTotal}
+                    </span>
+                  </div>
+                ),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (row) => (
+                  <Badge variant={row.status === "Lengkap" ? "success" : "warning"}>
+                    {row.status}
+                  </Badge>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "aksi",
+                header: "Aksi",
+                render: () => (
+                  <div className="flex items-center justify-center">
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ),
+                headClassName: "text-center",
+                hideBelowLg: true,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

@@ -17,14 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   readinessStats,
   asetList,
@@ -89,6 +82,11 @@ export default function PimpinanPage() {
     return true;
   });
 
+  // Diurutkan dari skor tertinggi, dengan peringkat yang sudah dilampirkan.
+  const ranking = [...complianceRanking]
+    .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
+    .map((item, i) => ({ ...item, rank: i + 1 }));
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -132,7 +130,7 @@ export default function PimpinanPage() {
               <ShieldCheck className="h-5 w-5 text-primary" />
               Rincian Kesiapan Aset
             </CardTitle>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(["Semua", "Siaga", "Belum Lengkap"] as const).map((f) => (
                 <button
                   key={f}
@@ -151,65 +149,82 @@ export default function PimpinanPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="w-32">Kode</TableHead>
-                <TableHead>Nama Aset</TableHead>
-                <TableHead className="w-36">Kategori</TableHead>
-                <TableHead className="w-28">Kondisi</TableHead>
-                <TableHead className="w-32">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAset.map((aset) => (
-                <TableRow key={aset.id}>
-                  <TableCell className="font-mono text-xs text-slate-600">
-                    {aset.kode}
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/bmn/${aset.id}`}
-                      className="font-medium text-slate-800 hover:text-primary hover:underline"
-                    >
-                      {aset.nama}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {aset.kategori}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        aset.kondisi === "Baik"
-                          ? "success"
-                          : aset.kondisi === "Rusak Ringan"
-                            ? "warning"
-                            : "danger"
-                      }
-                      className="text-xs"
-                    >
-                      {aset.kondisi}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusAsetVariant[aset.status]} className="text-xs">
-                      {aset.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredAset.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-slate-500">
-                    Tidak ada aset pada filter ini.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            data={filteredAset}
+            getKey={(row) => row.id}
+            cardTitle={(row) => row.nama}
+            cardSubtitle={(row) => `${row.kode} \u00b7 ${row.kategori}`}
+            cardBadge={(row) => (
+              <Badge variant={statusAsetVariant[row.status]} className="text-xs">
+                {row.status}
+              </Badge>
+            )}
+            cardPreviewCount={1}
+            detailLabel="Lihat detail aset"
+            emptyMessage="Tidak ada aset pada filter ini."
+            fields={[
+              {
+                key: "kode",
+                header: "Kode",
+                render: (row) => row.kode,
+                headClassName: "w-32",
+                cellClassName: "font-mono text-xs text-slate-600",
+              },
+              {
+                key: "nama",
+                header: "Nama Aset",
+                render: (row) => (
+                  <Link
+                    href={`/bmn/${row.id}`}
+                    className="font-medium text-slate-800 hover:text-primary hover:underline"
+                  >
+                    {row.nama}
+                  </Link>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "kategori",
+                header: "Kategori",
+                render: (row) => (
+                  <Badge variant="outline" className="text-xs">
+                    {row.kategori}
+                  </Badge>
+                ),
+                headClassName: "w-36",
+              },
+              {
+                key: "kondisi",
+                header: "Kondisi",
+                render: (row) => (
+                  <Badge
+                    variant={
+                      row.kondisi === "Baik"
+                        ? "success"
+                        : row.kondisi === "Rusak Ringan"
+                          ? "warning"
+                          : "danger"
+                    }
+                    className="text-xs"
+                  >
+                    {row.kondisi}
+                  </Badge>
+                ),
+                headClassName: "w-28",
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (row) => (
+                  <Badge variant={statusAsetVariant[row.status]} className="text-xs">
+                    {row.status}
+                  </Badge>
+                ),
+                headClassName: "w-32",
+                hideOnCard: true,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 
@@ -263,56 +278,118 @@ export default function PimpinanPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="w-12 text-center">Rank</TableHead>
-                <TableHead>Nama</TableHead>
-                <TableHead>Jabatan</TableHead>
-                <TableHead className="text-center">Telat Kembali</TableHead>
-                <TableHead className="text-center">Abaikan Checklist</TableHead>
-                <TableHead className="text-center">Skor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {complianceRanking
-                .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
-                .map((personel, index) => {
-                  const user = getUserById(personel.personelId);
-                  return (
-                    <TableRow key={personel.personelId}>
-                      <TableCell className="text-center">
-                        <span className={cn(
-                          "inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold",
-                          index === 0 ? "bg-primary text-white" : index === 1 ? "bg-slate-200 text-slate-700" : index === 2 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"
-                        )}>
-                          {index + 1}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-800">{personel.nama}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user?.role ?? "-"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={cn("font-medium", personel.telatKembali > 0 ? "text-rose-600" : "text-slate-600")}>
-                          {personel.telatKembali}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={cn("font-medium", personel.abaikanChecklist > 0 ? "text-rose-600" : "text-slate-600")}>
-                          {personel.abaikanChecklist}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={personel.skorKepatuhan >= 90 ? "success" : personel.skorKepatuhan >= 75 ? "warning" : "danger"}>
-                          {personel.skorKepatuhan}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            data={ranking}
+            getKey={(row) => row.personelId}
+            cardTitle={(row) => row.nama}
+            cardSubtitle={(row) => getUserById(row.personelId)?.role ?? "-"}
+            cardBadge={(row) => (
+              <Badge
+                variant={
+                  row.skorKepatuhan >= 90
+                    ? "success"
+                    : row.skorKepatuhan >= 75
+                      ? "warning"
+                      : "danger"
+                }
+              >
+                Skor {row.skorKepatuhan}
+              </Badge>
+            )}
+            cardPreviewCount={2}
+            detailLabel="Lihat detail kepatuhan"
+            emptyMessage="Belum ada data kepatuhan."
+            fields={[
+              {
+                key: "rank",
+                header: "Rank",
+                render: (row) => (
+                  <span
+                    className={cn(
+                      "inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+                      row.rank === 1
+                        ? "bg-primary text-white"
+                        : row.rank === 2
+                          ? "bg-slate-200 text-slate-700"
+                          : row.rank === 3
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-slate-100 text-slate-500"
+                    )}
+                  >
+                    {row.rank}
+                  </span>
+                ),
+                headClassName: "w-12 text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "nama",
+                header: "Nama",
+                render: (row) => row.nama,
+                cellClassName: "font-medium text-slate-800",
+                hideOnCard: true,
+              },
+              {
+                key: "role",
+                header: "Jabatan",
+                render: (row) => (
+                  <Badge variant="outline">{getUserById(row.personelId)?.role ?? "-"}</Badge>
+                ),
+                hideOnCard: true,
+              },
+              {
+                key: "telatKembali",
+                header: "Telat Kembali",
+                render: (row) => (
+                  <span
+                    className={cn(
+                      "font-medium",
+                      row.telatKembali > 0 ? "text-rose-600" : "text-slate-600"
+                    )}
+                  >
+                    {row.telatKembali}
+                  </span>
+                ),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "abaikanChecklist",
+                header: "Abaikan Checklist",
+                render: (row) => (
+                  <span
+                    className={cn(
+                      "font-medium",
+                      row.abaikanChecklist > 0 ? "text-rose-600" : "text-slate-600"
+                    )}
+                  >
+                    {row.abaikanChecklist}
+                  </span>
+                ),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "skorKepatuhan",
+                header: "Skor",
+                render: (row) => (
+                  <Badge
+                    variant={
+                      row.skorKepatuhan >= 90
+                        ? "success"
+                        : row.skorKepatuhan >= 75
+                          ? "warning"
+                          : "danger"
+                    }
+                  >
+                    {row.skorKepatuhan}
+                  </Badge>
+                ),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

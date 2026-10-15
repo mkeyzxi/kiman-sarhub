@@ -14,14 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import RiwayatTable from "./riwayat-table";
 import {
   getAsetById,
   getUserById,
@@ -222,37 +215,15 @@ export default async function DetailAsetPage({ params }: PageProps) {
           <CardTitle>Riwayat Pemakaian (Audit Trail)</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Aksi</TableHead>
-                <TableHead>Keterangan</TableHead>
-                <TableHead>Pelaku</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {aset.riwayat.map((item, index) => {
-                const user = getUserById(item.userId);
-                return (
-                  <TableRow key={index}>
-                    <TableCell className="text-slate-600">
-                      {formatTanggal(item.tanggal)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item.aksi}</Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {item.keterangan}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {user?.nama ?? "-"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <RiwayatTable
+            items={aset.riwayat.map((item) => ({
+              tanggal: formatTanggal(item.tanggal),
+              aksi: item.aksi,
+              keterangan: item.keterangan,
+              userId: item.userId,
+              namaPelaku: getUserById(item.userId)?.nama ?? "-",
+            }))}
+          />
         </CardContent>
       </Card>
     </div>
