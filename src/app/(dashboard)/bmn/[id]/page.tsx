@@ -10,6 +10,7 @@ import {
   Calendar,
   Wrench,
   FileText,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,17 +20,8 @@ import {
   getAsetById,
   getUserById,
   formatTanggal,
-  type StatusAset,
+  STATUS_ASET_VARIANT,
 } from "@/components/shared/mock-data";
-
-const statusBadgeVariant: Record<StatusAset, "success" | "warning" | "danger" | "default"> = {
-  Siaga: "success",
-  Operasi: "default",
-  Dipinjam: "warning",
-  Rusak: "danger",
-  Maintenance: "warning",
-  "Tidak Siap": "danger",
-};
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -83,7 +75,7 @@ export default async function DetailAsetPage({ params }: PageProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Informasi Aset</CardTitle>
-            <Badge variant={statusBadgeVariant[aset.status]} className="text-sm px-3 py-1">
+            <Badge variant={STATUS_ASET_VARIANT[aset.status]} className="text-sm px-3 py-1">
               {aset.status}
             </Badge>
           </div>
@@ -100,6 +92,19 @@ export default async function DetailAsetPage({ params }: PageProps) {
                 </p>
                 <p className="text-sm font-medium text-slate-800 font-mono">
                   {aset.kode}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center shrink-0">
+                <Hash className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">
+                  NUP
+                </p>
+                <p className="text-sm font-medium text-slate-800 font-mono">
+                  {aset.nup}
                 </p>
               </div>
             </div>

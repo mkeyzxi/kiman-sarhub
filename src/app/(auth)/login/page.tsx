@@ -45,8 +45,8 @@ export default function LoginPage() {
           <Image 
             src="/logo-transparant.png" 
             alt="Logo Siap SAR" 
-            width={140} 
-            height={140} 
+            width={180} 
+            height={180} 
             className="mb-6 drop-shadow-lg"
           />
           <h1 className="text-center text-4xl font-extrabold tracking-tight text-white drop-shadow-md">

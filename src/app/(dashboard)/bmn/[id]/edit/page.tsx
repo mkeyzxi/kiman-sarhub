@@ -7,7 +7,13 @@ import { ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { getAsetById, users } from "@/components/shared/mock-data";
+import {
+  getAsetById,
+  users,
+  STATUS_ASET,
+  normalizeNup,
+  NUP_MAX_DIGIT,
+} from "@/components/shared/mock-data";
 
 export default function EditAsetPage() {
   const params = useParams<{ id: string }>();
@@ -17,6 +23,7 @@ export default function EditAsetPage() {
   const [formData, setFormData] = useState({
     nama: aset?.nama ?? "",
     kode: aset?.kode ?? "",
+    nup: aset?.nup ?? "",
     kategori: aset?.kategori ?? "",
     lokasi: aset?.lokasi ?? "",
     kondisi: aset?.kondisi ?? "",
@@ -95,6 +102,23 @@ export default function EditAsetPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="nup">NUP (Nomor Urut Pendaftaran)</Label>
+              <Input
+                id="nup"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={NUP_MAX_DIGIT}
+                value={formData.nup}
+                onChange={(e) =>
+                  setFormData({ ...formData, nup: normalizeNup(e.target.value) })
+                }
+                required
+              />
+              <p className="text-xs text-slate-500">
+                Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="kategori">Kategori</Label>
               <Select
                 id="kategori"
@@ -156,12 +180,11 @@ export default function EditAsetPage() {
                 }
                 required
               >
-                <option value="Siaga">Siaga</option>
-                <option value="Operasi">Operasi</option>
-                <option value="Dipinjam">Dipinjam</option>
-                <option value="Rusak">Rusak</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Tidak Siap">Tidak Siap</option>
+                {STATUS_ASET.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">

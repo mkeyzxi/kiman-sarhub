@@ -82,8 +82,8 @@ export default function LaporanPage() {
           iconColor="text-primary"
         />
         <StatCard
-          label="Aset Siaga"
-          value={`${readinessStats.siaga}/${readinessStats.totalAset}`}
+          label="Aset Standby"
+          value={`${readinessStats.standby}/${readinessStats.totalAset}`}
           icon={ShieldCheck}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
