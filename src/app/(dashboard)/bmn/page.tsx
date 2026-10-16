@@ -19,17 +19,9 @@ import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   asetList,
-  type StatusAset,
+  STATUS_ASET,
+  STATUS_ASET_VARIANT,
 } from "@/components/shared/mock-data";
-
-const statusBadgeVariant: Record<StatusAset, "success" | "warning" | "danger" | "default"> = {
-  Siaga: "success",
-  Operasi: "default",
-  Dipinjam: "warning",
-  Rusak: "danger",
-  Maintenance: "warning",
-  "Tidak Siap": "danger",
-};
 
 export default function MasterDataBMNPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,15 +30,15 @@ export default function MasterDataBMNPage() {
   const filteredAset = asetList.filter((aset) => {
     const matchSearch =
       aset.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      aset.kode.toLowerCase().includes(searchQuery.toLowerCase());
+      aset.kode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      aset.nup.includes(searchQuery);
     const matchStatus = statusFilter === "Semua" || aset.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const totalAset = asetList.length;
-  const siaga = asetList.filter((a) => a.status === "Siaga").length;
-  const dipinjam = asetList.filter((a) => a.status === "Dipinjam").length;
-  const rusak = asetList.filter((a) => a.status === "Rusak").length;
+  const hitung = (status: string) =>
+    asetList.filter((a) => a.status === status).length;
 
   const stats = [
     {
@@ -57,22 +49,22 @@ export default function MasterDataBMNPage() {
       iconColor: "text-primary",
     },
     {
-      label: "Siaga",
-      value: siaga,
+      label: "Standby",
+      value: hitung("Standby"),
       icon: ShieldCheck,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
     },
     {
-      label: "Dipinjam",
-      value: dipinjam,
+      label: "Sedang Digunakan",
+      value: hitung("Sedang digunakan"),
       icon: Users,
-      iconBg: "bg-amber-50",
-      iconColor: "text-amber-600",
+      iconBg: "bg-primary-light",
+      iconColor: "text-primary",
     },
     {
-      label: "Rusak",
-      value: rusak,
+      label: "Rusak Berat",
+      value: hitung("Rusak Berat"),
       icon: Wrench,
       iconBg: "bg-rose-100",
       iconColor: "text-rose-600",
@@ -122,7 +114,7 @@ export default function MasterDataBMNPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Cari nama aset atau kode..."
+              placeholder="Cari nama aset, kode, atau NUP..."
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -134,10 +126,11 @@ export default function MasterDataBMNPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="Semua">Semua Status</option>
-            <option value="Siaga">Siaga</option>
-            <option value="Dipinjam">Dipinjam</option>
-            <option value="Rusak">Rusak</option>
-            <option value="Maintenance">Maintenance</option>
+            {STATUS_ASET.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </Select>
         </div>
       </Card>
@@ -148,9 +141,9 @@ export default function MasterDataBMNPage() {
           data={filteredAset}
           getKey={(row) => row.id}
           cardTitle={(row) => row.nama}
-          cardSubtitle={(row) => `${row.kode} \u00b7 ${row.kategori}`}
+          cardSubtitle={(row) => `${row.kode} \u00b7 NUP ${row.nup} \u00b7 ${row.kategori}`}
           cardBadge={(row) => (
-            <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+            <Badge variant={STATUS_ASET_VARIANT[row.status]}>{row.status}</Badge>
           )}
           cardPreviewCount={2}
           detailLabel="Lihat detail aset"
@@ -160,6 +153,12 @@ export default function MasterDataBMNPage() {
               key: "kode",
               header: "Kode",
               render: (row) => row.kode,
+              cellClassName: "font-mono text-xs text-slate-600",
+            },
+            {
+              key: "nup",
+              header: "NUP",
+              render: (row) => row.nup,
               cellClassName: "font-mono text-xs text-slate-600",
             },
             {
@@ -180,7 +179,7 @@ export default function MasterDataBMNPage() {
               key: "status",
               header: "Status",
               render: (row) => (
-                <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+                <Badge variant={STATUS_ASET_VARIANT[row.status]}>{row.status}</Badge>
               ),
               hideOnCard: true,
             },

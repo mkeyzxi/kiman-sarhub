@@ -27,21 +27,11 @@ import {
   getUserById,
   logAktivitas,
   riwayatOperasi,
+  STATUS_ASET_VARIANT,
+  STATUS_ASET_SIAGA,
   type StatusAset,
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
-
-const statusAsetVariant: Record<
-  StatusAset,
-  "success" | "default" | "warning" | "danger" | "outline"
-> = {
-  Siaga: "success",
-  Operasi: "default",
-  Dipinjam: "warning",
-  Maintenance: "warning",
-  Rusak: "danger",
-  "Tidak Siap": "danger",
-};
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
@@ -68,17 +58,17 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PimpinanPage() {
-  const [asetFilter, setAsetFilter] = useState<"Semua" | "Siaga" | "Belum Lengkap">("Semua");
+  const [asetFilter, setAsetFilter] = useState<"Semua" | "Standby" | "Belum Lengkap">("Semua");
 
-  const asetSiaga = readinessStats.siaga;
+  const asetStandby = readinessStats.standby;
   const totalAset = readinessStats.totalAset;
   const readinessIndex = readinessStats.readinessIndex;
 
   // Status aset yang dihitung "lengkap" = benar-benar siap operasional.
-  const SIAGA = ["Siaga", "Operasi"] as const;
+  const siap = (status: StatusAset) => STATUS_ASET_SIAGA.includes(status);
   const filteredAset = asetList.filter((aset) => {
-    if (asetFilter === "Siaga") return SIAGA.includes(aset.status as (typeof SIAGA)[number]);
-    if (asetFilter === "Belum Lengkap") return !SIAGA.includes(aset.status as (typeof SIAGA)[number]);
+    if (asetFilter === "Standby") return siap(aset.status);
+    if (asetFilter === "Belum Lengkap") return !siap(aset.status);
     return true;
   });
 
@@ -107,8 +97,8 @@ export default function PimpinanPage() {
           iconColor="text-primary"
         />
         <StatCard
-          label="Aset Siaga"
-          value={`${asetSiaga}/${totalAset}`}
+          label="Aset Standby"
+          value={`${asetStandby}/${totalAset}`}
           icon={ShieldCheck}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
@@ -131,7 +121,7 @@ export default function PimpinanPage() {
               Rincian Kesiapan Aset
             </CardTitle>
             <div className="flex flex-wrap gap-1">
-              {(["Semua", "Siaga", "Belum Lengkap"] as const).map((f) => (
+              {(["Semua", "Standby", "Belum Lengkap"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setAsetFilter(f)}
@@ -155,7 +145,7 @@ export default function PimpinanPage() {
             cardTitle={(row) => row.nama}
             cardSubtitle={(row) => `${row.kode} \u00b7 ${row.kategori}`}
             cardBadge={(row) => (
-              <Badge variant={statusAsetVariant[row.status]} className="text-xs">
+              <Badge variant={STATUS_ASET_VARIANT[row.status]} className="text-xs">
                 {row.status}
               </Badge>
             )}
@@ -216,7 +206,7 @@ export default function PimpinanPage() {
                 key: "status",
                 header: "Status",
                 render: (row) => (
-                  <Badge variant={statusAsetVariant[row.status]} className="text-xs">
+                  <Badge variant={STATUS_ASET_VARIANT[row.status]} className="text-xs">
                     {row.status}
                   </Badge>
                 ),
@@ -243,7 +233,7 @@ export default function PimpinanPage() {
                 <div className="w-32 text-sm font-medium text-slate-700">{kategori.kategori}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-slate-500">{kategori.siaga}/{kategori.total} siaga</span>
+                    <span className="text-xs text-slate-500">{kategori.standby}/{kategori.total} standby</span>
                     <span className={cn("text-xs font-medium", kategori.persentase >= 80 ? "text-emerald-600" : kategori.persentase >= 50 ? "text-amber-600" : "text-rose-600")}>
                       {kategori.persentase}%
                     </span>

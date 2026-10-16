@@ -11,14 +11,16 @@ import {
   Textarea,
 } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { users } from "@/components/shared/mock-data";
+import { users, STATUS_ASET, normalizeNup, NUP_MAX_DIGIT } from "@/components/shared/mock-data";
 
 export default function TambahAsetPage() {
   const [formData, setFormData] = useState({
     nama: "",
     kode: "",
+    nup: "",
     kategori: "" as string,
     lokasi: "",
+    status: "" as string,
     kondisi: "" as string,
     tanggalPerkiraan: "",
     penanggungJawab: "",
@@ -80,6 +82,25 @@ export default function TambahAsetPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="nup">NUP (Nomor Urut Pendaftaran)</Label>
+              <Input
+                id="nup"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={NUP_MAX_DIGIT}
+                placeholder="Contoh: 000013"
+                value={formData.nup}
+                onChange={(e) =>
+                  setFormData({ ...formData, nup: normalizeNup(e.target.value) })
+                }
+                required
+              />
+              <p className="text-xs text-slate-500">
+                Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
+                Hanya angka yang diperbolehkan.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="kategori">Kategori</Label>
               <Select
                 id="kategori"
@@ -131,6 +152,24 @@ export default function TambahAsetPage() {
                 <option value="Baik">Baik</option>
                 <option value="Rusak Ringan">Rusak Ringan</option>
                 <option value="Rusak Berat">Rusak Berat</option>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                id="status"
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
+                required
+              >
+                <option value="">Pilih status</option>
+                {STATUS_ASET.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">

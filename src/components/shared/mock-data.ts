@@ -120,7 +120,41 @@ export type KategoriAset =
   | "Medis"
   | "Dokumentasi";
 
-export type StatusAset = "Siaga" | "Operasi" | "Dipinjam" | "Rusak" | "Maintenance" | "Tidak Siap";
+/** Status operasional aset — 5 nilai kanonik. */
+export type StatusAset =
+  | "Standby"
+  | "Rusak Berat"
+  | "Rusak Ringan"
+  | "Dipindahkan"
+  | "Sedang digunakan";
+
+/** Daftar status aset, diurutkan dari kondisi terbaik ke terburuk. */
+export const STATUS_ASET = [
+  "Standby",
+  "Sedang digunakan",
+  "Dipindahkan",
+  "Rusak Ringan",
+  "Rusak Berat",
+] as const satisfies readonly StatusAset[];
+
+/** Variant badge untuk setiap status aset. */
+export type StatusAsetBadgeVariant = "success" | "default" | "warning" | "danger" | "outline";
+
+/**
+ * Pemetaan status aset ke warna badge. Satu-satunya sumber kebenaran —
+ * jangan declare ulang di halaman, import dari sini.
+ */
+export const STATUS_ASET_VARIANT: Record<StatusAset, StatusAsetBadgeVariant> = {
+  Standby: "success",
+  "Sedang digunakan": "default",
+  Dipindahkan: "outline",
+  "Rusak Ringan": "warning",
+  "Rusak Berat": "danger",
+};
+
+/** Status aset yang dianggap benar-benar siap operasional (tersedia & layak pakai). */
+export const STATUS_ASET_SIAGA: readonly StatusAset[] = ["Standby"];
+
 export type KondisiAset = "Baik" | "Rusak Ringan" | "Rusak Berat";
 export type KondisiItem = "Baik" | "Rusak Ringan" | "Rusak Berat";
 
@@ -138,6 +172,8 @@ export interface Aset {
   id: string;
   nama: string;
   kode: string;
+  /** Nomor Urut Pendaftaran — angka urut 6 digit, leading nol dipertahankan. */
+  nup: string;
   kategori: KategoriAset;
   status: StatusAset;
   lokasi: string;
@@ -149,13 +185,25 @@ export interface Aset {
   riwayat: RiwayatAset[];
 }
 
+/** Jumlah digit maksimal NUP. */
+export const NUP_MAX_DIGIT = 6;
+
+/**
+ * Normalisasi input NUP: buang karakter non-angka lalu potong maksimal
+ * {@link NUP_MAX_DIGIT} digit. Dipakai bersama oleh form Tambah & Edit.
+ */
+export function normalizeNup(value: string): string {
+  return value.replace(/\D/g, "").slice(0, NUP_MAX_DIGIT);
+}
+
 export const asetList: Aset[] = [
   {
     id: "ast-001",
     nama: "Perahu Karet Zodiac MK III",
     kode: "BMN-SAR-001",
+    nup: "000001",
     kategori: "Peralatan SAR",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Gudang SAR Lt. 1",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/perahu-karet.jpg",
@@ -186,8 +234,9 @@ export const asetList: Aset[] = [
     id: "ast-002",
     nama: "Mesin Outboard Yamaha 40 PK",
     kode: "BMN-SAR-002",
+    nup: "000002",
     kategori: "Peralatan SAR",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Gudang SAR Lt. 1",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/mesin-outboard.jpg",
@@ -206,8 +255,9 @@ export const asetList: Aset[] = [
     id: "ast-003",
     nama: "Radio HT Motorola GP328",
     kode: "BMN-KOM-001",
+    nup: "000003",
     kategori: "Komunikasi",
-    status: "Dipinjam",
+    status: "Dipindahkan",
     lokasi: "Basecamp Operasi Lapangan",
     tanggalPerkiraan: "2026-09-30",
     gambar: "/asets/radio-ht.jpg",
@@ -232,8 +282,9 @@ export const asetList: Aset[] = [
     id: "ast-004",
     nama: "GPS Garmin GPSMAP 64sx",
     kode: "BMN-KOM-002",
+    nup: "000004",
     kategori: "Komunikasi",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Ruang Operasi",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/gps-garmin.jpg",
@@ -252,8 +303,9 @@ export const asetList: Aset[] = [
     id: "ast-005",
     nama: "Tenda Medis Emergency 6x4",
     kode: "BMN-MED-001",
+    nup: "000005",
     kategori: "Medis",
-    status: "Rusak",
+    status: "Rusak Ringan",
     lokasi: "Gudang Medis",
     tanggalPerkiraan: "2026-10-05",
     gambar: "/asets/tenda-medis.jpg",
@@ -278,8 +330,9 @@ export const asetList: Aset[] = [
     id: "ast-006",
     nama: "Defibrillator Zoll AED Plus",
     kode: "BMN-MED-002",
+    nup: "000006",
     kategori: "Medis",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Ruang Operasi",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/defibrillator.jpg",
@@ -298,8 +351,9 @@ export const asetList: Aset[] = [
     id: "ast-007",
     nama: "Kendaraan Ransel Toyota Hilux",
     kode: "BMN-KND-001",
+    nup: "000007",
     kategori: "Mobil",
-    status: "Maintenance",
+    status: "Rusak Berat",
     lokasi: "Bengkel Resmi Toyota Mamuju",
     tanggalPerkiraan: "2026-10-02",
     gambar: "/asets/toyota-hilux.jpg",
@@ -324,8 +378,9 @@ export const asetList: Aset[] = [
     id: "ast-008",
     nama: "Sepeda Motor Honda CRF150L",
     kode: "BMN-KND-002",
+    nup: "000008",
     kategori: "Motor",
-    status: "Siaga",
+    status: "Sedang digunakan",
     lokasi: "Parkiran Utama",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/honda-crf.jpg",
@@ -344,8 +399,9 @@ export const asetList: Aset[] = [
     id: "ast-009",
     nama: "Kamera DSLR Canon EOS 90D",
     kode: "BMN-DOK-001",
+    nup: "000009",
     kategori: "Dokumentasi",
-    status: "Dipinjam",
+    status: "Dipindahkan",
     lokasi: "Tim Dokumentasi",
     tanggalPerkiraan: "2026-09-29",
     gambar: "/asets/kamera-canon.jpg",
@@ -364,8 +420,9 @@ export const asetList: Aset[] = [
     id: "ast-010",
     nama: "Drone DJI Mavic 3 Classic",
     kode: "BMN-DOK-002",
+    nup: "000010",
     kategori: "Dokumentasi",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Ruang Operasi",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/drone-dji.jpg",
@@ -384,8 +441,9 @@ export const asetList: Aset[] = [
     id: "ast-011",
     nama: "Peralatan Selam Regulator Scubapro",
     kode: "BMN-SAR-003",
+    nup: "000011",
     kategori: "Peralatan SAR",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Gudang SAR Lt. 2",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/scubapro.jpg",
@@ -404,8 +462,9 @@ export const asetList: Aset[] = [
     id: "ast-012",
     nama: "Winch Recovery 12000 lbs",
     kode: "BMN-SAR-004",
+    nup: "000012",
     kategori: "Peralatan SAR",
-    status: "Siaga",
+    status: "Standby",
     lokasi: "Gudang SAR Lt. 1",
     tanggalPerkiraan: "2026-09-28",
     gambar: "/asets/winch-recovery.jpg",
@@ -1230,33 +1289,35 @@ export const riwayatOperasi: RiwayatOperasi[] = [
 
 export interface ReadinessStats {
   totalAset: number;
-  siaga: number;
-  dipinjam: number;
-  rusak: number;
-  maintenance: number;
+  standby: number;
+  sedangDigunakan: number;
+  dipindahkan: number;
+  rusakRingan: number;
+  rusakBerat: number;
   readinessIndex: number;
   kesiapanPerKategori: {
     kategori: KategoriAset;
     total: number;
-    siaga: number;
+    standby: number;
     persentase: number;
   }[];
 }
 
 export const readinessStats: ReadinessStats = {
   totalAset: 12,
-  siaga: 7,
-  dipinjam: 2,
-  rusak: 2,
-  maintenance: 1,
+  standby: 7,
+  sedangDigunakan: 1,
+  dipindahkan: 2,
+  rusakRingan: 1,
+  rusakBerat: 1,
   readinessIndex: 58.3,
   kesiapanPerKategori: [
-    { kategori: "Mobil", total: 1, siaga: 1, persentase: 100.0 },
-    { kategori: "Motor", total: 1, siaga: 0, persentase: 0.0 },
-    { kategori: "Peralatan SAR", total: 4, siaga: 4, persentase: 100.0 },
-    { kategori: "Komunikasi", total: 2, siaga: 1, persentase: 50.0 },
-    { kategori: "Medis", total: 2, siaga: 1, persentase: 50.0 },
-    { kategori: "Dokumentasi", total: 2, siaga: 1, persentase: 50.0 },
+    { kategori: "Mobil", total: 1, standby: 0, persentase: 0.0 },
+    { kategori: "Motor", total: 1, standby: 0, persentase: 0.0 },
+    { kategori: "Peralatan SAR", total: 4, standby: 4, persentase: 100.0 },
+    { kategori: "Komunikasi", total: 2, standby: 1, persentase: 50.0 },
+    { kategori: "Medis", total: 2, standby: 1, persentase: 50.0 },
+    { kategori: "Dokumentasi", total: 2, standby: 1, persentase: 50.0 },
   ],
 };
 
