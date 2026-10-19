@@ -220,6 +220,28 @@ export default function LogbookPerjalananPage() {
                 hideBelowXl: true,
               },
               {
+                key: "endurance",
+                header: "Endurance",
+                render: (row) =>
+                  row.enduranceAwal === undefined ? (
+                    <span className="text-xs text-slate-400">-</span>
+                  ) : (
+                    <div className="text-sm">
+                      <p className="font-mono text-slate-700">
+                        {row.enduranceAwal}
+                      </p>
+                      {row.enduranceAkhir ? (
+                        <p className="font-mono text-slate-400">
+                          {row.enduranceAkhir}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400">Belum kembali</p>
+                      )}
+                    </div>
+                  ),
+                hideBelowXl: true,
+              },
+              {
                 key: "status",
                 header: "Status",
                 render: (row) => (

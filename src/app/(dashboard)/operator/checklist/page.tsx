@@ -17,6 +17,7 @@ import {
   Bike,
   Wrench,
   Calendar,
+  PencilLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -292,6 +293,16 @@ export default function ChecklistPerawatanPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <PencilLine className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+            <p className="text-xs text-slate-600">
+              Peralatan <strong>Medis</strong> dan <strong>Komunikasi</strong>{" "}
+              belum memiliki form template dari kantor. Pemeriksa menulis sendiri
+              item yang diperiksa pada mode{" "}
+              <strong>Input Manual</strong> saat membuat checklist.
+            </p>
           </div>
         </CardContent>
       </Card>

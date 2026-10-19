@@ -385,7 +385,6 @@ const logbookDarat = [
         { item: "Level Cairan Washer", status: "Baik", keterangan: "" },
         { item: "Gerak Bebas Kemudi", status: "Baik", keterangan: "" },
         { item: "Klakson", status: "Baik", keterangan: "" },
-        { item: "Level Bahan Bakar", status: "Baik", keterangan: "" },
         { item: "Power Window / Door Lock", status: "Baik", keterangan: "" },
         { item: "Kunci Roda & Toolkit", status: "Baik", keterangan: "" },
       ]},
@@ -455,7 +454,6 @@ const logbookDarat = [
     ],
     pemeriksaanHarian: [
       { kategori: "Bagian 1", items: [
-        { item: "Level Bahan Bakar", status: "Baik", keterangan: "" },
         { item: "Level Oli Mesin", status: "Rusak Ringan", keterangan: "" },
         { item: "Kondisi Ban", status: "Baik", keterangan: "" },
         { item: "Tekanan Ban", status: "Baik", keterangan: "" },
