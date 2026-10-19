@@ -57,6 +57,21 @@ export default async function DetailLogbookPage({ params }: PageProps) {
     konsumsiBbm = diff > 0 ? `${diff}%` : "0%";
   }
 
+  /** Ubah "80 Jam" menjadi angka 80; null bila belum terisi. */
+  const parseEndurance = (nilai?: string): number | null => {
+    const angka = parseInt(nilai ?? "");
+    return Number.isFinite(angka) ? angka : null;
+  };
+
+  const enduranceTersisa = (l: typeof log) => parseEndurance(l.enduranceAkhir);
+  const konsumsiEndurance = (l: typeof log) => {
+    const awal = parseEndurance(l.enduranceAwal);
+    const akhir = parseEndurance(l.enduranceAkhir);
+    if (awal === null || akhir === null) return null;
+    const selisih = awal - akhir;
+    return selisih > 0 ? selisih : 0;
+  };
+
   const info = [
     { icon: Calendar, label: "Tanggal", value: formatTanggal(log.tanggal) },
     { icon: Clock, label: "Jam Berangkat", value: log.jamBerangkat },
@@ -150,6 +165,38 @@ export default async function DetailLogbookPage({ params }: PageProps) {
               </p>
             </div>
           </div>
+
+          {/* Endurance — hanya untuk armada laut */}
+          {log.enduranceAwal !== undefined && (
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-wider text-slate-500">
+                Endurance (Jam)
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+                  Awal: {log.enduranceAwal || "-"}
+                </span>
+                <span className="text-slate-300">&rarr;</span>
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1 text-sm font-medium",
+                    log.enduranceAkhir === ""
+                      ? "bg-slate-100 text-slate-500"
+                      : enduranceTersisa(log) !== null && enduranceTersisa(log)! >= 24
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-amber-50 text-amber-600"
+                  )}
+                >
+                  Akhir: {log.enduranceAkhir || "Belum diisi"}
+                </span>
+                {konsumsiEndurance(log) !== null && (
+                  <span className="text-xs text-slate-500">
+                    terpakai {konsumsiEndurance(log)} jam
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* BBM */}
           <div>

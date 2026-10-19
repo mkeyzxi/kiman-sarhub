@@ -13,14 +13,22 @@ import { cn } from "@/lib/utils";
  * Kategori unit untuk logbook perjalanan.
  * Masing-masing kategori menarik daftar unit dari asetList sesuai mapping KategoriAset.
  */
-type KategoriLogbook = "Kapal" | "RIB" | "Mobil" | "Motor";
+type KategoriLogbook = "Kapal" | "RIB" | "RBB" | "Mobil" | "Motor";
 
 const kategoriLogbookOptions: { value: KategoriLogbook; label: string; icon: React.ElementType }[] = [
   { value: "RIB", label: "RIB / Perahu", icon: Ship },
+  { value: "RBB", label: "RBB", icon: Ship },
   { value: "Kapal", label: "Kapal", icon: Anchor },
   { value: "Mobil", label: "Mobil", icon: Car },
   { value: "Motor", label: "Motor", icon: Bike },
 ];
+
+/** Armada laut memakai endurance; armada darat memakai kilometer. */
+const ARMADA_LAUT: readonly KategoriLogbook[] = ["Kapal", "RIB", "RBB"];
+
+function isArmadaLaut(kategori: KategoriLogbook): boolean {
+  return ARMADA_LAUT.includes(kategori);
+}
 
 /** Daftar unit berdasarkan kategori, termasuk unit-unit standar yang tetap + dari asetList. */
 function getUnitOptions(kategori: KategoriLogbook): { value: string; label: string }[] {
@@ -28,6 +36,9 @@ function getUnitOptions(kategori: KategoriLogbook): { value: string; label: stri
     RIB: [
       { value: "RIB 9 M", label: "RIB 9 M" },
       { value: "RIB 12 M", label: "RIB 12 M" },
+    ],
+    RBB: [
+      { value: "RBB 309 MAMUJU", label: "RBB 309 MAMUJU" },
     ],
     Kapal: [
       { value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" },
@@ -39,6 +50,7 @@ function getUnitOptions(kategori: KategoriLogbook): { value: string; label: stri
   // Tambahkan dari asetList yang cocok kategori
   const kategoriMap: Record<KategoriLogbook, string[]> = {
     RIB: ["Peralatan SAR"],
+    RBB: ["Peralatan SAR"],
     Kapal: ["Kapal"],
     Mobil: ["Mobil"],
     Motor: ["Motor"],
@@ -66,7 +78,7 @@ function isDarat(kategori: KategoriLogbook) {
 
 /** Label operator unit tergantung kategori */
 function getOperatorLabel(kategori: KategoriLogbook) {
-  if (kategori === "Kapal" || kategori === "RIB") return "Nahkoda";
+  if (isArmadaLaut(kategori)) return "Nahkoda";
   if (kategori === "Motor") return "Pengemudi";
   return "Pengemudi / Driver";
 }
@@ -84,6 +96,8 @@ export default function TambahLogbookPage() {
     jumlahPersonel: "1",
     bbmSebelum: "",
     bbmSesudah: "",
+    enduranceAwal: "",
+    enduranceAkhir: "",
     kmSebelum: "",
     kmSesudah: "",
     status: "Dijadwalkan",
@@ -102,9 +116,11 @@ export default function TambahLogbookPage() {
       ...formData,
       kategoriUnit: kategori,
       jenisUnit: units[0]?.value ?? "",
-      // reset km jika beralih ke laut
+      // reset km jika beralih ke laut, reset endurance jika beralih ke darat
       kmSebelum: isDarat(kategori) ? formData.kmSebelum : "",
       kmSesudah: isDarat(kategori) ? formData.kmSesudah : "",
+      enduranceAwal: isArmadaLaut(kategori) ? formData.enduranceAwal : "",
+      enduranceAkhir: isArmadaLaut(kategori) ? formData.enduranceAkhir : "",
     });
   };
 
@@ -344,7 +360,7 @@ export default function TambahLogbookPage() {
         <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Fuel className="h-5 w-5 text-primary" />
-            BBM{isDarat(formData.kategoriUnit) ? ", Kilometer" : ""} &amp; Catatan
+            BBM{isDarat(formData.kategoriUnit) ? ", Kilometer" : ", Endurance"} &amp; Catatan
           </h2>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -378,6 +394,49 @@ export default function TambahLogbookPage() {
                 />
               </div>
             </div>
+
+            {/* Endurance hanya untuk armada laut: Kapal, RIB, RBB */}
+            {isArmadaLaut(formData.kategoriUnit) && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="enduranceAwal">Endurance Awal (Jam)</Label>
+                  <Input
+                    id="enduranceAwal"
+                    type="number"
+                    min={0}
+                    placeholder="Contoh: 80"
+                    value={formData.enduranceAwal}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        enduranceAwal: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="enduranceAkhir">Endurance Akhir (Jam)</Label>
+                  <Input
+                    id="enduranceAkhir"
+                    type="number"
+                    min={0}
+                    placeholder="Kosongkan bila belum kembali"
+                    value={formData.enduranceAkhir}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        enduranceAkhir: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-slate-500">
+                    Sisa jam operasi sebelum kehabisan BBM. Dicatat saat kapal
+                    kembali ke dermaga.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* KM hanya untuk kendaraan darat */}
             {isDarat(formData.kategoriUnit) && (
