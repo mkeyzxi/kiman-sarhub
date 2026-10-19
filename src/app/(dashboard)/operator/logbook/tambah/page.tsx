@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Ship, MapPin, Fuel, Users, Car, Bike, Anchor } from "lucide-react";
+import { ArrowLeft, Ship, MapPin, Fuel, Car, Bike, Anchor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { users, asetList, type JenisArmada } from "@/components/shared/mock-data";
+import { users, asetList, parseEndurance } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
 /**
@@ -83,7 +83,54 @@ function getOperatorLabel(kategori: KategoriLogbook) {
   return "Pengemudi / Driver";
 }
 
+/**
+ * Bersihkan input endurance saat diketik: hanya izinkan angka dengan satu titik
+ * dua, maksimal 3 digit jam dan 2 digit menit.
+ */
+function sanitizeEndurance(nilai: string): string {
+  const parts = nilai.split(":");
+  if (parts.length === 1) return parts[0].replace(/\D/g, "").slice(0, 3);
+
+  const jam = (parts[0] ?? "").replace(/\D/g, "").slice(0, 3);
+  const menit = parts
+    .slice(1)
+    .join(":")
+    .replace(/\D/g, "")
+    .slice(0, 2);
+  return `${jam}:${menit}`;
+}
+
+/** Pesan validasi endurance; string kosong berarti tidak ada error. */
+type EnduranceError = { awal?: string; akhir?: string };
+
+function validateEndurance(form: {
+  enduranceAwal: string;
+  enduranceAkhir: string;
+}): EnduranceError {
+  const error: EnduranceError = {};
+  const pola = /^(\d{1,3}):([0-5]\d)$/;
+
+  if (form.enduranceAwal === "") {
+    error.awal = "Endurance awal wajib diisi.";
+  } else if (!pola.test(form.enduranceAwal)) {
+    error.awal = "Format harus HH:MM, contoh 80:30.";
+  }
+
+  if (form.enduranceAkhir !== "" && !pola.test(form.enduranceAkhir)) {
+    error.akhir = "Format harus HH:MM, contoh 80:30.";
+  } else if (form.enduranceAkhir !== "" && pola.test(form.enduranceAwal)) {
+    const awal = parseEndurance(form.enduranceAwal);
+    const akhir = parseEndurance(form.enduranceAkhir);
+    if (awal && akhir && akhir.jam > awal.jam) {
+      error.akhir = "Endurance akhir tidak boleh lebih besar dari endurance awal.";
+    }
+  }
+
+  return error;
+}
+
 export default function TambahLogbookPage() {
+  const [enduranceError, setEnduranceError] = useState<EnduranceError>({});
   const [formData, setFormData] = useState({
     tanggal: "",
     jamBerangkat: "",
@@ -112,6 +159,7 @@ export default function TambahLogbookPage() {
   // Reset jenisUnit ketika kategori berubah
   const handleKategoriChange = (kategori: KategoriLogbook) => {
     const units = getUnitOptions(kategori);
+    setEnduranceError({});
     setFormData({
       ...formData,
       kategoriUnit: kategori,
@@ -399,40 +447,52 @@ export default function TambahLogbookPage() {
             {isArmadaLaut(formData.kategoriUnit) && (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="enduranceAwal">Endurance Awal (Jam)</Label>
+                  <Label htmlFor="enduranceAwal">Endurance Awal (HH:MM)</Label>
                   <Input
                     id="enduranceAwal"
-                    type="number"
-                    min={0}
-                    placeholder="Contoh: 80"
-                    value={formData.enduranceAwal}
-                    onChange={(e) =>
+                    inputMode="numeric"
+                    placeholder="Contoh: 80:30"
+                    value={formData.enduranceAwal ?? ""}
+                    onChange={(e) => {
+                      setEnduranceError((prev) => ({ ...prev, awal: undefined }));
                       setFormData({
                         ...formData,
-                        enduranceAwal: e.target.value,
-                      })
-                    }
+                        enduranceAwal: sanitizeEndurance(e.target.value),
+                      });
+                    }}
+                    onBlur={() => setEnduranceError(validateEndurance(formData))}
+                    className={enduranceError.awal ? "border-red-300" : undefined}
+                    aria-invalid={enduranceError.awal ? true : undefined}
                     required
                   />
+                  {enduranceError.awal && (
+                    <p className="text-xs text-red-600">{enduranceError.awal}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="enduranceAkhir">Endurance Akhir (Jam)</Label>
+                  <Label htmlFor="enduranceAkhir">Endurance Akhir (HH:MM)</Label>
                   <Input
                     id="enduranceAkhir"
-                    type="number"
-                    min={0}
+                    inputMode="numeric"
                     placeholder="Kosongkan bila belum kembali"
-                    value={formData.enduranceAkhir}
-                    onChange={(e) =>
+                    value={formData.enduranceAkhir ?? ""}
+                    onChange={(e) => {
+                      setEnduranceError((prev) => ({ ...prev, akhir: undefined }));
                       setFormData({
                         ...formData,
-                        enduranceAkhir: e.target.value,
-                      })
-                    }
+                        enduranceAkhir: sanitizeEndurance(e.target.value),
+                      });
+                    }}
+                    onBlur={() => setEnduranceError(validateEndurance(formData))}
+                    className={enduranceError.akhir ? "border-red-300" : undefined}
+                    aria-invalid={enduranceError.akhir ? true : undefined}
                   />
+                  {enduranceError.akhir && (
+                    <p className="text-xs text-red-600">{enduranceError.akhir}</p>
+                  )}
                   <p className="text-xs text-slate-500">
-                    Sisa jam operasi sebelum kehabisan BBM. Dicatat saat kapal
-                    kembali ke dermaga.
+                    Sisa jam dan menit operasi sebelum kehabisan BBM. Dicatat
+                    saat armada kembali ke dermaga.
                   </p>
                 </div>
               </div>

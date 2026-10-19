@@ -16,6 +16,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   getLogbookPerjalananById,
   formatTanggal,
+  formatEndurance,
+  formatMenit,
+  enduranceKeMenit,
+  selisihEndurance,
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -57,20 +61,10 @@ export default async function DetailLogbookPage({ params }: PageProps) {
     konsumsiBbm = diff > 0 ? `${diff}%` : "0%";
   }
 
-  /** Ubah "80 Jam" menjadi angka 80; null bila belum terisi. */
-  const parseEndurance = (nilai?: string): number | null => {
-    const angka = parseInt(nilai ?? "");
-    return Number.isFinite(angka) ? angka : null;
-  };
-
-  const enduranceTersisa = (l: typeof log) => parseEndurance(l.enduranceAkhir);
-  const konsumsiEndurance = (l: typeof log) => {
-    const awal = parseEndurance(l.enduranceAwal);
-    const akhir = parseEndurance(l.enduranceAkhir);
-    if (awal === null || akhir === null) return null;
-    const selisih = awal - akhir;
-    return selisih > 0 ? selisih : 0;
-  };
+  // Endurance (khusus armada laut). Semua perhitungan memakai total menit agar
+  // jam dan menit tetap akurat, mis. 63:45 → 3825 menit.
+  const sisaEndurance = enduranceKeMenit(log.enduranceAkhir);
+  const terpakaiEndurance = selisihEndurance(log.enduranceAwal, log.enduranceAkhir);
 
   const info = [
     { icon: Calendar, label: "Tanggal", value: formatTanggal(log.tanggal) },
@@ -170,28 +164,28 @@ export default async function DetailLogbookPage({ params }: PageProps) {
           {log.enduranceAwal !== undefined && (
             <div>
               <p className="mb-2 text-xs uppercase tracking-wider text-slate-500">
-                Endurance (Jam)
+                Endurance (Jam &amp; Menit)
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
-                  Awal: {log.enduranceAwal || "-"}
+                  Awal: {formatEndurance(log.enduranceAwal)}
                 </span>
                 <span className="text-slate-300">&rarr;</span>
                 <span
                   className={cn(
                     "rounded-full px-3 py-1 text-sm font-medium",
-                    log.enduranceAkhir === ""
+                    log.enduranceAkhir === "" || sisaEndurance === null
                       ? "bg-slate-100 text-slate-500"
-                      : enduranceTersisa(log) !== null && enduranceTersisa(log)! >= 24
+                      : sisaEndurance >= 24 * 60
                         ? "bg-emerald-50 text-emerald-600"
                         : "bg-amber-50 text-amber-600"
                   )}
                 >
-                  Akhir: {log.enduranceAkhir || "Belum diisi"}
+                  Akhir: {formatEndurance(log.enduranceAkhir)}
                 </span>
-                {konsumsiEndurance(log) !== null && (
+                {terpakaiEndurance !== null && terpakaiEndurance > 0 && (
                   <span className="text-xs text-slate-500">
-                    terpakai {konsumsiEndurance(log)} jam
+                    terpakai {formatMenit(terpakaiEndurance)}
                   </span>
                 )}
               </div>

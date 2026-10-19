@@ -1418,8 +1418,9 @@ export interface LogbookPerjalanan {
   bbmSebelum: string;
   bbmSesudah: string;
   /**
-   * Endurance (jam operasi tersisa sebelum kehabisan BBM) — khusus armada
-   * laut: Kapal, RIB, dan RBB. Darat (Mobil/Motor) memakai `km`.
+   * Endurance Awal/Dakhir dalam format HH:MM (jam:menit).
+   * Contoh: "80:00" berarti 80 jam, "80:30" berarti 80 jam 30 menit.
+   * Khusus armada laut: Kapal, RIB, RBB. Darat (Mobil/Motor) tidak pakai field ini.
    */
   enduranceAwal?: string;
   enduranceAkhir?: string;
@@ -1445,8 +1446,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "90%",
     bbmSesudah: "75%",
     status: "Selesai",
-    enduranceAwal: "76 Jam",
-    enduranceAkhir: "64 Jam",
+    enduranceAwal: "76:30",
+    enduranceAkhir: "63:45",
     catatan: "Kondisi laut normal, tidak ada insiden",
   },
   {
@@ -1463,8 +1464,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "85%",
     bbmSesudah: "65%",
     status: "Selesai",
-    enduranceAwal: "64 Jam",
-    enduranceAkhir: "55 Jam",
+    enduranceAwal: "63:45",
+    enduranceAkhir: "55:15",
     catatan: "Sosialisasi keselamatan pantai kepada nelayan",
   },
   {
@@ -1481,8 +1482,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "95%",
     bbmSesudah: "60%",
     status: "Selesai",
-    enduranceAwal: "82 Jam",
-    enduranceAkhir: "58 Jam",
+    enduranceAwal: "82:00",
+    enduranceAkhir: "58:30",
     catatan: "Evakuasi korban tenggelam, 2 orang selamat",
   },
   {
@@ -1499,8 +1500,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "80%",
     bbmSesudah: "70%",
     status: "Selesai",
-    enduranceAwal: "70 Jam",
-    enduranceAkhir: "66 Jam",
+    enduranceAwal: "70:15",
+    enduranceAkhir: "66:45",
     catatan: "Pantai ramai pengunjung, kondisi aman",
   },
   {
@@ -1517,8 +1518,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "100%",
     bbmSesudah: "70%",
     status: "Selesai",
-    enduranceAwal: "90 Jam",
-    enduranceAkhir: "72 Jam",
+    enduranceAwal: "90:00",
+    enduranceAkhir: "72:30",
     catatan: "Latihan teknik penyelamatan korban di air",
   },
   {
@@ -1535,7 +1536,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "88%",
     bbmSesudah: "",
     status: "Berlangsung",
-    enduranceAwal: "78 Jam",
+    enduranceAwal: "78:15",
     enduranceAkhir: "",
     catatan: "Sedang dalam perjalanan",
   },
@@ -1553,7 +1554,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "85%",
     bbmSesudah: "",
     status: "Dijadwalkan",
-    enduranceAwal: "80 Jam",
+    enduranceAwal: "80:00",
     enduranceAkhir: "",
     catatan: "Dijadwalkan untuk shift sore",
   },
@@ -1575,8 +1576,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 6,
     bbmSebelum: "88%",
     bbmSesudah: "74%",
-    enduranceAwal: "80 Jam",
-    enduranceAkhir: "70 Jam",
+    enduranceAwal: "80:00",
+    enduranceAkhir: "70:15",
     status: "Selesai",
     catatan: "Pantai Karampuang, tinggi gelombang 1,5 meter. Kapal beroperasi normal.",
   },
@@ -1593,8 +1594,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 5,
     bbmSebelum: "82%",
     bbmSesudah: "71%",
-    enduranceAwal: "74 Jam",
-    enduranceAkhir: "66 Jam",
+    enduranceAwal: "74:30",
+    enduranceAkhir: "66:00",
     status: "Selesai",
     catatan: "Sosialisasi kepada manager desa dan BM bersudara.",
   },
@@ -1611,7 +1612,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 6,
     bbmSebelum: "90%",
     bbmSesudah: "",
-    enduranceAwal: "86 Jam",
+    enduranceAwal: "86:15",
     enduranceAkhir: "",
     status: "Dijadwalkan",
     catatan: "Shift pagi, menunggu konfirmasi cuaca.",
@@ -1631,8 +1632,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 4,
     bbmSebelum: "95%",
     bbmSesudah: "68%",
-    enduranceAwal: "84 Jam",
-    enduranceAkhir: "62 Jam",
+    enduranceAwal: "84:00",
+    enduranceAkhir: "61:45",
     status: "Selesai",
     catatan: "Satu korban tenggelam berhasil dievakuasi ke klinik terdekat.",
   },
@@ -1649,8 +1650,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 3,
     bbmSebelum: "78%",
     bbmSesudah: "72%",
-    enduranceAwal: "70 Jam",
-    enduranceAkhir: "65 Jam",
+    enduranceAwal: "70:00",
+    enduranceAkhir: "65:30",
     status: "Selesai",
     catatan: "Patroli normal, tidak ada kelainan.",
   },
@@ -1667,7 +1668,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 3,
     bbmSebelum: "88%",
     bbmSesudah: "",
-    enduranceAwal: "78 Jam",
+    enduranceAwal: "78:30",
     enduranceAkhir: "",
     status: "Berlangsung",
     catatan: "Pemeriksaan RBB sebelum operasi hari ini",
@@ -1981,6 +1982,56 @@ export function formatTanggalWaktu(tanggal: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Helper Endurance
+// -----------------------------------------------------------------------------
+
+/** Pecah endurance "HH:MM" menjadi jumlah jam dan menit. */
+export function parseEndurance(
+  nilai?: string
+): { jam: number; menit: number } | null {
+  const bersih = (nilai ?? "").trim();
+  if (!bersih) return null;
+
+  const cocok = /^(\d{1,3}):([0-5]\d)$/.exec(bersih);
+  if (!cocok) return null;
+
+  return { jam: Number(cocok[1]), menit: Number(cocok[2]) };
+}
+
+/** Ubah endurance "HH:MM" menjadi total menit; null bila kosong/tidak valid. */
+export function enduranceKeMenit(nilai?: string): number | null {
+  const parsed = parseEndurance(nilai);
+  return parsed === null ? null : parsed.jam * 60 + parsed.menit;
+}
+
+/**
+ * Format menit menjadi bacaan manusia, mis. 4620 → "77 jam".
+ * Menit ikut ditulis bila ada, mis. 4625 → "77 jam 5 menit".
+ */
+export function formatMenit(totalMenit: number): string {
+  const jam = Math.floor(totalMenit / 60);
+  const menit = totalMenit % 60;
+  if (menit === 0) return `${jam} jam`;
+  return jam === 0 ? `${menit} menit` : `${jam} jam ${menit} menit`;
+}
+
+/**
+ * Format nilai endurance untuk ditampilkan, mis. "80:30" → "80 jam 30 menit".
+ * Mengembalikan `-` bila kosong atau formatnya tidak valid.
+ */
+export function formatEndurance(nilai?: string): string {
+  const total = enduranceKeMenit(nilai);
+  return total === null ? "-" : formatMenit(total);
+}
+
+/** Selisih endurance awal − akhir dalam menit; null bila salah satu belum terisi. */
+export function selisihEndurance(awal?: string, akhir?: string): number | null {
+  const a = enduranceKeMenit(awal);
+  const b = enduranceKeMenit(akhir);
+  if (a === null || b === null) return null;
+  return Math.max(a - b, 0);
 }
 
 // Helper Tanggal

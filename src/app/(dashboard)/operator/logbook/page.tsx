@@ -9,12 +9,8 @@ import {
   Search,
   Eye,
   Clock,
-  MapPin,
-  Fuel,
   Users,
   CheckCircle2,
-  AlertTriangle,
-  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +18,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { logbookPerjalananList } from "@/components/shared/mock-data";
+import { logbookPerjalananList, formatEndurance } from "@/components/shared/mock-data";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
@@ -227,12 +223,12 @@ export default function LogbookPerjalananPage() {
                     <span className="text-xs text-slate-400">-</span>
                   ) : (
                     <div className="text-sm">
-                      <p className="font-mono text-slate-700">
-                        {row.enduranceAwal}
+                      <p className="text-slate-700">
+                        {formatEndurance(row.enduranceAwal)}
                       </p>
                       {row.enduranceAkhir ? (
-                        <p className="font-mono text-slate-400">
-                          {row.enduranceAkhir}
+                        <p className="text-slate-400">
+                          {formatEndurance(row.enduranceAkhir)}
                         </p>
                       ) : (
                         <p className="text-xs text-slate-400">Belum kembali</p>
