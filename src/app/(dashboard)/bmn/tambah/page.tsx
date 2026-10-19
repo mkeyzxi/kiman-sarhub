@@ -297,7 +297,7 @@ export default function TambahAsetPage() {
                 <option value="">Pilih penanggung jawab</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.nama} — {user.role}
+                    {user.nama} ({user.role})
                   </option>
                 ))}
               </Select>

@@ -819,32 +819,48 @@ export const checklistTemplates: ChecklistTemplate[] = [
     ],
   },
 
-  // ─── RIB — PEMELIHARAAN (17 item, RIB 01 & RIB 02 identik) ────────────────
+  // ─── RIB — PEMELIHARAAN (24 item) ───────────────────────────────────────────
+  // Bagian A–C mengikuti `dokumentasi_rib_data.md`:
+  //   A. Pemanasan Mesin  → pra-jalan, standar 15 menit / 100%
+  //   B. Pengoperasian    → jam berangkat & jam kembali (WITA)
+  //   C. Checklist BBM    → sisa kemarin, penambahan, saldo akhir
+  // Bagian D adalah checklist pemeliharaan alut dari Jurnal RIB 01 & 02.
   {
     id: "arm-rib-pemeliharaan",
     nama: "Ceklist Pemeliharaan RIB",
     kategori: "Kapal",
     periode: "Harian",
     jenisArmada: "RIB",
-    sumber: "Jurnal RIB 01 & 02",
+    sumber: "Jurnal RIB 01 & 02 + Dokumentasi Data RIB",
     items: [
-      { id: "arm-rib-01", label: "Tali Tros", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-02", label: "Lunas", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
-      { id: "arm-rib-03", label: "Ban Pelampung", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
-      { id: "arm-rib-04", label: "Deck", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-05", label: "Transom (Stand Mesin)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
-      { id: "arm-rib-06", label: "Starting Engine", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
-      { id: "arm-rib-07", label: "Kap Mesin Kanan", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-08", label: "Kap Mesin Kiri", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-09", label: "Karbulator", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-10", label: "Selang BBM", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
-      { id: "arm-rib-11", label: "Busi", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-12", label: "Dinamo Stater", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-13", label: "Dinamo Strom", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-14", label: "Hydraulic Mesin", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-15", label: "Aki / Baterai", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-16", label: "GPS Furuno", wajib: true, kondisi: "Baik", keterangan: "" },
-      { id: "arm-rib-17", label: "GPS Stracking", wajib: true, kondisi: "Baik", keterangan: "" },
+      // A. Pemanasan Mesin (Pra-Operasi) - standar 15 menit / 100%
+      { id: "arm-rib-01", label: "Pemanasan Mesin Rutin / Pra-Jalan", wajib: true, kondisi: "Baik", keterangan: "Standar: 15 menit, 100%", isKritis: true },
+      { id: "arm-rib-02", label: "Indikator Mesin Aman Setelah Pemanasan", wajib: true, kondisi: "Baik", keterangan: "Mesin beroperasi normal, indikator aman" },
+      // B. Pengoperasian Alut
+      { id: "arm-rib-03", label: "Jam Berangkat (WITA)", wajib: true, kondisi: "Baik", keterangan: "Contoh: 08:00 WITA" },
+      { id: "arm-rib-04", label: "Jam Kembali (WITA)", wajib: true, kondisi: "Baik", keterangan: "Contoh: 12:00 WITA - Patroli Alut / Misi SAR" },
+      // C. Checklist & Pemantauan Pengisian BBM
+      { id: "arm-rib-05", label: "Sisa BBM Kemarin (Liter / % / Status)", wajib: true, kondisi: "Baik", keterangan: "Contoh: 50 L / 40% - Cukup atau Kurang", isKritis: true },
+      { id: "arm-rib-06", label: "Penambahan BBM (Liter / % / No. Struk)", wajib: true, kondisi: "Baik", keterangan: "Contoh: 60 L / 50% - No. Struk / Sumber BBM" },
+      { id: "arm-rib-07", label: "Saldo Akhir BBM (Total Liter / % / Kondisi Tanki)", wajib: true, kondisi: "Baik", keterangan: "Contoh: 110 L / 90% - Penuh, Cukup, atau Perlu Re-fill", isKritis: true },
+      // D. Pemeliharaan alut RIB
+      { id: "arm-rib-08", label: "Tali Tros", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-09", label: "Lunas", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-10", label: "Ban Pelampung", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-11", label: "Deck", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-12", label: "Transom (Stand Mesin)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-13", label: "Starting Engine", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-14", label: "Kap Mesin Kanan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-15", label: "Kap Mesin Kiri", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-16", label: "Karbulator", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-17", label: "Selang BBM", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-rib-18", label: "Busi", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-19", label: "Dinamo Stater", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-20", label: "Dinamo Strom", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-21", label: "Hydraulic Mesin", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-22", label: "Aki / Baterai", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-23", label: "GPS Furuno", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-rib-24", label: "GPS Stracking", wajib: true, kondisi: "Baik", keterangan: "" },
     ],
   },
 
@@ -894,8 +910,8 @@ export const checklistTemplates: ChecklistTemplate[] = [
  */
 const BAGIAN_TEMPLATE: Record<string, ReadonlyArray<{ nama: string; upto: number }>> = {
   "arm-motor-mingguan": [
-    { nama: "Bagian 1 — Pemeriksaan Utama", upto: 12 },
-    { nama: "Bagian 2 — Kelistrikan & Perlengkapan", upto: 19 },
+    { nama: "Bagian 1: Pemeriksaan Utama", upto: 12 },
+    { nama: "Bagian 2: Kelistrikan & Perlengkapan", upto: 19 },
   ],
   "arm-mobil-harian": [
     { nama: "A. Menjungkitkan Kabin", upto: 4 },
@@ -907,7 +923,12 @@ const BAGIAN_TEMPLATE: Record<string, ReadonlyArray<{ nama: string; upto: number
     { nama: "Performa / Fungsi Sistem", upto: 6 },
     { nama: "Keliling Kendaraan (Mingguan)", upto: 17 },
   ],
-  "arm-rib-pemeliharaan": [{ nama: "Pemeliharaan RIB", upto: 17 }],
+  "arm-rib-pemeliharaan": [
+    { nama: "A. Pemanasan Mesin (Pra-Operasi)", upto: 2 },
+    { nama: "B. Pengoperasian Alut", upto: 4 },
+    { nama: "C. Checklist & Pemantauan Pengisian BBM", upto: 7 },
+    { nama: "D. Pemeliharaan RIB", upto: 24 },
+  ],
   "arm-rbb-harian": [
     { nama: "Alat Navigasi & Komunikasi", upto: 2 },
     { nama: "Persentase BBM & Endurance", upto: 4 },
@@ -1071,7 +1092,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "UPDATE_JURNAL_SIAGA",
     target: "Jurnal Siaga Rutin",
     tanggal: "2026-10-08T17:00:00",
-    detail: "Jurnal Siaga Rutin 8 Oktober 2026 diperbarui — Shift Pagi",
+    detail: "Jurnal Siaga Rutin 8 Oktober 2026 diperbarui (Shift Pagi)",
   },
   {
     id: "log-002",
@@ -1079,7 +1100,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "SETOR_CHECKLIST",
     target: "Checklist RIB 12M",
     tanggal: "2026-10-08T08:30:00",
-    detail: "Checklist RIB 12 M jam 08.00 disetor — semua item OK",
+    detail: "Checklist RIB 12 M jam 08.00 disetor, semua item OK",
   },
   {
     id: "log-003",
@@ -1095,7 +1116,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "UPDATE_CHECKLIST",
     target: "Checklist Medis",
     tanggal: "2026-10-07T16:00:00",
-    detail: "Checklist harian peralatan medis disetor — P3K lengkap, AED baterai 100%",
+    detail: "Checklist harian peralatan medis disetor. P3K lengkap, AED baterai 100%",
   },
   {
     id: "log-005",
@@ -1103,7 +1124,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "ABSENSI_SIAGA",
     target: "Absensi Shift",
     tanggal: "2026-10-07T07:00:00",
-    detail: "Absensi shift pagi — 6 personel hadir, 0 tidak hadir",
+    detail: "Absensi shift pagi, 6 personel hadir, 0 tidak hadir",
   },
   {
     id: "log-006",
@@ -1111,7 +1132,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "SETOR_CHECKLIST",
     target: "Checklist Perahu Karet",
     tanggal: "2026-10-07T08:15:00",
-    detail: "Checklist harian Perahu Karet Zodiac MK III — hull OK, pompa OK",
+    detail: "Checklist harian Perahu Karet Zodiac MK III. Hull OK, pompa OK",
   },
   {
     id: "log-007",
@@ -1119,7 +1140,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "UPDATE_LOGBOOK",
     target: "Logbook Mobil",
     tanggal: "2026-10-06T10:00:00",
-    detail: "Logbook Toyota Hilux — kembali dari bengkel, status Siaga",
+    detail: "Logbook Toyota Hilux, kembali dari bengkel, status Siaga",
   },
   {
     id: "log-008",
@@ -1127,7 +1148,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "UPDATE_JURNAL_SIAGA",
     target: "Jurnal Siaga Rutin",
     tanggal: "2026-10-06T17:00:00",
-    detail: "Jurnal Siaga Rutin 6 Oktober 2026 — Shift Sore, kondisi normal",
+    detail: "Jurnal Siaga Rutin 6 Oktober 2026. Shift Sore, kondisi normal",
   },
   {
     id: "log-009",
@@ -1135,7 +1156,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "SETOR_CHECKLIST",
     target: "Checklist Komunikasi",
     tanggal: "2026-10-05T09:00:00",
-    detail: "Checklist komunikasi — Radio HT OK, GPS Garmin terkoneksi satelit",
+    detail: "Checklist komunikasi. Radio HT OK, GPS Garmin terkoneksi satelit",
   },
   {
     id: "log-010",
@@ -1143,7 +1164,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "PEMANASAN_RIB",
     target: "RIB 9M",
     tanggal: "2026-10-05T07:30:00",
-    detail: "Pemanasan mesin RIB 9M — RPM stabil, oli cukup, BBM 80%",
+    detail: "Pemanasan mesin RIB 9M. RPM stabil, oli cukup, BBM 80%",
   },
   {
     id: "log-011",
@@ -1151,7 +1172,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "ABSENSI_SIAGA",
     target: "Absensi Shift",
     tanggal: "2026-10-04T07:00:00",
-    detail: "Absensi shift pagi — 5 personel hadir, 1 cuti",
+    detail: "Absensi shift pagi, 5 personel hadir, 1 cuti",
   },
   {
     id: "log-012",
@@ -1159,7 +1180,7 @@ export const logAktivitas: LogAktivitas[] = [
     aksi: "SETOR_CHECKLIST",
     target: "Checklist Selam",
     tanggal: "2026-10-04T08:00:00",
-    detail: "Inspeksi peralatan selam — tabung 200 bar, regulator OK",
+    detail: "Inspeksi peralatan selam. Tabung 200 bar, regulator OK",
   },
 ];
 
@@ -1402,6 +1423,21 @@ export const approvalList: Approval[] = [
 // 11. LOGBOOK PERJALANAN
 // -----------------------------------------------------------------------------
 
+/**
+ * Status penggunaan armada pada satu catatan perjalanan.
+ *
+ * Sengaja dipisahkan dari status kesiapsiagaan armada (`StatusAset`) dan status
+ * pemeliharaan (`StatusTicket`) supaya "sedang dipinjam" tidak tertukar dengan
+ * "rusak sedang diperbaiki".
+ */
+export type StatusPenggunaan =
+  | "Menunggu Penggunaan"
+  | "Sedang Digunakan"
+  | "Selesai";
+
+/** Tahap pencatatan logbook perjalanan. */
+export type TahapLogbook = "Awal" | "Pelengkapan";
+
 export interface LogbookPerjalanan {
   id: string;
   tanggal: string;
@@ -1409,8 +1445,8 @@ export interface LogbookPerjalanan {
   jamKembali: string;
   rute: string;
   tujuan: string;
-  /** Kategori induk: Kapal, RIB, Mobil, Motor */
-  kategoriUnit?: "Kapal" | "RIB" | "Mobil" | "Motor";
+  /** Kategori induk: Kapal, RBB, RIB, Mobil, Motor */
+  kategoriUnit?: "Kapal" | "RBB" | "RIB" | "Mobil" | "Motor";
   jenisUnit: string;
   /** Nahkoda (laut) atau Pengemudi (darat) */
   nahkoda: string;
@@ -1418,16 +1454,25 @@ export interface LogbookPerjalanan {
   bbmSebelum: string;
   bbmSesudah: string;
   /**
-   * Endurance (jam operasi tersisa sebelum kehabisan BBM) — khusus armada
-   * laut: Kapal, RIB, dan RBB. Darat (Mobil/Motor) memakai `km`.
+   * Endurance Awal/Dakhir dalam format HH:MM (jam:menit).
+   * Contoh: "80:00" berarti 80 jam, "80:30" berarti 80 jam 30 menit.
+   * Khusus armada laut: Kapal, RIB, RBB. Darat (Mobil/Motor) tidak pakai field ini.
    */
   enduranceAwal?: string;
   enduranceAkhir?: string;
   /** Kilometer — khusus kendaraan darat */
   kmSebelum?: string;
   kmSesudah?: string;
-  status: "Selesai" | "Berlangsung" | "Dijadwalkan";
+  /**
+   * Status penggunaan (bukan status kesiapsiagaan armada).
+   * Diturunkan otomatis oleh tahap pencatatan, tidak dipilih manual.
+   */
+  status: StatusPenggunaan;
   catatan: string;
+  /** ISO timestamp saat tahap awal disimpan — dipakai untuk urut riwayat. */
+  tanggalSimpan?: string;
+  /** ISO timestamp saat tahap pelengkapan disimpan. */
+  tanggalLengkap?: string;
 }
 
 export const logbookPerjalananList: LogbookPerjalanan[] = [
@@ -1445,8 +1490,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "90%",
     bbmSesudah: "75%",
     status: "Selesai",
-    enduranceAwal: "76 Jam",
-    enduranceAkhir: "64 Jam",
+    enduranceAwal: "76:30",
+    enduranceAkhir: "63:45",
+    tanggalSimpan: "2026-10-08T08:00:00",
+    tanggalLengkap: "2026-10-08T10:30:00",
     catatan: "Kondisi laut normal, tidak ada insiden",
   },
   {
@@ -1463,8 +1510,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "85%",
     bbmSesudah: "65%",
     status: "Selesai",
-    enduranceAwal: "64 Jam",
-    enduranceAkhir: "55 Jam",
+    enduranceAwal: "63:45",
+    enduranceAkhir: "55:15",
+    tanggalSimpan: "2026-10-08T11:00:00",
+    tanggalLengkap: "2026-10-08T13:00:00",
     catatan: "Sosialisasi keselamatan pantai kepada nelayan",
   },
   {
@@ -1481,8 +1530,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "95%",
     bbmSesudah: "60%",
     status: "Selesai",
-    enduranceAwal: "82 Jam",
-    enduranceAkhir: "58 Jam",
+    enduranceAwal: "82:00",
+    enduranceAkhir: "58:30",
+    tanggalSimpan: "2026-10-07T09:00:00",
+    tanggalLengkap: "2026-10-07T12:00:00",
     catatan: "Evakuasi korban tenggelam, 2 orang selamat",
   },
   {
@@ -1499,8 +1550,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "80%",
     bbmSesudah: "70%",
     status: "Selesai",
-    enduranceAwal: "70 Jam",
-    enduranceAkhir: "66 Jam",
+    enduranceAwal: "70:15",
+    enduranceAkhir: "66:45",
+    tanggalSimpan: "2026-10-07T14:00:00",
+    tanggalLengkap: "2026-10-07T16:00:00",
     catatan: "Pantai ramai pengunjung, kondisi aman",
   },
   {
@@ -1517,8 +1570,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSebelum: "100%",
     bbmSesudah: "70%",
     status: "Selesai",
-    enduranceAwal: "90 Jam",
-    enduranceAkhir: "72 Jam",
+    enduranceAwal: "90:00",
+    enduranceAkhir: "72:30",
+    tanggalSimpan: "2026-10-06T08:30:00",
+    tanggalLengkap: "2026-10-06T11:30:00",
     catatan: "Latihan teknik penyelamatan korban di air",
   },
   {
@@ -1534,9 +1589,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 4,
     bbmSebelum: "88%",
     bbmSesudah: "",
-    status: "Berlangsung",
-    enduranceAwal: "78 Jam",
+    status: "Sedang Digunakan",
+    enduranceAwal: "78:15",
     enduranceAkhir: "",
+    tanggalSimpan: "2026-10-09T08:00:00",
     catatan: "Sedang dalam perjalanan",
   },
   {
@@ -1552,9 +1608,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 3,
     bbmSebelum: "85%",
     bbmSesudah: "",
-    status: "Dijadwalkan",
-    enduranceAwal: "80 Jam",
+    status: "Sedang Digunakan",
+    enduranceAwal: "80:00",
     enduranceAkhir: "",
+    tanggalSimpan: "2026-10-09T14:00:00",
     catatan: "Dijadwalkan untuk shift sore",
   },
   // ─── LOGBOOK ARMADA BESAR: KAPAL (KN SAR) & RBB ─────────────────────────────
@@ -1575,9 +1632,11 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 6,
     bbmSebelum: "88%",
     bbmSesudah: "74%",
-    enduranceAwal: "80 Jam",
-    enduranceAkhir: "70 Jam",
+    enduranceAwal: "80:00",
+    enduranceAkhir: "70:15",
     status: "Selesai",
+    tanggalSimpan: "2026-10-10T08:00:00",
+    tanggalLengkap: "2026-10-10T10:30:00",
     catatan: "Pantai Karampuang, tinggi gelombang 1,5 meter. Kapal beroperasi normal.",
   },
   {
@@ -1593,15 +1652,17 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 5,
     bbmSebelum: "82%",
     bbmSesudah: "71%",
-    enduranceAwal: "74 Jam",
-    enduranceAkhir: "66 Jam",
+    enduranceAwal: "74:30",
+    enduranceAkhir: "66:00",
     status: "Selesai",
+    tanggalSimpan: "2026-10-09T14:00:00",
+    tanggalLengkap: "2026-10-09T16:45:00",
     catatan: "Sosialisasi kepada manager desa dan BM bersudara.",
   },
   {
     id: "lp-13",
     tanggal: "2026-10-11",
-    jamBerangkat: "07:00",
+    jamBerangkat: "",
     jamKembali: "",
     rute: "Dermaga Mamuju - Perairan Mamuju",
     tujuan: "Patroli rutin",
@@ -1611,9 +1672,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 6,
     bbmSebelum: "90%",
     bbmSesudah: "",
-    enduranceAwal: "86 Jam",
+    enduranceAwal: "86:15",
     enduranceAkhir: "",
-    status: "Dijadwalkan",
+    status: "Menunggu Penggunaan",
+    tanggalSimpan: "2026-10-11T07:00:00",
     catatan: "Shift pagi, menunggu konfirmasi cuaca.",
   },
 
@@ -1631,9 +1693,11 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 4,
     bbmSebelum: "95%",
     bbmSesudah: "68%",
-    enduranceAwal: "84 Jam",
-    enduranceAkhir: "62 Jam",
+    enduranceAwal: "84:00",
+    enduranceAkhir: "61:45",
     status: "Selesai",
+    tanggalSimpan: "2026-10-10T09:00:00",
+    tanggalLengkap: "2026-10-10T11:15:00",
     catatan: "Satu korban tenggelam berhasil dievakuasi ke klinik terdekat.",
   },
   {
@@ -1649,9 +1713,11 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 3,
     bbmSebelum: "78%",
     bbmSesudah: "72%",
-    enduranceAwal: "70 Jam",
-    enduranceAkhir: "65 Jam",
+    enduranceAwal: "70:00",
+    enduranceAkhir: "65:30",
     status: "Selesai",
+    tanggalSimpan: "2026-10-09T15:30:00",
+    tanggalLengkap: "2026-10-09T17:00:00",
     catatan: "Patroli normal, tidak ada kelainan.",
   },
   {
@@ -1667,9 +1733,10 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     jumlahPersonel: 3,
     bbmSebelum: "88%",
     bbmSesudah: "",
-    enduranceAwal: "78 Jam",
+    enduranceAwal: "78:30",
     enduranceAkhir: "",
-    status: "Berlangsung",
+    status: "Sedang Digunakan",
+    tanggalSimpan: "2026-10-11T08:30:00",
     catatan: "Pemeriksaan RBB sebelum operasi hari ini",
   },
 
@@ -1690,6 +1757,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     kmSebelum: "45230",
     kmSesudah: "45312",
     status: "Selesai",
+    tanggalSimpan: "2026-10-08T07:30:00",
+    tanggalLengkap: "2026-10-08T11:00:00",
     catatan: "Jalan menuju Desa Binanga berlubang, perlu hati-hati pada KM 67-69",
   },
   {
@@ -1708,6 +1777,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     kmSebelum: "12450",
     kmSesudah: "12520",
     status: "Selesai",
+    tanggalSimpan: "2026-10-07T09:00:00",
+    tanggalLengkap: "2026-10-07T12:30:00",
     catatan: "Akses jalan ke pantai cukup baik, kondisi motor normal",
   },
   {
@@ -1725,7 +1796,8 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     bbmSesudah: "",
     kmSebelum: "45312",
     kmSesudah: "",
-    status: "Berlangsung",
+    status: "Sedang Digunakan",
+    tanggalSimpan: "2026-10-09T13:00:00",
     catatan: "Operasi evakuasi pasca banjir di Kalukku",
   },
 ];
@@ -1913,9 +1985,20 @@ export const checklistHarianList: ChecklistHarian[] = [
     templateId: "arm-rib-pemeliharaan",
     pemeriksa: "Agustang",
     status: "Belum Lengkap",
-    itemChecked: 16,
-    itemTotal: 17,
+    itemChecked: 23,
+    itemTotal: 24,
     items: [
+      // A. Pemanasan Mesin (Pra-Operasi)
+      { label: "Pemanasan Mesin Rutin / Pra-Jalan", wajib: true, kondisi: "Baik", keterangan: "15 menit, 100% - mesin hangat optimal" },
+      { label: "Indikator Mesin Aman Setelah Pemanasan", wajib: true, kondisi: "Baik", keterangan: "Mesin beroperasi normal, indikator aman" },
+      // B. Pengoperasian Alut
+      { label: "Jam Berangkat (WITA)", wajib: true, kondisi: "Baik", keterangan: "07:00 WITA" },
+      { label: "Jam Kembali (WITA)", wajib: true, kondisi: "Baik", keterangan: "10:15 WITA - Patroli Alut / Misi SAR" },
+      // C. Checklist & Pemantauan Pengisian BBM
+      { label: "Sisa BBM Kemarin (Liter / % / Status)", wajib: true, kondisi: "Baik", keterangan: "50 L / 40% - Cukup" },
+      { label: "Penambahan BBM (Liter / % / No. Struk)", wajib: true, kondisi: "Baik", keterangan: "60 L / 50% - No. Struk 0451/PU/2026" },
+      { label: "Saldo Akhir BBM (Total Liter / % / Kondisi Tanki)", wajib: true, kondisi: "Baik", keterangan: "96 L / 80% - Cukup" },
+      // D. Pemeliharaan alut RIB
       { label: "Tali Tros", wajib: true, kondisi: "Baik", keterangan: "" },
       { label: "Lunas", wajib: true, kondisi: "Baik", keterangan: "" },
       { label: "Ban Pelampung", wajib: true, kondisi: "Baik", keterangan: "" },
@@ -1934,7 +2017,7 @@ export const checklistHarianList: ChecklistHarian[] = [
       { label: "GPS Furuno", wajib: true, kondisi: "Baik", keterangan: "" },
       { label: "GPS Stracking", wajib: true, kondisi: "Belum Diperiksa", keterangan: "" },
     ],
-    catatan: "GPS Stracking belum diperiksa, perlu cek kelengkapan perangkat",
+    catatan: "Pemanasan mesin, pengoperasian, dan checklist BBM terisi lengkap. GPS Stracking belum diperiksa, perlu cek kelengkapan perangkat.",
   },
 ];
 
@@ -1981,6 +2064,321 @@ export function formatTanggalWaktu(tanggal: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Helper Endurance
+// -----------------------------------------------------------------------------
+
+/** Pecah endurance "HH:MM" menjadi jumlah jam dan menit. */
+export function parseEndurance(
+  nilai?: string
+): { jam: number; menit: number } | null {
+  const bersih = (nilai ?? "").trim();
+  if (!bersih) return null;
+
+  const cocok = /^(\d{1,3}):([0-5]\d)$/.exec(bersih);
+  if (!cocok) return null;
+
+  return { jam: Number(cocok[1]), menit: Number(cocok[2]) };
+}
+
+/** Ubah endurance "HH:MM" menjadi total menit; null bila kosong/tidak valid. */
+export function enduranceKeMenit(nilai?: string): number | null {
+  const parsed = parseEndurance(nilai);
+  return parsed === null ? null : parsed.jam * 60 + parsed.menit;
+}
+
+/**
+ * Format menit menjadi bacaan manusia, mis. 4620 → "77 jam".
+ * Menit ikut ditulis bila ada, mis. 4625 → "77 jam 5 menit".
+ */
+export function formatMenit(totalMenit: number): string {
+  const jam = Math.floor(totalMenit / 60);
+  const menit = totalMenit % 60;
+  if (menit === 0) return `${jam} jam`;
+  return jam === 0 ? `${menit} menit` : `${jam} jam ${menit} menit`;
+}
+
+/**
+ * Format nilai endurance untuk ditampilkan, mis. "80:30" → "80 jam 30 menit".
+ * Mengembalikan `-` bila kosong atau formatnya tidak valid.
+ */
+export function formatEndurance(nilai?: string): string {
+  const total = enduranceKeMenit(nilai);
+  return total === null ? "-" : formatMenit(total);
+}
+
+/** Selisih endurance awal − akhir dalam menit; null bila salah satu belum terisi. */
+export function selisihEndurance(awal?: string, akhir?: string): number | null {
+  const a = enduranceKeMenit(awal);
+  const b = enduranceKeMenit(akhir);
+  if (a === null || b === null) return null;
+  return Math.max(a - b, 0);
+}
+
+// Helper Tahap Pencatatan Logbook
+// -----------------------------------------------------------------------------
+
+/** Kategori armada yang memakai endurance (bukan kilometer). */
+export const KATEGORI_ARMAPADA_LAUT = ["Kapal", "RBB", "RIB"] as const;
+
+export type KategoriLogbook =
+  | "Kapal"
+  | "RBB"
+  | "RIB"
+  | "Mobil"
+  | "Motor";
+
+/** Apakah kategori ini armada laut (endurance) atau darat (kilometer). */
+export function isArmadaLaut(
+  kategori: string | undefined
+): kategori is (typeof KATEGORI_ARMAPADA_LAUT)[number] {
+  return KATEGORI_ARMAPADA_LAUT.includes(
+    kategori as (typeof KATEGORI_ARMAPADA_LAUT)[number]
+  );
+}
+
+/** Isi form logbook — nilai semua field masih berupa string mentah. */
+export interface FormLogbook {
+  tanggal: string;
+  jamBerangkat: string;
+  jamKembali: string;
+  rute: string;
+  tujuan: string;
+  kategoriUnit: KategoriLogbook | "";
+  jenisUnit: string;
+  nahkoda: string;
+  jumlahPersonel: string;
+  bbmSebelum: string;
+  bbmSesudah: string;
+  enduranceAwal: string;
+  enduranceAkhir: string;
+  kmSebelum: string;
+  kmSesudah: string;
+  catatan: string;
+}
+
+export type LogbookErrors = Partial<Record<keyof FormLogbook, string>>;
+
+const POLA_ENDURANCE = /^(\d{1,3}):([0-5]\d)$/;
+
+function cekAngka(nilai: string): boolean {
+  return /^\d+(\.\d+)?$/.test(nilai);
+}
+
+function cekPersen(nilai: string, nama: string): string | undefined {
+  if (!cekAngka(nilai)) return `${nama} harus berupa angka.`;
+  const angka = Number(nilai);
+  if (angka < 0 || angka > 100) return `${nama} harus antara 0 dan 100.`;
+  return undefined;
+}
+
+function cekJam(nilai: string, nama: string): string | undefined {
+  if (!/^\d{2}:\d{2}$/.test(nilai)) return `${nama} wajib diisi.`;
+  const [jam, menit] = nilai.split(":").map(Number);
+  if (jam > 23 || menit > 59) return `${nama} tidak valid.`;
+  return undefined;
+}
+
+/**
+ * Validasi tahap awal — data yang wajib dicatat sebelum armada berangkat.
+ *
+ * Endurance awal WAJIB untuk armada laut; endurance akhir memang belum ada
+ * pada tahap ini karena unit masih dalam perjalanan.
+ */
+export function validasiTahapAwal(form: FormLogbook): LogbookErrors {
+  const e: LogbookErrors = {};
+
+  if (!form.tanggal) e.tanggal = "Tanggal wajib diisi.";
+  else if (!isValidISODate(form.tanggal)) e.tanggal = "Tanggal tidak valid.";
+
+  // Jam keberangkatan boleh kosong: artinya armadanya masih "Menunggu Penggunaan".
+  if (form.jamBerangkat) {
+    const err = cekJam(form.jamBerangkat, "Jam keberangkatan");
+    if (err) e.jamBerangkat = err;
+  }
+
+  if (!form.rute.trim()) e.rute = "Rute wajib diisi.";
+  if (!form.tujuan.trim()) e.tujuan = "Tujuan kegiatan wajib diisi.";
+  if (!form.kategoriUnit) e.kategoriUnit = "Kategori unit wajib dipilih.";
+  if (!form.jenisUnit) e.jenisUnit = "Jenis unit wajib dipilih.";
+  if (!form.nahkoda.trim()) e.nahkoda = "Operator wajib diisi.";
+
+  if (!cekAngka(form.jumlahPersonel) || Number(form.jumlahPersonel) < 1) {
+    e.jumlahPersonel = "Jumlah personel minimal 1.";
+  }
+
+  if (!form.bbmSebelum.trim()) e.bbmSebelum = "BBM sebelum wajib diisi.";
+  else {
+    const err = cekPersen(form.bbmSebelum, "BBM sebelum");
+    if (err) e.bbmSebelum = err;
+  }
+
+  if (isArmadaLaut(form.kategoriUnit)) {
+    if (!form.enduranceAwal.trim()) {
+      e.enduranceAwal = "Endurance awal wajib diisi untuk armada laut.";
+    } else if (!POLA_ENDURANCE.test(form.enduranceAwal)) {
+      e.enduranceAwal = "Format harus HH:MM, contoh 80:30.";
+    }
+  } else if (form.kmSebelum && !cekAngka(form.kmSebelum)) {
+    e.kmSebelum = "Kilometer awal harus berupa angka.";
+  }
+
+  return e;
+}
+
+/**
+ * Validasi tahap pelengkapan — data yang baru bisa diisi setelah unit kembali.
+ *
+ * Inilah yang menentukan apakah tombol "Selesaikan" boleh ditekan: status baru
+ * menjadi `Selesai` bila fungsi ini mengembalikan objek kosong.
+ */
+export function validasiTahapAkhir(form: FormLogbook): LogbookErrors {
+  const e: LogbookErrors = {};
+  const laut = isArmadaLaut(form.kategoriUnit);
+
+  const jamKembali = cekJam(form.jamKembali, "Jam kepulangan");
+  if (jamKembali) {
+    e.jamKembali = jamKembali;
+  } else if (form.jamBerangkat) {
+    const [jh, jm] = form.jamBerangkat.split(":").map(Number);
+    const [kh, km] = form.jamKembali.split(":").map(Number);
+    if (kh * 60 + km <= jh * 60 + jm) {
+      e.jamKembali = "Jam kembali harus setelah jam berangkat.";
+    }
+  }
+
+  if (!form.bbmSesudah.trim()) {
+    e.bbmSesudah = "BBM sesudah wajib diisi untuk menandai perjalanan selesai.";
+  } else {
+    const err = cekPersen(form.bbmSesudah, "BBM sesudah");
+    if (err) {
+      e.bbmSesudah = err;
+    } else if (cekAngka(form.bbmSebelum)) {
+      const sebelum = Number(form.bbmSebelum);
+      const sesudah = Number(form.bbmSesudah);
+      if (sesudah > sebelum) {
+        e.bbmSesudah = "BBM sesudah tidak boleh lebih besar dari BBM sebelum.";
+      }
+    }
+  }
+
+  if (laut) {
+    if (!form.enduranceAkhir.trim()) {
+      e.enduranceAkhir = "Endurance akhir wajib diisi untuk menandai selesai.";
+    } else if (!POLA_ENDURANCE.test(form.enduranceAkhir)) {
+      e.enduranceAkhir = "Format harus HH:MM, contoh 73:00.";
+    } else if (POLA_ENDURANCE.test(form.enduranceAwal)) {
+      const awal = enduranceKeMenit(form.enduranceAwal)!;
+      const akhir = enduranceKeMenit(form.enduranceAkhir)!;
+      if (akhir > awal) {
+        e.enduranceAkhir =
+          "Endurance akhir tidak boleh lebih besar dari endurance awal.";
+      }
+    }
+  } else {
+    if (!form.kmSesudah.trim()) {
+      e.kmSesudah = "Kilometer sesudah wajib diisi untuk menandai selesai.";
+    } else if (!cekAngka(form.kmSesudah)) {
+      e.kmSesudah = "Kilometer sesudah harus berupa angka.";
+    } else if (cekAngka(form.kmSebelum) && Number(form.kmSesudah) < Number(form.kmSebelum)) {
+      e.kmSesudah = "Kilometer sesudah tidak boleh lebih kecil dari kilometer awal.";
+    }
+  }
+
+  return e;
+}
+
+/** Gabungan kedua tahap — dipakai untuk menentukan badge "belum lengkap". */
+export function validasiLogbook(form: FormLogbook): LogbookErrors {
+  return { ...validasiTahapAwal(form), ...validasiTahapAkhir(form) };
+}
+
+/**
+ * Status penggunaan diturunkan dari data, bukan dipilih operator.
+ *
+ * - sudah kembali → `Selesai`
+ * - sudah berangkat → `Sedang Digunakan`
+ * - belum berangkat → `Menunggu Penggunaan`
+ */
+export function statusPenggunaanOtomatis(form: FormLogbook): StatusPenggunaan {
+  if (!form.jamKembali.trim()) {
+    return form.jamBerangkat.trim() ? "Sedang Digunakan" : "Menunggu Penggunaan";
+  }
+  return "Selesai";
+}
+
+/**
+ * Tahap yang masih perlu dikerjakan pada sebuah catatan.
+ * `null` berarti catatan sudah lengkap dan tidak perlu dibuka lagi.
+ */
+export function tahapYangTertunda(
+  status: StatusPenggunaan
+): TahapLogbook | null {
+  if (status === "Selesai") return null;
+  return status === "Menunggu Penggunaan" ? "Awal" : "Pelengkapan";
+}
+
+/**
+ * Jarak tempuh untuk armada darat: selisih odometer dalam km.
+ * Untuk armada laut dipakai {@link selisihEndurance} (satuan jam operasi).
+ */
+export function selisihKm(awal?: string, akhir?: string): number | null {
+  if (!awal || !akhir || !cekAngka(awal) || !cekAngka(akhir)) return null;
+  return Math.max(Number(akhir) - Number(awal), 0);
+}
+
+/** Nama field yang belum terisi pada tahap pelengkapan. */
+export function fieldBelumLengkap(form: FormLogbook): string[] {
+  const errors = validasiTahapAkhir(form);
+  const label: Partial<Record<keyof FormLogbook, string>> = {
+    jamKembali: "jam kembali",
+    bbmSesudah: "BBM sesudah",
+    enduranceAkhir: "endurance akhir",
+    kmSesudah: "kilometer sesudah",
+  };
+  return Object.keys(errors)
+    .map((k) => label[k as keyof FormLogbook])
+    .filter((v): v is string => Boolean(v));
+}
+
+/** Buang tanda `%` supaya bisa divalidasi sebagai angka biasa. */
+export function persenKeAngka(nilai: string): string {
+  return nilai.replace("%", "").trim();
+}
+
+/** Tambahkan kembali `%` untuk disimpan, mis. "75" → "75%". */
+export function angkaKePersen(nilai: string): string {
+  const bersih = nilai.trim();
+  return bersih === "" ? "" : `${bersih}%`;
+}
+
+/**
+ * Ubah `LogbookPerjalanan` menjadi bentuk form (semua nilai jadi string).
+ *
+ * Dipakai tahap pelengkapan supaya operator membuka catatan yang sudah tersimpan
+ * tanpa perlu mengetik ulang data keberangkatan. Persentase BBM dilepas tanda
+ * `%`-nya agar bisa divalidasi sebagai angka biasa.
+ */
+export function logbookKeForm(logbook: LogbookPerjalanan): FormLogbook {
+  return {
+    tanggal: logbook.tanggal,
+    jamBerangkat: logbook.jamBerangkat,
+    jamKembali: logbook.jamKembali,
+    rute: logbook.rute,
+    tujuan: logbook.tujuan,
+    kategoriUnit: logbook.kategoriUnit ?? "",
+    jenisUnit: logbook.jenisUnit,
+    nahkoda: logbook.nahkoda,
+    jumlahPersonel: String(logbook.jumlahPersonel),
+    bbmSebelum: persenKeAngka(logbook.bbmSebelum),
+    bbmSesudah: persenKeAngka(logbook.bbmSesudah),
+    enduranceAwal: logbook.enduranceAwal ?? "",
+    enduranceAkhir: logbook.enduranceAkhir ?? "",
+    kmSebelum: logbook.kmSebelum ?? "",
+    kmSesudah: logbook.kmSesudah ?? "",
+    catatan: logbook.catatan,
+  };
 }
 
 // Helper Tanggal

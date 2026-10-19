@@ -379,7 +379,7 @@ export default function BuatChecklistPage() {
                     <option value="">Pilih template</option>
                     {templateTersedia.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.nama} ({t.periode} — {t.items.length} item)
+                        {t.nama} ({t.periode}, {t.items.length} item)
                       </option>
                     ))}
                   </Select>

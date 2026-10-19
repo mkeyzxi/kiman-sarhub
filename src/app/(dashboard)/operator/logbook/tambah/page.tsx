@@ -2,20 +2,39 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Ship, MapPin, Fuel, Users, Car, Bike, Anchor } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Ship,
+  MapPin,
+  Fuel,
+  Car,
+  Bike,
+  Anchor,
+  Info,
+  Save,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { users, asetList, type JenisArmada } from "@/components/shared/mock-data";
+import { Badge } from "@/components/ui/badge";
+import { users, asetList, type FormLogbook } from "@/components/shared/mock-data";
+import { simpanTahapAwal } from "@/components/shared/logbook-store";
 import { cn } from "@/lib/utils";
 
 /**
- * Kategori unit untuk logbook perjalanan.
- * Masing-masing kategori menarik daftar unit dari asetList sesuai mapping KategoriAset.
+ * Tahap 1 pencatatan logbook perjalanan.
+ *
+ * Yang dicatat di sini hanya data keberangkatan. Endurance akhir sengaja tidak
+ * ada karena belum diketahui sampai armada kembali — diisi pada tahap 2 lewat
+ * tombol "Lanjutkan Pengisian" pada catatan yang sama.
  */
-type KategoriLogbook = "Kapal" | "RIB" | "RBB" | "Mobil" | "Motor";
 
-const kategoriLogbookOptions: { value: KategoriLogbook; label: string; icon: React.ElementType }[] = [
+const kategoriLogbookOptions: {
+  value: NonNullable<FormLogbook["kategoriUnit"]>;
+  label: string;
+  icon: React.ElementType;
+}[] = [
   { value: "RIB", label: "RIB / Perahu", icon: Ship },
   { value: "RBB", label: "RBB", icon: Ship },
   { value: "Kapal", label: "Kapal", icon: Anchor },
@@ -24,31 +43,37 @@ const kategoriLogbookOptions: { value: KategoriLogbook; label: string; icon: Rea
 ];
 
 /** Armada laut memakai endurance; armada darat memakai kilometer. */
-const ARMADA_LAUT: readonly KategoriLogbook[] = ["Kapal", "RIB", "RBB"];
+const ARMADA_LAUT: readonly string[] = ["Kapal", "RBB", "RIB"];
 
-function isArmadaLaut(kategori: KategoriLogbook): boolean {
-  return ARMADA_LAUT.includes(kategori);
+function isArmadaLaut(kategori: FormLogbook["kategoriUnit"]): boolean {
+  return kategori !== "" && ARMADA_LAUT.includes(kategori);
 }
 
-/** Daftar unit berdasarkan kategori, termasuk unit-unit standar yang tetap + dari asetList. */
-function getUnitOptions(kategori: KategoriLogbook): { value: string; label: string }[] {
-  const staticUnits: Record<KategoriLogbook, { value: string; label: string }[]> = {
+/** Label operator unit tergantung kategori */
+function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
+  if (isArmadaLaut(kategori)) return "Nahkoda";
+  if (kategori === "Motor") return "Pengemudi";
+  return "Pengemudi / Driver";
+}
+
+/** Daftar unit berdasarkan kategori, termasuk unit standar + dari asetList. */
+function getUnitOptions(kategori: FormLogbook["kategoriUnit"]): {
+  value: string;
+  label: string;
+}[] {
+  const staticUnits: Record<string, { value: string; label: string }[]> = {
     RIB: [
       { value: "RIB 9 M", label: "RIB 9 M" },
       { value: "RIB 12 M", label: "RIB 12 M" },
     ],
-    RBB: [
-      { value: "RBB 309 MAMUJU", label: "RBB 309 MAMUJU" },
-    ],
-    Kapal: [
-      { value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" },
-    ],
+    RBB: [{ value: "RBB 309 MAMUJU", label: "RBB 309 MAMUJU" }],
+    Kapal: [{ value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" }],
     Mobil: [],
     Motor: [],
   };
 
   // Tambahkan dari asetList yang cocok kategori
-  const kategoriMap: Record<KategoriLogbook, string[]> = {
+  const kategoriMap: Record<string, string[]> = {
     RIB: ["Peralatan SAR"],
     RBB: ["Peralatan SAR"],
     Kapal: ["Kapal"],
@@ -56,95 +81,123 @@ function getUnitOptions(kategori: KategoriLogbook): { value: string; label: stri
     Motor: ["Motor"],
   };
 
-  const asetUnits = asetList
-    .filter((a) => kategoriMap[kategori].includes(a.kategori))
+  const dariAset = asetList
+    .filter((a) => kategoriMap[kategori]?.includes(a.kategori))
     .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
 
-  // Gabungkan tanpa duplikat (berdasarkan value)
-  const merged = [...staticUnits[kategori]];
-  asetUnits.forEach((u) => {
-    if (!merged.some((m) => m.value === u.value)) {
-      merged.push(u);
-    }
-  });
+  const gabung = [...(staticUnits[kategori] ?? []), ...dariAset];
 
-  return merged;
+  // Hilangkan duplikat berdasarkan nilai.
+  return gabung.filter(
+    (u, i) => gabung.findIndex((x) => x.value === u.value) === i
+  );
 }
 
-/** Apakah kategori ini kendaraan darat (butuh KM) */
-function isDarat(kategori: KategoriLogbook) {
-  return kategori === "Mobil" || kategori === "Motor";
+/**
+ * Bersihkan input endurance saat diketik: hanya izinkan angka dengan satu titik
+ * dua, maksimal 3 digit jam dan 2 digit menit.
+ */
+function sanitizeEndurance(nilai: string): string {
+  const parts = nilai.split(":");
+  if (parts.length === 1) return parts[0].replace(/\D/g, "").slice(0, 3);
+
+  const jam = (parts[0] ?? "").replace(/\D/g, "").slice(0, 3);
+  const menit = parts
+    .slice(1)
+    .join(":")
+    .replace(/\D/g, "")
+    .slice(0, 2);
+  return `${jam}:${menit}`;
 }
 
-/** Label operator unit tergantung kategori */
-function getOperatorLabel(kategori: KategoriLogbook) {
-  if (isArmadaLaut(kategori)) return "Nahkoda";
-  if (kategori === "Motor") return "Pengemudi";
-  return "Pengemudi / Driver";
-}
+const FORM_KOSONG: FormLogbook = {
+  tanggal: new Date().toISOString().slice(0, 10),
+  jamBerangkat: "",
+  jamKembali: "",
+  rute: "",
+  tujuan: "",
+  kategoriUnit: "RIB",
+  jenisUnit: "RIB 9 M",
+  nahkoda: "",
+  jumlahPersonel: "1",
+  bbmSebelum: "",
+  bbmSesudah: "",
+  enduranceAwal: "",
+  enduranceAkhir: "",
+  kmSebelum: "",
+  kmSesudah: "",
+  catatan: "",
+};
 
 export default function TambahLogbookPage() {
-  const [formData, setFormData] = useState({
-    tanggal: "",
-    jamBerangkat: "",
-    jamKembali: "",
-    rute: "",
-    tujuan: "",
-    kategoriUnit: "RIB" as KategoriLogbook,
-    jenisUnit: "RIB 9 M",
-    operator: "",
-    jumlahPersonel: "1",
-    bbmSebelum: "",
-    bbmSesudah: "",
-    enduranceAwal: "",
-    enduranceAkhir: "",
-    kmSebelum: "",
-    kmSesudah: "",
-    status: "Dijadwalkan",
-    catatan: "",
-  });
+  const router = useRouter();
+  const [formData, setFormData] = useState<FormLogbook>(FORM_KOSONG);
+  const [errors, setErrors] = useState<Partial<Record<keyof FormLogbook, string>>>(
+    {}
+  );
+  const [errorUmum, setErrorUmum] = useState<string | null>(null);
 
   const unitOptions = useMemo(
     () => getUnitOptions(formData.kategoriUnit),
     [formData.kategoriUnit]
   );
 
-  // Reset jenisUnit ketika kategori berubah
-  const handleKategoriChange = (kategori: KategoriLogbook) => {
+  const laut = isArmadaLaut(formData.kategoriUnit);
+
+  /** Perbarui satu field dan bersihkan errorassociated-nya. */
+  const setField = <K extends keyof FormLogbook>(
+    key: K,
+    value: FormLogbook[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setErrorUmum(null);
+  };
+
+  const handleKategoriChange = (kategori: FormLogbook["kategoriUnit"]) => {
     const units = getUnitOptions(kategori);
-    setFormData({
-      ...formData,
+    const keDarat = kategori === "Mobil" || kategori === "Motor";
+    setFormData((prev) => ({
+      ...prev,
       kategoriUnit: kategori,
       jenisUnit: units[0]?.value ?? "",
-      // reset km jika beralih ke laut, reset endurance jika beralih ke darat
-      kmSebelum: isDarat(kategori) ? formData.kmSebelum : "",
-      kmSesudah: isDarat(kategori) ? formData.kmSesudah : "",
-      enduranceAwal: isArmadaLaut(kategori) ? formData.enduranceAwal : "",
-      enduranceAkhir: isArmadaLaut(kategori) ? formData.enduranceAkhir : "",
-    });
+      kmSebelum: keDarat ? prev.kmSebelum : "",
+      enduranceAwal: keDarat ? "" : prev.enduranceAwal,
+    }));
+    setErrors({});
+    setErrorUmum(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log("Form data:", formData);
+    const hasil = simpanTahapAwal(formData);
+
+    if ("error" in hasil) {
+      setErrors(hasil.errors as Partial<Record<keyof FormLogbook, string>>);
+      setErrorUmum(hasil.error);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    // Tahap 1 selesai — arahkan operator ke daftar agar bisa melanjutkan Filling.
+    router.push("/operator/logbook");
   };
 
-  const KategoriIcon = kategoriLogbookOptions.find(
-    (k) => k.value === formData.kategoriUnit
-  )?.icon ?? Ship;
+  const KategoriIcon =
+    kategoriLogbookOptions.find((k) => k.value === formData.kategoriUnit)?.icon ??
+    Ship;
 
-  const rutePlaceholder = isDarat(formData.kategoriUnit)
-    ? "Contoh: Kantor SAR Mamuju - Desa Binanga"
-    : "Contoh: Dermaga Mamuju - Perairan Mamuju";
+  const rutePlaceholder = laut
+    ? "Contoh: Dermaga Mamuju - Perairan Mamuju"
+    : "Contoh: Kantor SAR Mamuju - Desa Binanga";
 
-  const tujuanPlaceholder = isDarat(formData.kategoriUnit)
-    ? "Contoh: Patroli darat, Evakuasi korban, Distribusi logistik"
-    : "Contoh: Patroli rutin, Operasi evakuasi, Sosialisasi";
+  const tujuanPlaceholder = laut
+    ? "Contoh: Patroli rutin, Operasi evakuasi, Sosialisasi"
+    : "Contoh: Patroli darat, Evakuasi korban, Distribusi logistik";
 
-  const catatanPlaceholder = isDarat(formData.kategoriUnit)
-    ? "Kondisi jalan, cuaca, insiden, atau keterangan lain..."
-    : "Kondisi laut, cuaca, insiden, atau keterangan lain...";
+  const catatanPlaceholder = laut
+    ? "Kondisi laut, cuaca, insiden, atau keterangan lain..."
+    : "Kondisi jalan, cuaca, insiden, atau keterangan lain...";
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -160,70 +213,91 @@ export default function TambahLogbookPage() {
             Tambah Logbook Perjalanan
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Catat perjalanan unit dan hasil kegiatan lapangan
+            Tahap 1: catat data keberangkatan armada
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Penjelasan alur dua tahap */}
+      <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden />
+        <div className="space-y-2 text-sm text-blue-900">
+          <p>
+            Pencatatan dilakukan dua tahap agar tidak perlu mengisi ulang dari
+            awal saat armada belum kembali.
+          </p>
+          <ol className="ml-4 list-decimal space-y-1">
+            <li>
+              <span className="font-medium">Tahap 1 (halaman ini)</span>, simpan
+              data keberangkatan. Endurance awal wajib diisi untuk armada laut.
+            </li>
+            <li>
+              <span className="font-medium">Tahap 2 (nanti)</span>, buka lagi
+              catatan yang sama lewat tombol{" "}
+              <span className="font-medium">Lanjutkan Pengisian</span> untuk
+              mengisi jam kembali, endurance akhir, dan BBM sesudah. Catatan ini
+              diperbarui, bukan dibuat baru.
+            </li>
+          </ol>
+          <p>
+            Status hanya menjadi <span className="font-medium">Selesai</span>{" "}
+            setelah seluruh data wajib tahap 2 terisi.
+          </p>
+        </div>
+      </div>
+
+      {errorUmum && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
+        >
+          {errorUmum} Lengkapi dulu kolom yang ditandai merah.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* Penanda tahap */}
+        <div className="flex items-center gap-2">
+          <Badge>Tahap 1 dari 2</Badge>
+          <span className="text-sm text-slate-500">
+            Data keberangkatan. Endurance akhir diisi setelah kembali.
+          </span>
+        </div>
+
         {/* Jadwal */}
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Jadwal Perjalanan
           </h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="tanggal">Tanggal</Label>
+            <Field
+              label="Tanggal"
+              htmlFor="tanggal"
+              error={errors.tanggal}
+            >
               <Input
                 id="tanggal"
                 type="date"
                 value={formData.tanggal}
-                onChange={(e) =>
-                  setFormData({ ...formData, tanggal: e.target.value })
-                }
-                required
+                onChange={(e) => setField("tanggal", e.target.value)}
+                className={cn(errors.tanggal && "border-red-300")}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                id="status"
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value })
-                }
-              >
-                <option value="Dijadwalkan">Dijadwalkan</option>
-                <option value="Berlangsung">Berlangsung</option>
-                <option value="Selesai">Selesai</option>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="jamBerangkat">Jam Berangkat</Label>
+            </Field>
+
+            <Field
+              label="Jam Berangkat"
+              htmlFor="jamBerangkat"
+              error={errors.jamBerangkat}
+              hint="Kosongkan bila armada masih menunggu keberangkatan."
+            >
               <Input
                 id="jamBerangkat"
                 type="time"
                 value={formData.jamBerangkat}
-                onChange={(e) =>
-                  setFormData({ ...formData, jamBerangkat: e.target.value })
-                }
-                required
+                onChange={(e) => setField("jamBerangkat", e.target.value)}
+                className={cn(errors.jamBerangkat && "border-red-300")}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="jamKembali">Jam Kembali</Label>
-              <Input
-                id="jamKembali"
-                type="time"
-                value={formData.jamKembali}
-                onChange={(e) =>
-                  setFormData({ ...formData, jamKembali: e.target.value })
-                }
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Kosongkan bila perjalanan masih berlangsung.
-              </p>
-            </div>
+            </Field>
           </div>
         </Card>
 
@@ -234,30 +308,28 @@ export default function TambahLogbookPage() {
             Rute &amp; Tujuan
           </h2>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="rute">Rute</Label>
+            <Field label="Rute" htmlFor="rute" error={errors.rute}>
               <Input
                 id="rute"
                 placeholder={rutePlaceholder}
                 value={formData.rute}
-                onChange={(e) =>
-                  setFormData({ ...formData, rute: e.target.value })
-                }
-                required
+                onChange={(e) => setField("rute", e.target.value)}
+                className={cn(errors.rute && "border-red-300")}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tujuan">Tujuan Kegiatan</Label>
+            </Field>
+            <Field
+              label="Tujuan Kegiatan"
+              htmlFor="tujuan"
+              error={errors.tujuan}
+            >
               <Input
                 id="tujuan"
                 placeholder={tujuanPlaceholder}
                 value={formData.tujuan}
-                onChange={(e) =>
-                  setFormData({ ...formData, tujuan: e.target.value })
-                }
-                required
+                onChange={(e) => setField("tujuan", e.target.value)}
+                className={cn(errors.tujuan && "border-red-300")}
               />
-            </div>
+            </Field>
           </div>
         </Card>
 
@@ -268,10 +340,9 @@ export default function TambahLogbookPage() {
             Unit &amp; Personel
           </h2>
 
-          {/* Pilihan Kategori Unit — visual toggle */}
           <div className="mb-5">
             <Label>Kategori Unit</Label>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
               {kategoriLogbookOptions.map((opt) => {
                 const isActive = formData.kategoriUnit === opt.value;
                 const IconComp = opt.icon;
@@ -293,20 +364,20 @@ export default function TambahLogbookPage() {
                 );
               })}
             </div>
+            {errors.kategoriUnit && (
+              <p className="mt-1 text-xs text-red-600">{errors.kategoriUnit}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="jenisUnit">Jenis Unit</Label>
+            <Field label="Jenis Unit" htmlFor="jenisUnit" error={errors.jenisUnit}>
               <Select
                 id="jenisUnit"
                 value={formData.jenisUnit}
-                onChange={(e) =>
-                  setFormData({ ...formData, jenisUnit: e.target.value })
-                }
+                onChange={(e) => setField("jenisUnit", e.target.value)}
               >
                 {unitOptions.length === 0 && (
-                  <option value="">— Tidak ada unit tersedia —</option>
+                  <option value="">Tidak ada unit tersedia</option>
                 )}
                 {unitOptions.map((u) => (
                   <option key={u.value} value={u.value}>
@@ -314,58 +385,61 @@ export default function TambahLogbookPage() {
                   </option>
                 ))}
               </Select>
-              <p className="text-xs text-slate-500">
-                {isDarat(formData.kategoriUnit)
-                  ? "Pilih unit kendaraan darat yang digunakan"
-                  : "Pilih unit kapal/RIB yang digunakan"}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="operator">
-                {getOperatorLabel(formData.kategoriUnit)}
-              </Label>
+            </Field>
+
+            <Field
+              label={getOperatorLabel(formData.kategoriUnit)}
+              htmlFor="operator"
+              error={errors.nahkoda}
+            >
               <Select
                 id="operator"
-                value={formData.operator}
-                onChange={(e) =>
-                  setFormData({ ...formData, operator: e.target.value })
-                }
-                required
+                value={formData.nahkoda}
+                onChange={(e) => setField("nahkoda", e.target.value)}
               >
-                <option value="">Pilih {getOperatorLabel(formData.kategoriUnit).toLowerCase()}</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.nama}>
-                    {user.nama}
-                  </option>
-                ))}
+                <option value="">
+                  Pilih {getOperatorLabel(formData.kategoriUnit).toLowerCase()}
+                </option>
+                {users
+                  .filter((u) => u.aktif)
+                  .map((u) => (
+                    <option key={u.id} value={u.nama}>
+                      {u.nama}
+                    </option>
+                  ))}
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="jumlahPersonel">Jumlah Personel</Label>
+            </Field>
+
+            <Field
+              label="Jumlah Personel"
+              htmlFor="jumlahPersonel"
+              error={errors.jumlahPersonel}
+            >
               <Input
                 id="jumlahPersonel"
                 type="number"
                 min={1}
                 value={formData.jumlahPersonel}
-                onChange={(e) =>
-                  setFormData({ ...formData, jumlahPersonel: e.target.value })
-                }
-                required
+                onChange={(e) => setField("jumlahPersonel", e.target.value)}
+                className={cn(errors.jumlahPersonel && "border-red-300")}
               />
-            </div>
+            </Field>
           </div>
         </Card>
 
-        {/* BBM, KM & Catatan */}
+        {/* Kondisi Armada saat keberangkatan */}
         <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Fuel className="h-5 w-5 text-primary" />
-            BBM{isDarat(formData.kategoriUnit) ? ", Kilometer" : ", Endurance"} &amp; Catatan
+            Kondisi Saat Berangkat
           </h2>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="bbmSebelum">BBM Sebelum (%)</Label>
+              <Field
+                label="BBM Sebelum (%)"
+                htmlFor="bbmSebelum"
+                error={errors.bbmSebelum}
+              >
                 <Input
                   id="bbmSebelum"
                   type="number"
@@ -373,127 +447,112 @@ export default function TambahLogbookPage() {
                   max={100}
                   placeholder="Contoh: 90"
                   value={formData.bbmSebelum}
-                  onChange={(e) =>
-                    setFormData({ ...formData, bbmSebelum: e.target.value })
-                  }
-                  required
+                  onChange={(e) => setField("bbmSebelum", e.target.value)}
+                  className={cn(errors.bbmSebelum && "border-red-300")}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bbmSesudah">BBM Sesudah (%)</Label>
-                <Input
-                  id="bbmSesudah"
-                  type="number"
-                  min={0}
-                  max={100}
-                  placeholder="Kosongkan bila belum kembali"
-                  value={formData.bbmSesudah}
-                  onChange={(e) =>
-                    setFormData({ ...formData, bbmSesudah: e.target.value })
-                  }
-                />
-              </div>
-            </div>
+              </Field>
 
-            {/* Endurance hanya untuk armada laut: Kapal, RIB, RBB */}
-            {isArmadaLaut(formData.kategoriUnit) && (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="enduranceAwal">Endurance Awal (Jam)</Label>
+              {laut ? (
+                <Field
+                  label="Endurance Awal (HH:MM)"
+                  htmlFor="enduranceAwal"
+                  error={errors.enduranceAwal}
+                  hint="Wajib diisi untuk armada laut. Format jam:menit, contoh 80:30."
+                >
                   <Input
                     id="enduranceAwal"
-                    type="number"
-                    min={0}
-                    placeholder="Contoh: 80"
+                    inputMode="numeric"
+                    placeholder="Contoh: 80:30"
                     value={formData.enduranceAwal}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        enduranceAwal: e.target.value,
-                      })
+                      setField("enduranceAwal", sanitizeEndurance(e.target.value))
                     }
-                    required
+                    className={cn(errors.enduranceAwal && "border-red-300")}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="enduranceAkhir">Endurance Akhir (Jam)</Label>
-                  <Input
-                    id="enduranceAkhir"
-                    type="number"
-                    min={0}
-                    placeholder="Kosongkan bila belum kembali"
-                    value={formData.enduranceAkhir}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        enduranceAkhir: e.target.value,
-                      })
-                    }
-                  />
-                  <p className="text-xs text-slate-500">
-                    Sisa jam operasi sebelum kehabisan BBM. Dicatat saat kapal
-                    kembali ke dermaga.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* KM hanya untuk kendaraan darat */}
-            {isDarat(formData.kategoriUnit) && (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="kmSebelum">Kilometer Sebelum (KM)</Label>
+                </Field>
+              ) : (
+                <Field
+                  label="Kilometer Awal (KM)"
+                  htmlFor="kmSebelum"
+                  error={errors.kmSebelum}
+                >
                   <Input
                     id="kmSebelum"
                     type="number"
                     min={0}
                     placeholder="Contoh: 45230"
                     value={formData.kmSebelum}
-                    onChange={(e) =>
-                      setFormData({ ...formData, kmSebelum: e.target.value })
-                    }
-                    required
+                    onChange={(e) => setField("kmSebelum", e.target.value)}
+                    className={cn(errors.kmSebelum && "border-red-300")}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="kmSesudah">Kilometer Sesudah (KM)</Label>
-                  <Input
-                    id="kmSesudah"
-                    type="number"
-                    min={0}
-                    placeholder="Kosongkan bila belum kembali"
-                    value={formData.kmSesudah}
-                    onChange={(e) =>
-                      setFormData({ ...formData, kmSesudah: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-            )}
+                </Field>
+              )}
+            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="catatan">Catatan</Label>
+            <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+              {laut
+                ? "Endurance akhir, jam kembali, dan BBM sesudah diisi pada tahap 2 setelah armada kembali."
+                : "Kilometer akhir, jam kembali, dan BBM sesudah diisi pada tahap 2 setelah kendaraan kembali."}
+            </p>
+
+            <Field label="Catatan" htmlFor="catatan">
               <Textarea
                 id="catatan"
                 rows={4}
                 placeholder={catatanPlaceholder}
                 value={formData.catatan}
-                onChange={(e) =>
-                  setFormData({ ...formData, catatan: e.target.value })
-                }
+                onChange={(e) => setField("catatan", e.target.value)}
               />
-            </div>
+            </Field>
           </div>
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3">
-          <Link href="/operator/logbook">
-            <Button variant="outline">Batal</Button>
-          </Link>
-          <Button type="submit">Simpan Logbook</Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">
+            Setelah disimpan, catatan dapat dibuka kembali kapan saja untuk
+            melengkapi data kepulangan.
+          </p>
+          <div className="flex items-center justify-end gap-3">
+            <Link href="/operator/logbook">
+              <Button variant="outline" type="button">
+                Batal
+              </Button>
+            </Link>
+            <Button type="submit">
+              <Save className="h-4 w-4" />
+              Simpan Data Awal
+            </Button>
+          </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+/** Pembungkus label + input + pesan error agar seragam di seluruh form. */
+function Field({
+  label,
+  htmlFor,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+      {error ? (
+        <p className="text-xs text-red-600">{error}</p>
+      ) : hint ? (
+        <p className="text-xs text-slate-500">{hint}</p>
+      ) : null}
     </div>
   );
 }
