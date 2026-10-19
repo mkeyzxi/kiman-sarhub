@@ -67,7 +67,7 @@ export default function EditPenggunaPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Edit Pengguna</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {user.nama} — {roleLabels[user.role]}
+            {user.nama} ({roleLabels[user.role]})
           </p>
         </div>
       </div>

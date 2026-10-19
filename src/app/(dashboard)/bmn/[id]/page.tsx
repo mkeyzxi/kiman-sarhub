@@ -67,7 +67,7 @@ export default function DetailAsetPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Detail Aset</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {aset.kode} — {aset.nama}
+              {aset.kode} · {aset.nama}
             </p>
           </div>
         </div>

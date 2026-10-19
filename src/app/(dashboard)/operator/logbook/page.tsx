@@ -11,6 +11,7 @@ import {
   Clock,
   Users,
   CheckCircle2,
+  PencilLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,16 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { logbookPerjalananList, formatEndurance } from "@/components/shared/mock-data";
+import {
+  isArmadaLaut,
+  formatEndurance,
+  formatMenit,
+  selisihEndurance,
+  selisihKm,
+  type LogbookPerjalanan,
+  type StatusPenggunaan,
+} from "@/components/shared/mock-data";
+import { useLogbook } from "@/components/shared/logbook-store";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
@@ -45,10 +55,34 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   );
 }
 
+/** Warna badge per status penggunaan armada. */
+const statusVariant: Record<StatusPenggunaan, "success" | "warning" | "default"> = {
+  Selesai: "success",
+  "Sedang Digunakan": "warning",
+  "Menunggu Penggunaan": "default",
+};
+
+/** Badge status penggunaan — konsisten antara kartu mobile dan tabel desktop. */
+function StatusBadge({ status }: { status: StatusPenggunaan }) {
+  return <Badge variant={statusVariant[status]}>{status}</Badge>;
+}
+
+/** Durasi tempuh sesuai jenis armadanya: jam operasi (laut) atau km (darat). */
+function formatDurasiTempuh(log: LogbookPerjalanan): string {
+  if (isArmadaLaut(log.kategoriUnit)) {
+    const menit = selisihEndurance(log.enduranceAwal, log.enduranceAkhir);
+    return menit === null ? "-" : formatMenit(menit);
+  }
+  const km = selisihKm(log.kmSebelum, log.kmSesudah);
+  return km === null ? "-" : `${km} km`;
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function LogbookPerjalananPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+
+  const logbookPerjalananList = useLogbook();
 
   const filteredLogbook = logbookPerjalananList.filter((log) => {
     const matchSearch =
@@ -62,7 +96,8 @@ export default function LogbookPerjalananPage() {
 
   const totalPerjalanan = logbookPerjalananList.length;
   const perjalananSelesai = logbookPerjalananList.filter((l) => l.status === "Selesai").length;
-  const perjalananBerlangsung = logbookPerjalananList.filter((l) => l.status === "Berlangsung").length;
+  const perjalananBerlangsung = logbookPerjalananList.filter((l) => l.status === "Sedang Digunakan").length;
+  const menungguPenggunaan = logbookPerjalananList.filter((l) => l.status === "Menunggu Penggunaan").length;
 
   return (
     <div className="space-y-6">
@@ -83,7 +118,7 @@ export default function LogbookPerjalananPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <StatCard
           label="Total Perjalanan"
           value={totalPerjalanan}
@@ -93,18 +128,25 @@ export default function LogbookPerjalananPage() {
           subText="Bulan ini"
         />
         <StatCard
+          label="Menunggu Penggunaan"
+          value={menungguPenggunaan}
+          icon={Clock}
+          iconBg="bg-slate-100"
+          iconColor="text-slate-600"
+        />
+        <StatCard
+          label="Sedang Digunakan"
+          value={perjalananBerlangsung}
+          icon={Ship}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+        />
+        <StatCard
           label="Selesai"
           value={perjalananSelesai}
           icon={CheckCircle2}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-        />
-        <StatCard
-          label="Berlangsung"
-          value={perjalananBerlangsung}
-          icon={Clock}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
         />
       </div>
 
@@ -126,9 +168,9 @@ export default function LogbookPerjalananPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="Semua">Semua Status</option>
+            <option value="Menunggu Penggunaan">Menunggu Penggunaan</option>
+            <option value="Sedang Digunakan">Sedang Digunakan</option>
             <option value="Selesai">Selesai</option>
-            <option value="Berlangsung">Berlangsung</option>
-            <option value="Dijadwalkan">Dijadwalkan</option>
           </Select>
         </div>
       </Card>
@@ -141,19 +183,7 @@ export default function LogbookPerjalananPage() {
             getKey={(row) => row.id}
             cardTitle={(row) => row.rute}
             cardSubtitle={(row) => row.tujuan}
-            cardBadge={(row) => (
-              <Badge
-                variant={
-                  row.status === "Selesai"
-                    ? "success"
-                    : row.status === "Berlangsung"
-                      ? "warning"
-                      : "default"
-                }
-              >
-                {row.status}
-              </Badge>
-            )}
+            cardBadge={(row) => <StatusBadge status={row.status} />}
             cardPreviewCount={3}
             detailLabel="Lihat detail perjalanan"
             emptyMessage="Tidak ada logbook yang ditemukan"
@@ -238,33 +268,48 @@ export default function LogbookPerjalananPage() {
                 hideBelowXl: true,
               },
               {
-                key: "status",
-                header: "Status",
+                key: "durasi",
+                header: "Durasi Tempuh",
                 render: (row) => (
-                  <Badge
-                    variant={
-                      row.status === "Selesai"
-                        ? "success"
-                        : row.status === "Berlangsung"
-                          ? "warning"
-                          : "default"
-                    }
-                  >
-                    {row.status}
-                  </Badge>
+                  <span className="text-sm text-slate-700">
+                    {formatDurasiTempuh(row)}
+                  </span>
                 ),
+                hideBelowXl: true,
+              },
+              {
+                key: "status",
+                header: "Status Penggunaan",
+                render: (row) => <StatusBadge status={row.status} />,
                 hideOnCard: true,
               },
               {
                 key: "aksi",
                 header: "Aksi",
                 render: (row) => (
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center gap-1">
                     <Link href={`/operator/logbook/${row.id}`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label={`Lihat detail ${row.rute}`}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
+                    {row.status !== "Selesai" && (
+                      <Link href={`/operator/logbook/${row.id}/lengkapi`}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-amber-600 hover:bg-amber-50"
+                          aria-label={`Lanjutkan pengisian ${row.rute}`}
+                        >
+                          <PencilLine className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 ),
                 headClassName: "text-center",
@@ -284,50 +329,105 @@ export default function LogbookPerjalananPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {logbookPerjalananList[0] && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
-                <div>
-                  <p className="text-xs text-slate-500">Tanggal</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].tanggal}</p>
+          {(() => {
+            const terbaru = logbookPerjalananList[0];
+            if (!terbaru) {
+              return (
+                <p className="text-sm text-slate-500">
+                  Belum ada catatan perjalanan.
+                </p>
+              );
+            }
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-4">
+                  <div>
+                    <p className="text-xs text-slate-500">Tanggal</p>
+                    <p className="font-medium text-slate-800">
+                      {terbaru.tanggal}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Jam Berangkat</p>
+                    <p className="font-medium text-slate-800">
+                      {terbaru.jamBerangkat || "Belum berangkat"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Jam Kembali</p>
+                    <p className="font-medium text-slate-800">
+                      {terbaru.jamKembali || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Unit</p>
+                    <p className="font-medium text-slate-800">
+                      {terbaru.jenisUnit}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500">Jam Berangkat</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].jamBerangkat}</p>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <p className="mb-1 text-xs text-slate-500">Rute</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {terbaru.rute}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <p className="mb-1 text-xs text-slate-500">Tujuan</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {terbaru.tujuan}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <p className="mb-1 text-xs text-slate-500">Operator</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {terbaru.nahkoda}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <p className="mb-1 text-xs text-slate-500">
+                      Jumlah Personel
+                    </p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {terbaru.jumlahPersonel} orang
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500">Jam Kembali</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].jamKembali || "-"}</p>
+
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <p className="mb-1 text-xs text-blue-600">Catatan</p>
+                  <p className="text-sm text-blue-800">
+                    {terbaru.catatan || "Tidak ada catatan"}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500">Unit</p>
-                  <p className="font-medium text-slate-800">{logbookPerjalananList[0].jenisUnit}</p>
+
+                <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">Status:</span>
+                    <StatusBadge status={terbaru.status} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/operator/logbook/${terbaru.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4" />
+                        Detail
+                      </Button>
+                    </Link>
+                    {terbaru.status !== "Selesai" && (
+                      <Link href={`/operator/logbook/${terbaru.id}/lengkapi`}>
+                        <Button size="sm">
+                          <PencilLine className="h-4 w-4" />
+                          Lanjutkan Pengisian
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 border border-slate-200 rounded-lg">
-                  <p className="text-xs text-slate-500 mb-1">Rute</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].rute}</p>
-                </div>
-                <div className="p-4 border border-slate-200 rounded-lg">
-                  <p className="text-xs text-slate-500 mb-1">Tujuan</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].tujuan}</p>
-                </div>
-                <div className="p-4 border border-slate-200 rounded-lg">
-                  <p className="text-xs text-slate-500 mb-1">Nahkoda</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].nahkoda}</p>
-                </div>
-                <div className="p-4 border border-slate-200 rounded-lg">
-                  <p className="text-xs text-slate-500 mb-1">Jumlah Personel</p>
-                  <p className="text-sm font-medium text-slate-800">{logbookPerjalananList[0].jumlahPersonel} orang</p>
-                </div>
-              </div>
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-600 mb-1">Catatan</p>
-                <p className="text-sm text-blue-800">{logbookPerjalananList[0].catatan}</p>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

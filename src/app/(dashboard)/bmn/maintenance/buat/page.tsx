@@ -87,7 +87,7 @@ export default function BuatTiketPage() {
                 <option value="">Pilih aset yang bermasalah</option>
                 {asetList.map((aset) => (
                   <option key={aset.id} value={aset.id}>
-                    {aset.kode} — {aset.nama}
+                    {aset.kode} ({aset.nama})
                   </option>
                 ))}
               </Select>
@@ -201,7 +201,7 @@ export default function BuatTiketPage() {
                 <option value="">Pilih petugas</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.nama} — {u.role}
+                    {u.nama} ({u.role})
                   </option>
                 ))}
               </Select>

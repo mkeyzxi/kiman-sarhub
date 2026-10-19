@@ -87,7 +87,7 @@ export default function ApprovalDetailPage() {
               Detail Pengajuan
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {approval.kode} — {approval.namaAset}
+              {approval.kode} · {approval.namaAset}
             </p>
           </div>
         </div>
