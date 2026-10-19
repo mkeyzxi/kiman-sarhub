@@ -177,7 +177,8 @@ export interface Aset {
   kategori: KategoriAset;
   status: StatusAset;
   lokasi: string;
-  tanggalPerkiraan: string;
+  /** Tanggal penetapan BMN atas aset. */
+  tanggalPenetapan: string;
   gambar: string;
   kondisi: KondisiAset;
   penanggungJawab: string;
@@ -205,7 +206,7 @@ export const asetList: Aset[] = [
     kategori: "Peralatan SAR",
     status: "Standby",
     lokasi: "Gudang SAR Lt. 1",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/perahu-karet.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-001",
@@ -238,7 +239,7 @@ export const asetList: Aset[] = [
     kategori: "Peralatan SAR",
     status: "Standby",
     lokasi: "Gudang SAR Lt. 1",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/mesin-outboard.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-001",
@@ -259,7 +260,7 @@ export const asetList: Aset[] = [
     kategori: "Komunikasi",
     status: "Dipindahkan",
     lokasi: "Basecamp Operasi Lapangan",
-    tanggalPerkiraan: "2026-09-30",
+    tanggalPenetapan: "2026-09-30",
     gambar: "/asets/radio-ht.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-002",
@@ -286,7 +287,7 @@ export const asetList: Aset[] = [
     kategori: "Komunikasi",
     status: "Standby",
     lokasi: "Ruang Operasi",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/gps-garmin.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-002",
@@ -307,7 +308,7 @@ export const asetList: Aset[] = [
     kategori: "Medis",
     status: "Rusak Ringan",
     lokasi: "Gudang Medis",
-    tanggalPerkiraan: "2026-10-05",
+    tanggalPenetapan: "2026-10-05",
     gambar: "/asets/tenda-medis.jpg",
     kondisi: "Rusak Ringan",
     penanggungJawab: "usr-002",
@@ -334,7 +335,7 @@ export const asetList: Aset[] = [
     kategori: "Medis",
     status: "Standby",
     lokasi: "Ruang Operasi",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/defibrillator.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-002",
@@ -355,7 +356,7 @@ export const asetList: Aset[] = [
     kategori: "Mobil",
     status: "Rusak Berat",
     lokasi: "Bengkel Resmi Toyota Mamuju",
-    tanggalPerkiraan: "2026-10-02",
+    tanggalPenetapan: "2026-10-02",
     gambar: "/asets/toyota-hilux.jpg",
     kondisi: "Rusak Ringan",
     penanggungJawab: "usr-001",
@@ -382,7 +383,7 @@ export const asetList: Aset[] = [
     kategori: "Motor",
     status: "Sedang digunakan",
     lokasi: "Parkiran Utama",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/honda-crf.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-001",
@@ -403,7 +404,7 @@ export const asetList: Aset[] = [
     kategori: "Dokumentasi",
     status: "Dipindahkan",
     lokasi: "Tim Dokumentasi",
-    tanggalPerkiraan: "2026-09-29",
+    tanggalPenetapan: "2026-09-29",
     gambar: "/asets/kamera-canon.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-003",
@@ -424,7 +425,7 @@ export const asetList: Aset[] = [
     kategori: "Dokumentasi",
     status: "Standby",
     lokasi: "Ruang Operasi",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/drone-dji.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-003",
@@ -445,7 +446,7 @@ export const asetList: Aset[] = [
     kategori: "Peralatan SAR",
     status: "Standby",
     lokasi: "Gudang SAR Lt. 2",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/scubapro.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-001",
@@ -466,7 +467,7 @@ export const asetList: Aset[] = [
     kategori: "Peralatan SAR",
     status: "Standby",
     lokasi: "Gudang SAR Lt. 1",
-    tanggalPerkiraan: "2026-09-28",
+    tanggalPenetapan: "2026-09-28",
     gambar: "/asets/winch-recovery.jpg",
     kondisi: "Baik",
     penanggungJawab: "usr-001",
@@ -795,7 +796,7 @@ export const checklistTemplates: ChecklistTemplate[] = [
   // ─── MOTOR TRAIL — HARIAN (20 item) ─────────────────────────────────────────
   {
     id: "arm-motor-harian",
-    nama: "Ceklist Perawatan Motor Trail (Harian)",
+    nama: "Ceklist Perawatan Motor Trail (Bulanan)",
     kategori: "Motor",
     periode: "Harian",
     jenisArmada: "Motor",
@@ -2006,4 +2007,139 @@ export function formatTanggalWaktu(tanggal: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Helper Tanggal
+// -----------------------------------------------------------------------------
+
+/**
+ * Ubah `Date` menjadi string "YYYY-MM-DD" berdasarkan waktu lokal.
+ * Sengaja tidak memakai `toISOString()` karena hasilnya berbasis UTC sehingga
+ * tanggal bisa bergeser satu hari untuk zona waktu di belakang UTC (mis. WIB).
+ */
+export function toISODate(date: Date): string {
+  const tahun = date.getFullYear();
+  const bulan = String(date.getMonth() + 1).padStart(2, "0");
+  const hari = String(date.getDate()).padStart(2, "0");
+  return `${tahun}-${bulan}-${hari}`;
+}
+
+/** Tanggal hari ini dalam format "YYYY-MM-DD" (waktu lokal). */
+export function todayISODate(now: Date = new Date()): string {
+  return toISODate(now);
+}
+
+/** Apakah string berformat "YYYY-MM-DD" dan benar-benar tanggal yang ada di kalender. */
+export function isValidISODate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [tahun, bulan, hari] = value.split("-").map(Number);
+  const date = new Date(tahun, bulan - 1, hari);
+  return (
+    date.getFullYear() === tahun &&
+    date.getMonth() === bulan - 1 &&
+    date.getDate() === hari
+  );
+}
+
+// Mutasi Aset (mock — akan diganti API / Supabase)
+// -----------------------------------------------------------------------------
+
+/** Field aset yang dapat diisi dari form Tambah & Edit. */
+export type InputAset = Pick<
+  Aset,
+  | "nama"
+  | "kode"
+  | "nup"
+  | "kategori"
+  | "status"
+  | "lokasi"
+  | "tanggalPenetapan"
+  | "kondisi"
+  | "penanggungJawab"
+  | "keterangan"
+>;
+
+/** Kode aset sudah dipakai aset lain? `exceptId` dipakai saat edit. */
+export function isKodeAsetTerpakai(kode: string, exceptId?: string): boolean {
+  const needle = kode.trim().toLowerCase();
+  return asetList.some(
+    (a) => a.id !== exceptId && a.kode.trim().toLowerCase() === needle
+  );
+}
+
+/** NUP sudah dipakai aset lain? `exceptId` dipakai saat edit. */
+export function isNupAsetTerpakai(nup: string, exceptId?: string): boolean {
+  return asetList.some((a) => a.id !== exceptId && a.nup === nup);
+}
+
+/** ID berikutnya untuk aset baru, mis. "ast-013". */
+function nextAsetId(): string {
+  const maks = asetList.reduce((acc, a) => {
+    const nomor = Number(a.id.replace(/\D/g, ""));
+    return Number.isFinite(nomor) ? Math.max(acc, nomor) : acc;
+  }, 0);
+  return `ast-${String(maks + 1).padStart(3, "0")}`;
+}
+
+/**
+ * Tambah aset baru ke data mock. Otomatis membuat entri riwayat "Penetapan"
+ * bertanggal sama dengan tanggal penetapan aset.
+ *
+ * TODO: ganti dengan INSERT ke tabel `aset`.
+ */
+export function tambahAset(input: InputAset): Aset {
+  const aset: Aset = {
+    ...input,
+    id: nextAsetId(),
+    gambar: "",
+    riwayat: [
+      {
+        tanggal: input.tanggalPenetapan,
+        aksi: "Penetapan",
+        keterangan: `Aset ditetapkan sebagai BMN dengan kode ${input.kode}`,
+        userId: input.penanggungJawab,
+      },
+    ],
+  };
+  asetList.unshift(aset);
+  return aset;
+}
+
+/**
+ * Perbarui data aset. `riwayatBaru` disisipkan di depan (riwayat tersusun dari
+ * yang terbaru), dipakai form Edit bila tanggal penetapan atau status berubah.
+ *
+ * TODO: ganti dengan UPDATE ke tabel `aset`.
+ */
+export function updateAset(
+  id: string,
+  changes: Partial<InputAset>,
+  riwayatBaru: RiwayatAset[] = []
+): Aset | undefined {
+  const aset = getAsetById(id);
+  if (!aset) return undefined;
+  Object.assign(aset, changes);
+  if (riwayatBaru.length > 0) {
+    aset.riwayat = [...riwayatBaru, ...aset.riwayat];
+  }
+  return aset;
+}
+
+/**
+ * Ubah status aset sekaligus catat riwayatnya — dipakai aksi "Selesai
+ * Digunakan" pada halaman detail.
+ *
+ * TODO: ganti dengan UPDATE ke tabel `aset` + INSERT ke `riwayat_aset`.
+ */
+export function ubahStatusAset(
+  id: string,
+  status: StatusAset,
+  userId: string,
+  keterangan: string
+): Aset | undefined {
+  const aset = getAsetById(id);
+  if (!aset || aset.status === status) return aset;
+  return updateAset(id, { status }, [
+    { tanggal: todayISODate(), aksi: "Selesai Digunakan", keterangan, userId },
+  ]);
 }

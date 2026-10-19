@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import {
+  AlertCircle,
   ArrowLeft,
   QrCode,
   Pencil,
@@ -11,6 +14,7 @@ import {
   Wrench,
   FileText,
   Hash,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,15 +24,12 @@ import {
   getAsetById,
   getUserById,
   formatTanggal,
+  ubahStatusAset,
   STATUS_ASET_VARIANT,
 } from "@/components/shared/mock-data";
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function DetailAsetPage({ params }: PageProps) {
-  const { id } = await params;
+export default function DetailAsetPage() {
+  const { id } = useParams<{ id: string }>();
   const aset = getAsetById(id);
 
   if (!aset) {
@@ -36,6 +37,20 @@ export default async function DetailAsetPage({ params }: PageProps) {
   }
 
   const penanggungJawab = getUserById(aset.penanggungJawab);
+  const router = useRouter();
+
+  const handleSelesaiDigunakan = () => {
+    // TODO: ganti dengan PATCH ke endpoint aset saat API tersedia.
+    ubahStatusAset(
+      aset.id,
+      "Standby",
+      penanggungJawab?.id ?? "usr-unknown",
+      "Aset selesai digunakan, kembali ke status Standby"
+    );
+
+    // Refresh agar kartu detail membaca status terbaru.
+    router.refresh();
+  };
 
   return (
     <div className="space-y-6">
@@ -140,10 +155,10 @@ export default async function DetailAsetPage({ params }: PageProps) {
               </div>
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">
-                  Tanggal Perkiraan
+                  Tanggal Penetapan
                 </p>
                 <p className="text-sm font-medium text-slate-800">
-                  {formatTanggal(aset.tanggalPerkiraan)}
+                  {formatTanggal(aset.tanggalPenetapan)}
                 </p>
               </div>
             </div>
@@ -210,6 +225,38 @@ export default async function DetailAsetPage({ params }: PageProps) {
             <p className="rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
               {aset.keterangan}
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Form Selesai Digunakan */}
+      {aset.status === "Sedang digunakan" && (
+        <Card className="p-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              Selesai Digunakan
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 mb-4">
+              Aset sedang digunakan. Klik di bawah untuk menandai sebagai selesai digunakan dan kembali ke status Standby.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={handleSelesaiDigunakan}
+                className="bg-primary text-primary-foreground"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Selesaikan Penggunaan
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
