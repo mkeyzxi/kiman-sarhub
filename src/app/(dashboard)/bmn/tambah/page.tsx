@@ -2,35 +2,100 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowLeft, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Input,
-  Select,
-  Label,
-  Textarea,
-} from "@/components/ui/input";
+import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { users, STATUS_ASET, normalizeNup, NUP_MAX_DIGIT } from "@/components/shared/mock-data";
+import {
+  users,
+  STATUS_ASET,
+  normalizeNup,
+  NUP_MAX_DIGIT,
+  todayISODate,
+  isValidISODate,
+  isKodeAsetTerpakai,
+  isNupAsetTerpakai,
+  tambahAset,
+  type KategoriAset,
+  type KondisiAset,
+  type StatusAset,
+} from "@/components/shared/mock-data";
+
+/** Field yang punya pesan error; key tidak ada berarti valid. */
+type FormErrors = Partial<
+  Record<"kode" | "nup" | "tanggalPenetapan", string>
+>;
+
+const KATEGORI_OPTIONS: KategoriAset[] = [
+  "Mobil",
+  "Motor",
+  "Kapal",
+  "Peralatan SAR",
+  "Komunikasi",
+  "Medis",
+  "Dokumentasi",
+];
+
+const KONDISI_OPTIONS: KondisiAset[] = ["Baik", "Rusak Ringan", "Rusak Berat"];
 
 export default function TambahAsetPage() {
-  const [formData, setFormData] = useState({
+  const router = useRouter();
+  const [formData, setFormData] = useState(() => ({
     nama: "",
     kode: "",
     nup: "",
-    kategori: "" as string,
+    kategori: "" as KategoriAset | "",
     lokasi: "",
-    status: "" as string,
-    kondisi: "" as string,
-    tanggalPerkiraan: "",
+    status: "" as StatusAset | "",
+    kondisi: "" as KondisiAset | "",
+    // Default hari ini. Komponen ini juga dirender di server, jadi nilainya
+    // bisa berbeda bila zona waktu server != browser; `suppressHydrationWarning`
+    // pada input tanggal di bawah yang menutup selisih tersebut.
+    tanggalPenetapan: todayISODate(),
     penanggungJawab: "",
     keterangan: "",
-  });
+  }));
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  /** Validasi field yang punya aturan unik/format. */
+  const validate = (): FormErrors => {
+    const next: FormErrors = {};
+    if (isKodeAsetTerpakai(formData.kode)) {
+      next.kode = "Kode aset sudah dipakai aset lain.";
+    }
+    if (isNupAsetTerpakai(formData.nup)) {
+      next.nup = "NUP sudah terdaftar pada aset lain.";
+    }
+    if (!isValidISODate(formData.tanggalPenetapan)) {
+      next.tanggalPenetapan = "Tanggal penetapan belum diisi.";
+    } else if (formData.tanggalPenetapan > todayISODate()) {
+      next.tanggalPenetapan = "Tanggal penetapan tidak boleh di masa depan.";
+    }
+    return next;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log("Form data:", formData);
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    const aset = tambahAset({
+      nama: formData.nama.trim(),
+      kode: formData.kode.trim(),
+      nup: formData.nup,
+      kategori: formData.kategori as KategoriAset,
+      status: formData.status as StatusAset,
+      lokasi: formData.lokasi.trim(),
+      kondisi: formData.kondisi as KondisiAset,
+      tanggalPenetapan: formData.tanggalPenetapan,
+      penanggungJawab: formData.penanggungJawab,
+      keterangan: formData.keterangan.trim() || undefined,
+    });
+
+    // TODO: ganti navigasi ini dengan redirect setelah API berhasil menyimpan.
+    router.push(`/bmn/${aset.id}`);
   };
 
   return (
@@ -38,7 +103,7 @@ export default function TambahAsetPage() {
       {/* Page Header */}
       <div className="flex items-center gap-4">
         <Link href="/bmn">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Kembali ke daftar aset">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
@@ -50,7 +115,22 @@ export default function TambahAsetPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* Ringkasan error */}
+        {Object.keys(errors).length > 0 && (
+          <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            <div className="text-sm text-rose-800">
+              <p className="font-medium">Data belum dapat disimpan</p>
+              <ul className="mt-1 list-inside list-disc">
+                {Object.values(errors).map((pesan) => (
+                  <li key={pesan}>{pesan}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {/* Informasi Dasar */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">
@@ -80,6 +160,9 @@ export default function TambahAsetPage() {
                 }
                 required
               />
+              {errors.kode && (
+                <p className="text-xs text-rose-600">{errors.kode}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="nup">NUP (Nomor Urut Pendaftaran)</Label>
@@ -95,10 +178,14 @@ export default function TambahAsetPage() {
                 }
                 required
               />
-              <p className="text-xs text-slate-500">
-                Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
-                Hanya angka yang diperbolehkan.
-              </p>
+              {errors.nup ? (
+                <p className="text-xs text-rose-600">{errors.nup}</p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
+                  Hanya angka yang diperbolehkan.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="kategori">Kategori</Label>
@@ -106,17 +193,16 @@ export default function TambahAsetPage() {
                 id="kategori"
                 value={formData.kategori}
                 onChange={(e) =>
-                  setFormData({ ...formData, kategori: e.target.value })
+                  setFormData({ ...formData, kategori: e.target.value as KategoriAset })
                 }
                 required
               >
                 <option value="">Pilih kategori</option>
-                <option value="Mobil">Mobil</option>
-                <option value="Motor">Motor</option>
-                <option value="Peralatan SAR">Peralatan SAR</option>
-                <option value="Komunikasi">Komunikasi</option>
-                <option value="Medis">Medis</option>
-                <option value="Dokumentasi">Dokumentasi</option>
+                {KATEGORI_OPTIONS.map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">
@@ -144,14 +230,16 @@ export default function TambahAsetPage() {
                 id="kondisi"
                 value={formData.kondisi}
                 onChange={(e) =>
-                  setFormData({ ...formData, kondisi: e.target.value })
+                  setFormData({ ...formData, kondisi: e.target.value as KondisiAset })
                 }
                 required
               >
                 <option value="">Pilih kondisi</option>
-                <option value="Baik">Baik</option>
-                <option value="Rusak Ringan">Rusak Ringan</option>
-                <option value="Rusak Berat">Rusak Berat</option>
+                {KONDISI_OPTIONS.map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">
@@ -160,7 +248,7 @@ export default function TambahAsetPage() {
                 id="status"
                 value={formData.status}
                 onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value })
+                  setFormData({ ...formData, status: e.target.value as StatusAset })
                 }
                 required
               >
@@ -173,17 +261,28 @@ export default function TambahAsetPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tanggalPerkiraan">
-                Tanggal Perkiraan
-              </Label>
+              <Label htmlFor="tanggalPenetapan">Tanggal Penetapan</Label>
               <Input
-                id="tanggalPerkiraan"
+                id="tanggalPenetapan"
                 type="date"
-                value={formData.tanggalPerkiraan}
+                max={todayISODate()}
+                suppressHydrationWarning
+                value={formData.tanggalPenetapan}
                 onChange={(e) =>
-                  setFormData({ ...formData, tanggalPerkiraan: e.target.value })
+                  setFormData({ ...formData, tanggalPenetapan: e.target.value })
                 }
+                required
               />
+              {errors.tanggalPenetapan ? (
+                <p className="text-xs text-rose-600">
+                  {errors.tanggalPenetapan}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Tanggal resmi aset ditetapkan sebagai BMN. Tidak boleh di masa
+                  depan.
+                </p>
+              )}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="penanggungJawab">Penanggung Jawab</Label>
@@ -231,14 +330,16 @@ export default function TambahAsetPage() {
 
         {/* Dokumen */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Dokumen</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">
+            Dokumen
+          </h2>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>BPKB / STNK</Label>
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
                 <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
                 <p className="text-sm text-slate-600">
-                  Drag & drop file atau klik untuk upload
+                  Drag &amp; drop file atau klik untuk upload
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
                   PDF, JPG, PNG (maks. 5MB)
@@ -250,7 +351,7 @@ export default function TambahAsetPage() {
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
                 <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
                 <p className="text-sm text-slate-600">
-                  Drag & drop file atau klik untuk upload
+                  Drag &amp; drop file atau klik untuk upload
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
                   JPG, PNG (maks. 5MB)
@@ -263,7 +364,9 @@ export default function TambahAsetPage() {
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
           <Link href="/bmn">
-            <Button variant="outline">Batal</Button>
+            <Button variant="outline" type="button">
+              Batal
+            </Button>
           </Link>
           <Button type="submit">Simpan</Button>
         </div>

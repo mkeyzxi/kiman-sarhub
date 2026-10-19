@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Package } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -13,7 +13,22 @@ import {
   STATUS_ASET,
   normalizeNup,
   NUP_MAX_DIGIT,
+  todayISODate,
+  isValidISODate,
+  isKodeAsetTerpakai,
+  isNupAsetTerpakai,
+  updateAset,
+  formatTanggal,
+  type RiwayatAset,
+  type KategoriAset,
+  type KondisiAset,
+  type StatusAset,
 } from "@/components/shared/mock-data";
+
+/** Field yang punya pesan error; key tidak ada berarti valid. */
+type FormErrors = Partial<
+  Record<"kode" | "nup" | "tanggalPenetapan", string>
+>;
 
 export default function EditAsetPage() {
   const params = useParams<{ id: string }>();
@@ -27,11 +42,12 @@ export default function EditAsetPage() {
     kategori: aset?.kategori ?? "",
     lokasi: aset?.lokasi ?? "",
     kondisi: aset?.kondisi ?? "",
-    tanggalPerkiraan: aset?.tanggalPerkiraan ?? "",
+    tanggalPenetapan: aset?.tanggalPenetapan ?? "",
     penanggungJawab: aset?.penanggungJawab ?? "",
     status: aset?.status ?? "",
     keterangan: aset?.keterangan ?? "",
   });
+  const [errors, setErrors] = useState<FormErrors>({});
 
   if (!aset) {
     return (
@@ -49,10 +65,62 @@ export default function EditAsetPage() {
     );
   }
 
+  /** Validasi field yang punya aturan unik/format; `id` dikecualikan. */
+  const validate = (): FormErrors => {
+    const next: FormErrors = {};
+    if (isKodeAsetTerpakai(formData.kode, aset.id)) {
+      next.kode = "Kode aset sudah dipakai aset lain.";
+    }
+    if (isNupAsetTerpakai(formData.nup, aset.id)) {
+      next.nup = "NUP sudah terdaftar pada aset lain.";
+    }
+    if (!isValidISODate(formData.tanggalPenetapan)) {
+      next.tanggalPenetapan = "Tanggal penetapan belum diisi.";
+    } else if (formData.tanggalPenetapan > todayISODate()) {
+      next.tanggalPenetapan = "Tanggal penetapan tidak boleh di masa depan.";
+    }
+    return next;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log("Form data:", formData);
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    // Bila tanggal penetapan berubah, catat ke riwayat agar jejak audit konsisten.
+    const tanggalPenetapanBerubah =
+      formData.tanggalPenetapan !== aset.tanggalPenetapan;
+    const riwayatBaru: RiwayatAset[] = tanggalPenetapanBerubah
+      ? [
+          {
+            tanggal: todayISODate(),
+            aksi: "Perubahan Tanggal Penetapan",
+            keterangan: `Tanggal penetapan diubah dari ${formatTanggal(aset.tanggalPenetapan)} menjadi ${formatTanggal(formData.tanggalPenetapan)}`,
+            userId: formData.penanggungJawab,
+          },
+        ]
+      : [];
+
+    updateAset(
+      aset.id,
+      {
+        nama: formData.nama.trim(),
+        kode: formData.kode.trim(),
+        nup: formData.nup,
+        kategori: formData.kategori as KategoriAset,
+        lokasi: formData.lokasi.trim(),
+        kondisi: formData.kondisi as KondisiAset,
+        tanggalPenetapan: formData.tanggalPenetapan,
+        penanggungJawab: formData.penanggungJawab,
+        status: formData.status as StatusAset,
+        keterangan: formData.keterangan.trim() || undefined,
+      },
+      riwayatBaru
+    );
+
+    // TODO: ganti navigasi ini dengan redirect setelah API berhasil menyimpan.
+    router.push(`/bmn/${aset.id}`);
   };
 
   return (
@@ -72,7 +140,22 @@ export default function EditAsetPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* Ringkasan error */}
+        {Object.keys(errors).length > 0 && (
+          <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            <div className="text-sm text-rose-800">
+              <p className="font-medium">Perubahan belum dapat disimpan</p>
+              <ul className="mt-1 list-inside list-disc">
+                {Object.values(errors).map((pesan) => (
+                  <li key={pesan}>{pesan}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {/* Informasi Dasar */}
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
@@ -100,6 +183,9 @@ export default function EditAsetPage() {
                 }
                 required
               />
+              {errors.kode && (
+                <p className="text-xs text-rose-600">{errors.kode}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="nup">NUP (Nomor Urut Pendaftaran)</Label>
@@ -114,9 +200,13 @@ export default function EditAsetPage() {
                 }
                 required
               />
-              <p className="text-xs text-slate-500">
-                Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
-              </p>
+              {errors.nup ? (
+                <p className="text-xs text-rose-600">{errors.nup}</p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="kategori">Kategori</Label>
@@ -188,15 +278,27 @@ export default function EditAsetPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tanggalPerkiraan">Tanggal Perkiraan</Label>
+              <Label htmlFor="tanggalPenetapan">Tanggal Penetapan</Label>
               <Input
-                id="tanggalPerkiraan"
+                id="tanggalPenetapan"
                 type="date"
-                value={formData.tanggalPerkiraan}
+                max={todayISODate()}
+                value={formData.tanggalPenetapan}
                 onChange={(e) =>
-                  setFormData({ ...formData, tanggalPerkiraan: e.target.value })
+                  setFormData({ ...formData, tanggalPenetapan: e.target.value })
                 }
+                required
               />
+              {errors.tanggalPenetapan ? (
+                <p className="text-xs text-rose-600">
+                  {errors.tanggalPenetapan}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Tanggal resmi aset ditetapkan sebagai BMN. Tidak boleh di masa
+                  depan.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="penanggungJawab">Penanggung Jawab</Label>
