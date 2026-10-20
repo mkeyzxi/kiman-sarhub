@@ -2,36 +2,58 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { roleLabels, roleDescriptions, getDefaultPageForRole } from "@/config/navigation";
+import { getDefaultPageForRole } from "@/config/navigation";
+import { loginWithEmail } from "@/lib/auth";
 import type { UserRole } from "@/components/shared/mock-data";
 import Image from "next/image";
 
 const LOGIN_BACKGROUND = "/login-background.webp";
 
-const roles: UserRole[] = [
-  "ADMIN_IT",
-  "PENGELOLA_BMN",
-  "KAKANSAR",
-  "OPERATOR_LAPANGAN",
-];
-
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>("OPERATOR_LAPANGAN");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("userRole", selectedRole);
-    router.push(getDefaultPageForRole(selectedRole));
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      // Gunakan autentikasi Supabase yang sebenarnya
+      const result = await loginWithEmail(email, password);
+
+      if (result.error) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (result.data) {
+        // Simpan role dari database (bukan hardcoded!)
+        const userRole = result.data.role as UserRole;
+        localStorage.setItem("userRole", userRole);
+        localStorage.setItem("userEmail", result.data.email);
+        localStorage.setItem("userNama", result.data.nama);
+
+        // Redirect sesuai role dari database
+        router.push(getDefaultPageForRole(userRole));
+      }
+    } catch (err: any) {
+      setError(err.message || "Login gagal. Silakan coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen w-full bg-white">
-
       {/* Bagian Kiri - Branding (Hanya muncul di Desktop) */}
       <div
         className="relative hidden w-1/2 flex-col items-center justify-center bg-cover bg-center p-12 lg:flex"
@@ -63,7 +85,6 @@ export default function LoginPage() {
       {/* Bagian Kanan - Form Autentikasi */}
       <div className="flex w-full items-center justify-center p-8 sm:p-12 lg:w-1/2">
         <div className="w-full max-w-md">
-
           {/* Header Mobile: Logo muncul di sini karena panel kiri disembunyikan */}
           <div className="mb-10 flex flex-col items-center text-center lg:hidden">
             <Image 
@@ -94,6 +115,9 @@ export default function LoginPage() {
                   type="email"
                   placeholder="nama@basarnas.go.id"
                   className="h-12 pl-11 text-base"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -108,6 +132,9 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Masukkan password"
                   className="h-12 pl-11 pr-12 text-base"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <button
                   type="button"
@@ -122,6 +149,13 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
 
             {/* Remember me & Forgot password */}
             <div className="flex items-center justify-between pt-1">
@@ -144,42 +178,22 @@ export default function LoginPage() {
             </div>
 
             {/* Submit */}
-            <Button type="submit" className="h-12 w-full text-base font-semibold" size="lg">
-              Masuk
+            <Button 
+              type="submit" 
+              className="h-12 w-full text-base font-semibold" 
+              size="lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                "Masuk"
+              )}
             </Button>
           </form>
-
-          {/* Role Selector (Dev Mode) */}
-          <div className="mt-10 border-t border-slate-100 pt-8">
-            <p className="mb-5 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
-              Masuk Sebagai (Mode Dev)
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {roles.map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => setSelectedRole(role)}
-                  className={`flex flex-col items-start rounded-xl border p-3.5 text-left transition-all ${
-                    selectedRole === role
-                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  <span
-                    className={`block text-xs font-bold ${
-                      selectedRole === role ? "text-primary" : "text-slate-700"
-                    }`}
-                  >
-                    {roleLabels[role]}
-                  </span>
-                  <span className="mt-1.5 line-clamp-2 block text-[10px] leading-relaxed text-slate-500">
-                    {roleDescriptions[role]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Footer */}
           <p className="mt-12 text-center text-xs font-medium text-slate-400">

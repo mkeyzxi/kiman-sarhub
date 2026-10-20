@@ -6,15 +6,45 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { notifikasiList } from "@/components/shared/mock-data";
 import { roleLabels } from "@/config/navigation";
 import type { UserRole } from "@/components/shared/mock-data";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface HeaderProps {
   onMenuClick?: () => void;
   role?: UserRole;
 }
 
+/**
+ * Generate inisial dari nama user
+ * Contoh: "Mahmud Afandi" -> "MA"
+ *          "Medline" -> "ME"
+ */
+function getInitials(name: string): string {
+  if (!name) return "??";
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return words[0].substring(0, 2).toUpperCase();
+}
+
 export function Header({ onMenuClick, role }: HeaderProps) {
   const unreadCount = notifikasiList.filter((n) => !n.dibaca).length;
   const displayRole = role ? roleLabels[role] : null;
+
+  // Baca nama user dari localStorage
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedName = localStorage.getItem("userNama") || localStorage.getItem("userName") || "";
+      setUserName(storedName);
+    }
+  }, []);
+
+  // Gunakan nama dari localStorage atau fallback
+  const displayName = userName || "User";
+  const displayInitials = getInitials(displayName);
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 shrink-0">
@@ -56,20 +86,23 @@ export function Header({ onMenuClick, role }: HeaderProps) {
         {/* Divider */}
         <div className="w-px h-8 bg-slate-200 hidden sm:block" />
 
-        {/* Profile */}
-        <div className="flex items-center gap-3">
+        {/* Profile - Nama dinamis dari localStorage, bisa klik ke halaman profile */}
+        <Link
+          href="/profile"
+          className="flex items-center gap-3 rounded-lg p-1 transition-colors hover:bg-slate-100"
+        >
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-primary-light text-primary text-xs font-semibold">
-              AR
+              {displayInitials}
             </AvatarFallback>
           </Avatar>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-slate-800">Ansaruddin</p>
+            <p className="text-sm font-medium text-slate-800">{displayName}</p>
             <p className="text-xs text-slate-500">
               {displayRole || "Kepala Kantor"}
             </p>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

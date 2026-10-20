@@ -1,11 +1,11 @@
 'use client'
 
-import {useEffect} from 'react'
+import {useEffect, useState} from 'react'
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {LogOut, X} from 'lucide-react'
 import {cn} from '@/lib/utils'
-import {navGroupsByRole, type NavGroup} from '@/config/navigation'
+import {navGroupsByRole, roleLabels, type NavGroup} from '@/config/navigation'
 
 import Image from 'next/image'
 import type {UserRole} from '@/components/shared/mock-data'
@@ -14,6 +14,14 @@ import type {UserRole} from '@/components/shared/mock-data'
 function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void}) {
   const pathname = usePathname()
   const groups = navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN
+  const [userName, setUserName] = useState<string>("")
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedName = localStorage.getItem("userNama") || localStorage.getItem("userName") || ""
+      setUserName(storedName)
+    }
+  }, [])
 
   return (
     <>
@@ -93,22 +101,26 @@ function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void})
         ))}
       </nav>
 
-      {/* Footer — Role Info & Logout */}
+      {/* Footer — User Info & Logout */}
       <div className="p-3 border-t border-slate-200 shrink-0">
-        {/* Role badge */}
-        {/* <div className="mb-2 px-3 py-2 rounded-lg bg-slate-50">
+        {/* User info */}
+        <div className="md:hidden mb-2 px-3 py-2 rounded-lg bg-slate-50">
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
             Masuk sebagai
           </p>
-          <p className="text-xs font-semibold text-slate-700">
+          <p className="text-xs font-semibold text-slate-700 truncate">
+            {userName || "User"}
+          </p>
+          <p className="text-[11px] text-slate-500">
             {roleLabels[role] || role}
           </p>
-        </div> */}
+        </div>
         {/* Logout */}
         <Link
           href="/login"
           onClick={() => {
             localStorage.removeItem('userRole')
+            localStorage.removeItem('userNama')
             localStorage.removeItem('userName')
           }}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"

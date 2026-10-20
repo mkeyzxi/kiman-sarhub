@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { UserPlus, Search, Users, ShieldCheck, UserX, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
-import { users } from "@/components/shared/mock-data";
 import { roleLabels, roleDescriptions } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import type { UserProfile } from "@/types/supabase";
 
-// ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   label: string;
   value: string | number;
@@ -42,20 +41,41 @@ function initials(nama: string): string {
     .split(" ")
     .map((n) => n[0])
     .join("")
-    .slice(0, 2);
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PenggunaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("Semua");
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/pengguna");
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setUsers(json.data || []);
+    } catch (err: any) {
+      setError(err.message || "Gagal memuat data pengguna");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filteredUsers = users.filter((user) => {
     const q = searchQuery.toLowerCase();
     const matchSearch =
       user.nama.toLowerCase().includes(q) ||
       user.email.toLowerCase().includes(q) ||
-      user.nip.includes(q);
+      (user.nip || "").includes(q);
     const matchRole = roleFilter === "Semua" || user.role === roleFilter;
     return matchSearch && matchRole;
   });
@@ -91,6 +111,26 @@ export default function PenggunaPage() {
       iconColor: inactiveUsers > 0 ? "text-rose-600" : "text-emerald-600",
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          <p className="text-sm text-slate-500">Memuat data pengguna...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+        <p className="text-red-600">{error}</p>
+        <Button onClick={fetchUsers} variant="outline">Coba Lagi</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -161,7 +201,7 @@ export default function PenggunaPage() {
             data={filteredUsers}
             getKey={(row) => row.id}
             cardTitle={(row) => row.nama}
-            cardSubtitle={(row) => row.nip}
+            cardSubtitle={(row) => row.nip || row.email}
             cardBadge={(row) => (
               <Badge variant={row.aktif ? "success" : "danger"} className="text-xs">
                 {row.aktif ? "Aktif" : "Nonaktif"}
@@ -194,7 +234,7 @@ export default function PenggunaPage() {
               {
                 key: "nip",
                 header: "NIP",
-                render: (row) => row.nip,
+                render: (row) => row.nip || "-",
                 cellClassName: "font-mono text-xs text-slate-600",
               },
               {
@@ -208,7 +248,7 @@ export default function PenggunaPage() {
                 header: "Role",
                 render: (row) => (
                   <Badge variant="outline" className="text-xs">
-                    {roleLabels[row.role]}
+                    {roleLabels[row.role] || row.role}
                   </Badge>
                 ),
               },

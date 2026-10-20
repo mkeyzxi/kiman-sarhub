@@ -141,6 +141,10 @@ export function getAccessibleHrefs(role: UserRole): string[] {
  * Mengecek apakah role tertentu dapat mengakses path tertentu
  */
 export function canAccessPath(role: UserRole, pathname: string): boolean {
+  // Semua role bisa akses halaman profile
+  if (pathname === "/profile" || pathname.startsWith("/profile/")) {
+    return true;
+  }
   const accessibleHrefs = getAccessibleHrefs(role);
   return accessibleHrefs.some(
     (href) => pathname === href || pathname.startsWith(href + "/")
