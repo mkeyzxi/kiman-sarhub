@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -17,20 +18,90 @@ const roleOptions: UserRole[] = [
 ];
 
 export default function TambahPenggunaPage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     nama: "",
     nip: "",
     email: "",
-    noTelepon: "",
-    role: "" as string,
+    role: "",
     password: "",
     konfirmasiPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error saat user mulai mengetik
+    if (error) setError(null);
+  };
+
+  const validateForm = (): string | null => {
+    if (!formData.nama.trim()) return "Nama lengkap wajib diisi";
+    if (!formData.nip.trim()) return "NIP wajib diisi";
+    if (!formData.email.trim()) return "Email wajib diisi";
+    if (!formData.email.includes("@")) return "Format email tidak valid";
+    if (!formData.role) return "Role wajib dipilih";
+    if (formData.password.length < 8) return "Password minimal 8 karakter";
+    if (formData.password !== formData.konfirmasiPassword)
+      return "Konfirmasi password tidak cocok";
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log("Form data:", formData);
+    setError(null);
+    setSuccess(false);
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/pengguna", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          nama: formData.nama,
+          nip: formData.nip,
+          role: formData.role,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || `Gagal menambahkan pengguna (Status: ${res.status})`);
+      }
+
+      setSuccess(true);
+      // Reset form
+      setFormData({
+        nama: "",
+        nip: "",
+        email: "",
+        role: "",
+        password: "",
+        konfirmasiPassword: "",
+      });
+
+      // Redirect setelah 2 detik
+      setTimeout(() => {
+        router.push("/admin/pengguna");
+      }, 2000);
+    } catch (err: any) {
+      console.error("Error submitting form:", err);
+      setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -52,6 +123,20 @@ export default function TambahPenggunaPage() {
         </div>
       </div>
 
+      {/* Success Message */}
+      {success && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-600">
+          Pengguna berhasil ditambahkan! Mengalihkan ke daftar pengguna...
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && !success && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Data Utama */}
         <Card className="p-6">
@@ -65,10 +150,9 @@ export default function TambahPenggunaPage() {
                 id="nama"
                 placeholder="Contoh: Siti Nurhaliza"
                 value={formData.nama}
-                onChange={(e) =>
-                  setFormData({ ...formData, nama: e.target.value })
-                }
+                onChange={(e) => handleChange("nama", e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -77,10 +161,9 @@ export default function TambahPenggunaPage() {
                 id="nip"
                 placeholder="18 digit NIP"
                 value={formData.nip}
-                onChange={(e) =>
-                  setFormData({ ...formData, nip: e.target.value })
-                }
+                onChange={(e) => handleChange("nip", e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -90,24 +173,12 @@ export default function TambahPenggunaPage() {
                 type="email"
                 placeholder="nama@basarnas.go.id"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => handleChange("email", e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="noTelepon">No. Telepon</Label>
-              <Input
-                id="noTelepon"
-                placeholder="Contoh: 0812-3456-7890"
-                value={formData.noTelepon}
-                onChange={(e) =>
-                  setFormData({ ...formData, noTelepon: e.target.value })
-                }
-                required
-              />
-            </div>
+
           </div>
         </Card>
 
@@ -121,10 +192,9 @@ export default function TambahPenggunaPage() {
             <Select
               id="role"
               value={formData.role}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value })
-              }
+              onChange={(e) => handleChange("role", e.target.value)}
               required
+              disabled={isLoading}
             >
               <option value="">Pilih role</option>
               {roleOptions.map((r) => (
@@ -154,11 +224,10 @@ export default function TambahPenggunaPage() {
                 type="password"
                 placeholder="Minimal 8 karakter"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
+                onChange={(e) => handleChange("password", e.target.value)}
                 minLength={8}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -169,13 +238,11 @@ export default function TambahPenggunaPage() {
                 placeholder="Ulangi password"
                 value={formData.konfirmasiPassword}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    konfirmasiPassword: e.target.value,
-                  })
+                  handleChange("konfirmasiPassword", e.target.value)
                 }
                 minLength={8}
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -184,9 +251,20 @@ export default function TambahPenggunaPage() {
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
           <Link href="/admin/pengguna">
-            <Button variant="outline">Batal</Button>
+            <Button variant="outline" disabled={isLoading} type="button">
+              Batal
+            </Button>
           </Link>
-          <Button type="submit">Simpan Pengguna</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              "Simpan Pengguna"
+            )}
+          </Button>
         </div>
       </form>
     </div>
