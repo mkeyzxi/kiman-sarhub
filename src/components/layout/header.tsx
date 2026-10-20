@@ -7,6 +7,7 @@ import { notifikasiList } from "@/components/shared/mock-data";
 import { roleLabels } from "@/config/navigation";
 import type { UserRole } from "@/components/shared/mock-data";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -85,8 +86,11 @@ export function Header({ onMenuClick, role }: HeaderProps) {
         {/* Divider */}
         <div className="w-px h-8 bg-slate-200 hidden sm:block" />
 
-        {/* Profile - Nama dinamis dari localStorage */}
-        <div className="flex items-center gap-3">
+        {/* Profile - Nama dinamis dari localStorage, bisa klik ke halaman profile */}
+        <Link
+          href="/profile"
+          className="flex items-center gap-3 rounded-lg p-1 transition-colors hover:bg-slate-100"
+        >
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-primary-light text-primary text-xs font-semibold">
               {displayInitials}
@@ -98,7 +102,7 @@ export function Header({ onMenuClick, role }: HeaderProps) {
               {displayRole || "Kepala Kantor"}
             </p>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );
