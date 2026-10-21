@@ -6,8 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { notifikasiList } from "@/components/shared/mock-data";
 import { roleLabels } from "@/config/navigation";
 import type { UserRole } from "@/components/shared/mock-data";
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocalStorageValue } from "@/lib/use-local-storage";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -32,15 +32,10 @@ export function Header({ onMenuClick, role }: HeaderProps) {
   const unreadCount = notifikasiList.filter((n) => !n.dibaca).length;
   const displayRole = role ? roleLabels[role] : null;
 
-  // Baca nama user dari localStorage
-  const [userName, setUserName] = useState<string>("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedName = localStorage.getItem("userNama") || localStorage.getItem("userName") || "";
-      setUserName(storedName);
-    }
-  }, []);
+  // Baca nama user dari localStorage (reaktif, tanpa setState di effect)
+  const storedName = useLocalStorageValue("userNama");
+  const legacyName = useLocalStorageValue("userName");
+  const userName = storedName || legacyName;
 
   // Gunakan nama dari localStorage atau fallback
   const displayName = userName || "User";

@@ -63,8 +63,9 @@ export default function PenggunaPage() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setUsers(json.data || []);
-    } catch (err: any) {
-      setError(err.message || "Gagal memuat data pengguna");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal memuat data pengguna";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -74,8 +75,8 @@ export default function PenggunaPage() {
     const q = searchQuery.toLowerCase();
     const matchSearch =
       user.nama.toLowerCase().includes(q) ||
-      user.email.toLowerCase().includes(q) ||
-      (user.nip || "").includes(q);
+      (user.email || "").toLowerCase().includes(q) ||
+      (user.nip || "").toLowerCase().includes(q);
     const matchRole = roleFilter === "Semua" || user.role === roleFilter;
     return matchSearch && matchRole;
   });
@@ -234,13 +235,21 @@ export default function PenggunaPage() {
               {
                 key: "nip",
                 header: "NIP",
-                render: (row) => row.nip || "-",
+                render: (row) => (
+                  <span className="font-mono text-xs text-slate-600">
+                    {row.nip || "-"}
+                  </span>
+                ),
                 cellClassName: "font-mono text-xs text-slate-600",
               },
               {
                 key: "email",
-                header: "Email",
-                render: (row) => row.email,
+                header: "Email / Kontak",
+                render: (row) => (
+                  <span className="break-all text-slate-600">
+                    {row.email || "-"}
+                  </span>
+                ),
                 cellClassName: "break-all text-slate-600",
               },
               {

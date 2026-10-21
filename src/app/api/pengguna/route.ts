@@ -13,17 +13,16 @@ const supabaseAdmin = createClient(
   }
 );
 
-// Client dengan anon key untuk operasi normal
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-    },
-  }
-);
+/** Domain email internal untuk auth.users (sesuai data live existing). */
+const INTERNAL_EMAIL_DOMAIN = "basarnas.ac.id";
+
+/**
+ * Helper: generate email internal dari NIP.
+ * Format: {nip}@basarnas.ac.id (sesuai data yang sudah ada di live).
+ */
+function generateInternalEmail(nip: string): string {
+  return `${nip.toLowerCase().replace(/[\s.\-_]/g, "")}@${INTERNAL_EMAIL_DOMAIN}`;
+}
 
 export async function GET() {
   try {
@@ -40,9 +39,10 @@ export async function GET() {
     }
 
     return Response.json({ data });
-  } catch (err: any) {
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Internal server error");
     return Response.json(
-      { error: err.message || "Internal server error" },
+      { error: error.message },
       { status: 500 }
     );
   }
@@ -53,14 +53,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password, nama, nip, role } = body;
 
-    // Validasi
-    if (!email || !password || !nama || !role) {
+    // Validasi: nama, role, password, NIP wajib
+    if (!nama || !role || !password || !nip) {
       return Response.json(
-        { error: "Email, password, nama, dan role wajib diisi" },
+        { error: "Nama, password, role, dan NIP wajib diisi" },
         { status: 400 }
       );
     }
 
+    // Password minimal 8 karakter
     if (password.length < 8) {
       return Response.json(
         { error: "Password minimal 8 karakter" },
@@ -68,30 +69,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cek apakah email sudah terdaftar (pakai admin untuk bypass RLS)
-    const { data: existingUser } = await supabaseAdmin
+    // Normalisasi NIP (buang spasi/titik/dash) & validasi 16-18 digit
+    const normalizeNip = String(nip).replace(/[\s.\-_]/g, "").trim();
+    if (!/^\d{16,18}$/.test(normalizeNip)) {
+      return Response.json(
+        { error: "Format NIP tidak valid. Harus 16-18 digit angka." },
+        { status: 400 }
+      );
+    }
+
+    // Cek NIP sudah terdaftar?
+    const { data: existingByNip } = await supabaseAdmin
       .from("users")
       .select("id")
-      .eq("email", email)
+      .eq("nip", normalizeNip)
       .single();
 
-    if (existingUser) {
+    if (existingByNip) {
       return Response.json(
-        { error: "Email sudah terdaftar" },
+        { error: "NIP sudah terdaftar" },
         { status: 409 }
       );
     }
 
+    // Tentukan email: yang diinput admin, atau fallback synthetic dari NIP.
+    // Jika admin menginput email domain @basarnas.ac.id, pastikan prefixnya
+    // NIP user ini (untuk mencegah email sintetis milik user lain).
+    let internalEmail = email;
+    if (internalEmail && typeof internalEmail === "string") {
+      const trimmed = internalEmail.trim();
+      internalEmail = trimmed;
+      if (trimmed.toLowerCase().endsWith(`@${INTERNAL_EMAIL_DOMAIN}`)) {
+        const prefix = trimmed.toLowerCase().split("@")[0];
+        if (prefix !== normalizeNip.toLowerCase()) {
+          return Response.json(
+            {
+              error: `Email @${INTERNAL_EMAIL_DOMAIN} harus sesuai NIP ini (${normalizeNip}).`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    } else {
+      internalEmail = generateInternalEmail(normalizeNip);
+    }
+
+    // Email kontak (di public.users) — bisa berbeda dari auth email.
+    // Jika admin tidak isi → pakai email internal sebagai placeholder,
+    // supaya tidak ada baris kosong.
+    const publicUsersEmail =
+      internalEmail && internalEmail.trim()
+        ? internalEmail
+        : generateInternalEmail(normalizeNip);
+
     // Buat user di auth.users via Admin API (service_role)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: internalEmail,
       password,
       email_confirm: true,
       user_metadata: {
         role,
-        nip,
+        nip: normalizeNip,
         nama,
       },
+      // app_metadata diisi di langkah berikutnya (setelah auth user jadi)
     });
 
     if (authError) {
@@ -101,42 +142,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upsert ke public.users (pakai admin client untuk bypass RLS)
-    // Upsert menghindari error duplicate key jika ID sudah ada
+    const newUserId = authData.user.id;
+
+    // Upsert ke public.users
     const { error: insertError } = await supabaseAdmin
       .from("users")
       .upsert({
-        id: authData.user.id,
-        email,
-        nip: nip || "",
+        id: newUserId,
+        email: publicUsersEmail,
+        nip: normalizeNip,
         nama,
         role,
         aktif: true,
         password_changed: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      }, { onConflict: "id" });
 
     if (insertError) {
       // Rollback: hapus auth user jika insert gagal
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(newUserId);
       return Response.json(
         { error: insertError.message },
         { status: 500 }
       );
     }
 
+    // Sync app_metadata ke auth.users (untuk performa login 0 RTT)
+    await supabaseAdmin.auth.admin.updateUserById(newUserId, {
+      app_metadata: {
+        // Pertahankan provider info bawaan GoTrue
+        provider: "email",
+        providers: ["email"],
+        // Data otorisasi untuk JWT
+        role,
+        nip: normalizeNip,
+        nama,
+        aktif: true,
+        password_changed: false,
+      },
+    });
+
     return Response.json({
       data: {
-        id: authData.user.id,
-        email,
+        id: newUserId,
+        email: internalEmail,
         nama,
         role,
       },
     });
-  } catch (err: any) {
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Internal server error");
     return Response.json(
-      { error: err.message || "Internal server error" },
+      { error: error.message },
       { status: 500 }
     );
   }

@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 import {
   readinessStats,
   riwayatOperasi,
-  formatTanggal,
 } from "@/components/shared/mock-data";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────

@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import type { UserRole } from "@/components/shared/mock-data";
 
+// Re-export UserRole agar modul lain bisa import langsung dari navigation.ts
+export type { UserRole };
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface NavItem {

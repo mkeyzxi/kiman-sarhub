@@ -51,8 +51,9 @@ export function PasswordModal({ userId, userName, onClose }: PasswordModalProps)
       setTimeout(() => {
         onClose();
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

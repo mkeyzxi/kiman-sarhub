@@ -1,41 +1,18 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import {
+  createSupabaseAdminClient,
+  getAuthenticatedUser,
+} from "@/lib/supabase-server";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Ambil token dari Authorization header atau cookie
-    const authHeader = request.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "");
+    const user = await getAuthenticatedUser();
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized - Token tidak ditemukan" },
-        { status: 401 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verifikasi token dan dapatkan user
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Token tidak valid" },
-        { status: 401 }
-      );
-    }
-
-    // Ambil data profile dari public.users
+    const supabaseAdmin = createSupabaseAdminClient();
     const { data, error } = await supabaseAdmin
       .from("users")
       .select("*")
@@ -50,63 +27,41 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Internal server error");
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: Request) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "");
+    const user = await getAuthenticatedUser();
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized - Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Token tidak valid" },
-        { status: 401 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { nama, nip, email } = body;
 
-    // Validasi email uniqueness jika email diubah
-    if (email && email !== user.email) {
-      const { data: existing } = await supabaseAdmin
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .single();
+    // Peringatan: NIP = identitas login, tidak boleh diubah user sendiri
+    // (hanya Admin IT). Jika user mencoba mengirim NIP, diabaikan.
+    // Email boleh diubah (data kontak), tapi tidak memengaruhi login.
 
-      if (existing) {
-        return NextResponse.json(
-          { error: "Email sudah digunakan oleh pengguna lain" },
-          { status: 409 }
-        );
-      }
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof nama === "string" && nama.trim()) {
+      updatePayload.nama = nama.trim();
+    }
+    if (typeof email === "string") {
+      updatePayload.email = email.trim();
     }
 
-    // Update di public.users
+    const supabaseAdmin = createSupabaseAdminClient();
     const { data, error } = await supabaseAdmin
       .from("users")
-      .update({
-        nama: nama || undefined,
-        nip: nip || undefined,
-        email: email || undefined,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", user.id)
       .select()
       .single();
@@ -115,13 +70,15 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Update auth user metadata
+    // Sync app_metadata (nama) — penting untuk login berikutnya.
+    // Baca dulu metadata saat ini, lalu merge, supaya provider info GoTrue
+    // tidak hilang.
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+    const prevMeta: Record<string, unknown> = authUser?.user?.app_metadata ?? {};
     await supabaseAdmin.auth.admin.updateUserById(user.id, {
-      email: email || undefined,
-      user_metadata: {
-        ...user.user_metadata,
-        nama: nama || undefined,
-        nip: nip || undefined,
+      app_metadata: {
+        ...prevMeta,
+        nama: data.nama,
       },
     });
 
@@ -129,10 +86,8 @@ export async function PUT(request: NextRequest) {
       message: "Profil berhasil diperbarui",
       data,
     });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Internal server error");
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

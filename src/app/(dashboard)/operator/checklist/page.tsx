@@ -5,8 +5,6 @@ import Link from "next/link";
 import {
   ClipboardCheck,
   CheckCircle2,
-  XCircle,
-  Clock,
   AlertTriangle,
   Plus,
   Search,
@@ -15,8 +13,6 @@ import {
   Package,
   Car,
   Bike,
-  Wrench,
-  Calendar,
   PencilLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
