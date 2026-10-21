@@ -37,14 +37,26 @@ export async function POST(
       return Response.json({ error: error.message }, { status: 500 });
     }
 
+    // Sync: tandai password_changed di public.users + app_metadata
+    await supabaseAdmin
+      .from("users")
+      .update({ password_changed: true, updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(id);
+    await supabaseAdmin.auth.admin.updateUserById(id, {
+      app_metadata: {
+        ...(authUser?.user?.app_metadata ?? {}),
+        password_changed: true,
+      },
+    });
+
     return Response.json({
       message: "Password berhasil diubah",
       data: { id: data.user.id, email: data.user.email },
     });
-  } catch (err: any) {
-    return Response.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Internal server error");
+    return Response.json({ error: error.message }, { status: 500 });
   }
 }

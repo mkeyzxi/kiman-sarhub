@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { AccountStatusGuard } from "@/components/layout/account-status-guard";
 import { canAccessPath, getDefaultPageForRole } from "@/config/navigation";
 import type { UserRole } from "@/components/shared/mock-data";
 
@@ -68,6 +69,9 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-x-clip">
+      {/* Guard: pastikan akun masih aktif (jika dinonaktifkan, logout otomatis) */}
+      <AccountStatusGuard />
+
       {/* Sidebar — desktop: fixed left | mobile: drawer overlay */}
       <Sidebar
         open={sidebarOpen}

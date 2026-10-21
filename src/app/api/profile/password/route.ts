@@ -1,36 +1,17 @@
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { NextRequest, NextResponse } from "next/server";
+import {
+  createServerSupabaseClient,
+  createSupabaseAdminClient,
+  getAuthenticatedUser,
+} from "@/lib/supabase-server";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
-
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "");
+    const user = await getAuthenticatedUser();
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized - Token tidak ditemukan" },
-        { status: 401 }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Token tidak valid" },
-        { status: 401 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -43,20 +24,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifikasi password saat ini
-    const supabaseAuth = createClient(
+    // Verifikasi password saat ini via sign-in attempt dengan anon key.
+    // NIP = identitas login → email identitas di auth.users = {nip}@basarnas.ac.id.
+    // Ambil NIP dari user_metadata di user auth (sudah di-backfill oleh
+    // repair-auth-metadata.mjs). Fallback ke user.email prefix jika NIP belum ada.
+    const supabaseAnon = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { error: signInError } = await supabaseAuth.auth.signInWithPassword({
-      email: user.email!,
+    // Baca user_metadata (butuh service_role; fallback: prefix dari user.email)
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { data: authUserResp } =
+      await supabaseAdmin.auth.admin.getUserById(user.id);
+    const nip =
+      (authUserResp?.user?.user_metadata as Record<string, unknown> | undefined)?.nip ??
+      user.email!.split("@")[0];
+
+    const { error: signInError } = await supabaseAnon.auth.signInWithPassword({
+      email: `${nip}@basarnas.ac.id`,
       password: currentPassword,
     });
 
@@ -67,25 +54,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update password
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+    // Update password via server client (session-based,writing back to cookies)
+    const supabase = await createServerSupabaseClient();
+    const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
     });
 
     if (updateError) {
-      return NextResponse.json(
-        { error: updateError.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    return NextResponse.json({
-      message: "Password berhasil diubah",
-    });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+    // Tandai di public.users bahwa password sudah pernah diubah
+    // (pakai client service_role yang sudah dibuat di atas)
+    await supabaseAdmin
+      .from("users")
+      .update({
+        password_changed: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    return NextResponse.json({ message: "Password berhasil diubah" });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Internal server error");
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

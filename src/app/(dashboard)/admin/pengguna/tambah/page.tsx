@@ -40,8 +40,12 @@ export default function TambahPenggunaPage() {
   const validateForm = (): string | null => {
     if (!formData.nama.trim()) return "Nama lengkap wajib diisi";
     if (!formData.nip.trim()) return "NIP wajib diisi";
-    if (!formData.email.trim()) return "Email wajib diisi";
-    if (!formData.email.includes("@")) return "Format email tidak valid";
+    const cleanNip = formData.nip.replace(/[\s.\-_]/g, "");
+    if (!/^\d{16,18}$/.test(cleanNip))
+      return "Format NIP tidak valid. Harus 16-18 digit angka.";
+    // Email opsional — jika kosong, sistem otomatis memakai {NIP}@basarnas.ac.id
+    if (formData.email.trim() && !formData.email.includes("@"))
+      return "Format email tidak valid";
     if (!formData.role) return "Role wajib dipilih";
     if (formData.password.length < 8) return "Password minimal 8 karakter";
     if (formData.password !== formData.konfirmasiPassword)
@@ -96,9 +100,10 @@ export default function TambahPenggunaPage() {
       setTimeout(() => {
         router.push("/admin/pengguna");
       }, 2000);
-    } catch (err: any) {
-      console.error("Error submitting form:", err);
-      setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Terjadi kesalahan. Silakan coba lagi.");
+      console.error("Error submitting form:", error);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -156,25 +161,31 @@ export default function TambahPenggunaPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nip">NIP</Label>
+              <Label htmlFor="nip">NIP (identitas login)</Label>
               <Input
                 id="nip"
-                placeholder="18 digit NIP"
+                placeholder="Contoh: 198208042009121003"
                 value={formData.nip}
                 onChange={(e) => handleChange("nip", e.target.value)}
                 required
+                inputMode="numeric"
+                minLength={16}
+                maxLength={18}
                 disabled={isLoading}
+                className="font-mono text-sm"
               />
+              <p className="text-xs text-slate-500">
+                16-18 digit angka — dipakai sebagai username login
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email Instansi</Label>
+              <Label htmlFor="email">Email / Kontak (opsional)</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="nama@basarnas.go.id"
+                placeholder="Kosongkan → otomatis {NIP}@basarnas.ac.id"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                required
                 disabled={isLoading}
               />
             </div>

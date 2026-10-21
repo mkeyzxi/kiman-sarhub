@@ -1,11 +1,12 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useEffect} from 'react'
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {LogOut, X} from 'lucide-react'
 import {cn} from '@/lib/utils'
 import {navGroupsByRole, roleLabels, type NavGroup} from '@/config/navigation'
+import {useLocalStorageValue} from '@/lib/use-local-storage'
 
 import Image from 'next/image'
 import type {UserRole} from '@/components/shared/mock-data'
@@ -14,14 +15,9 @@ import type {UserRole} from '@/components/shared/mock-data'
 function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void}) {
   const pathname = usePathname()
   const groups = navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN
-  const [userName, setUserName] = useState<string>("")
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedName = localStorage.getItem("userNama") || localStorage.getItem("userName") || ""
-      setUserName(storedName)
-    }
-  }, [])
+  const storedName = useLocalStorageValue("userNama")
+  const legacyName = useLocalStorageValue("userName")
+  const userName = storedName || legacyName
 
   return (
     <>

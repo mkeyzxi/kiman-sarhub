@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Berita Acara Perbaikkan Rescue Car D-MAX TYPE II</title>
+
+  <!-- Tailwind CSS CDN: tidak perlu instalasi/build untuk menjalankan file ini. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root {
+      --basarnas-maroon: #702328;
+      --basarnas-red: #f20d22;
+      --ink: #111111;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      padding: 24px 0;
+      color: var(--ink);
+      background: #f1f3f5;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      line-height: 1.35;
+    }
+
+    .action-bar {
+      width: min(210mm, calc(100% - 28px));
+      margin: 0 auto 16px;
+      display: flex;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .action-button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font: 600 14px Arial, Helvetica, sans-serif;
+      cursor: pointer;
+      color: #fff;
+      background: #702328;
+    }
+
+    .action-button:hover { background: #51191d; }
+    .action-button.secondary { background: #4b5563; }
+    .action-button.secondary:hover { background: #374151; }
+
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 18px;
+      padding: 12.8mm 22mm 11mm 19mm;
+      position: relative;
+      background: #fff;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, .12);
+      overflow: visible;
+    }
+
+    /* KOP SURAT: logo di kiri; dua baris instansi di tengah; alamat di bawahnya; kontak rata kanan. */
+    .kop-surat {
+      position: relative;
+      width: 100%;
+      min-height: 34.3mm;
+      padding-bottom: 3mm;
+      margin-bottom: 4.3mm;
+      border-bottom: 6px solid var(--basarnas-maroon);
+    }
+
+    .kop-brand {
+      position: absolute;
+      z-index: 1;
+      left: 0;
+      top: 8mm;
+      width: 30mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .kop-logo {
+      display: block;
+      width: 21mm;
+      height: 20mm;
+      object-fit: contain;
+    }
+
+    .kop-brand-name {
+      margin-top: 0;
+      color: var(--basarnas-red);
+      font-size: 14.3pt;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -.3px;
+    }
+
+    .kop-main { width: 100%; }
+
+    .instansi-utama,
+    .instansi-daerah {
+      text-align: center;
+      font-weight: 800;
+      text-transform: uppercase;
+      line-height: 1.08;
+      white-space: nowrap;
+    }
+
+    .instansi-utama { font-size: 11pt; }
+    .instansi-daerah { font-size: 13pt; margin-top: 1px; }
+
+    .kop-info {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 53.4mm;
+      column-gap: 3mm;
+      padding-left: 33mm;
+      margin-top: 1mm;
+      font-size: 8.5pt;
+      line-height: 1.08;
+    }
+
+    .kop-address p,
+    .kop-contact p { margin: 0; }
+
+    .kop-address a {
+      color: #00e;
+      text-decoration: underline;
+    }
+
+    .kop-contact { padding-top: 7mm; }
+
+    .contact-line {
+      display: grid;
+      grid-template-columns: 17.7mm 2.5mm 1fr;
+      white-space: nowrap;
+    }
+
+    .contact-line .colon { text-align: center; }
+
+    /* Isi halaman */
+    .document-title {
+      margin: 0;
+      text-align: center;
+      font-size: 12.1pt;
+      line-height: 1.3;
+      font-weight: 400;
+    }
+
+    .document-number {
+      margin: 2mm 0 8.2mm;
+      text-align: center;
+      font-size: 12.2pt;
+      font-weight: 700;
+    }
+
+    .intro-paragraph {
+      margin: 0 0 1.1mm;
+      text-indent: 13mm;
+      text-align: justify;
+      line-height: 1.7;
+      font-size: 12pt;
+    }
+
+    .section-heading {
+      margin: 1mm 0 9.4mm;
+      padding-left: 1.5mm;
+      font-size: 11pt;
+      font-weight: 400;
+    }
+
+    .data-table {
+      width: calc(100% - 1.5mm);
+      margin-left: 2.3mm;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin-top: 0;
+      margin-right: 0;
+      margin-bottom: 8mm;
+      font-size: 11pt;
+      line-height: 1.25;
+    }
+
+    .data-table th,
+    .data-table td {
+      border: 1px solid #111;
+      padding: 1.2mm 2mm;
+      vertical-align: middle;
+    }
+
+    .data-table th {
+      text-align: center;
+      font-size: 11.5pt;
+      padding-top: 2mm;
+      padding-bottom: 2mm;
+      font-weight: 700;
+    }
+
+    .data-table td.center { text-align: center; }
+    .data-table td.item-name { overflow-wrap: anywhere; }
+
+    .analysis-heading {
+      margin: 0 0 2mm;
+      padding-left: 1.5mm;
+      font-size: 10.5pt;
+      font-weight: 400;
+    }
+
+    .analysis-list {
+      margin: 0 0 6mm;
+      padding-left: 8mm;
+      list-style-type: lower-alpha;
+      font-size: 10.25pt;
+      line-height: 1.35;
+      text-align: justify;
+    }
+
+    .analysis-list li {
+      padding-left: 1mm;
+      margin-bottom: 1.3mm;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .closing-paragraph {
+      margin: 7mm 0 0;
+      text-align: justify;
+      text-indent: 0;
+      font-size: 10.5pt;
+      line-height: 1.5;
+    }
+
+    .signature-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12mm;
+      margin-top: 9mm;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .signature-box {
+      text-align: center;
+      font-size: 10.5pt;
+      line-height: 1.35;
+    }
+
+    .signature-box p { margin: 0; }
+    .signature-role { min-height: 9mm; }
+    .signature-space { height: 22mm; }
+    .signature-name {
+      display: inline-block;
+      font-weight: 700;
+      text-decoration: underline;
+      margin-bottom: 1mm !important;
+    }
+
+    /* Halaman dokumentasi */
+    .documentation-title {
+      margin: 0;
+      text-align: center;
+      font-size: 12pt;
+      font-weight: 700;
+      letter-spacing: .3px;
+    }
+
+    .documentation-note {
+      margin: 2mm 0 7mm;
+      text-align: center;
+      font-size: 8.5pt;
+      color: #444;
+    }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6mm 5mm;
+    }
+
+    .doc-item {
+      min-width: 0;
+      padding: 2mm;
+      border: 1px solid #999;
+      text-align: center;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .doc-item img {
+      display: block;
+      width: 100%;
+      height: 39mm;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      background: #f3f4f6;
+    }
+
+    .doc-item figcaption {
+      margin-top: 2mm;
+      font-size: 8.5pt;
+      line-height: 1.25;
+    }
+
+    .page-break { break-after: page; page-break-after: always; }
+
+    @media screen and (max-width: 800px) {
+      body { padding: 12px 0; }
+      .sheet {
+        width: calc(100% - 16px);
+        min-height: auto;
+        padding: 24px 18px;
+        margin-bottom: 12px;
+      }
+      .kop-surat { min-height: 0; padding-bottom: 12px; }
+      .kop-brand { position: static; width: auto; margin-bottom: 8px; }
+      .kop-logo { width: 70px; height: 70px; }
+      .kop-brand-name { font-size: 13pt; }
+      .instansi-utama, .instansi-daerah { white-space: normal; font-size: 10pt; }
+      .kop-info { padding-left: 0; grid-template-columns: 1fr; gap: 3px; font-size: 8pt; }
+      .kop-contact { padding-top: 0; }
+      .contact-line { grid-template-columns: 74px 8px 1fr; white-space: normal; }
+      .document-number { margin-bottom: 22px; }
+      .data-table { width: 100%; margin-left: 0; font-size: 8pt; }
+      .data-table th { font-size: 8pt; }
+      .data-table th, .data-table td { padding: 4px 3px; }
+      .analysis-list { font-size: 9pt; }
+      .signature-container { gap: 14px; }
+      .signature-box { font-size: 8.5pt; }
+      .doc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .doc-item img { height: 130px; }
+    }
+
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body {
+        width: 210mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .action-bar { display: none !important; }
+      .sheet {
+        width: 210mm;
+        height: 297mm;
+        min-height: 297mm;
+        margin: 0;
+        padding: 12.8mm 22mm 11mm 19mm;
+        box-shadow: none;
+        overflow: hidden;
+      }
+      .sheet:last-child { break-after: auto; page-break-after: auto; }
+      .kop-surat { break-inside: avoid; page-break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+      .doc-item img { print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+  <nav class="action-bar" aria-label="Aksi dokumen">
+    <button class="action-button secondary" type="button" onclick="document.getElementById('halaman-dokumentasi').scrollIntoView({behavior:'smooth'})">
+      Ke Dokumentasi
+    </button>
+    <button class="action-button" type="button" onclick="window.print()">
+      Cetak / Simpan PDF
+    </button>
+  </nav>
+
+  <!-- HALAMAN 1: KOP, IDENTITAS BERITA ACARA, TABEL, ANALISIS a-b -->
+  <section class="sheet page-break" aria-label="Halaman 1">
+    <header class="kop-surat">
+      <div class="kop-brand" aria-label="Logo BASARNAS">
+        <img
+          class="kop-logo"
+          src="Logo_Basarnas.png"
+          alt="Logo BASARNAS"
+          onerror="this.style.display='none'"
+        />
+        <div class="kop-brand-name">BASARNAS</div>
+      </div>
+
+      <div class="kop-main">
+        <div class="instansi-utama">BADAN NASIONAL PENCARIAN DAN PERTOLONGAN</div>
+        <div class="instansi-daerah">KANTOR PENCARIAN DAN PERTOLONGAN MAMUJU</div>
+
+        <div class="kop-info">
+          <div class="kop-address">
+            <p>Jl. Poros Trans Sulawesi Barat Lingkar</p>
+            <p>Dua Bandara Tampa Padang mamuju</p>
+            <p>Mamuju, sulawesi Barat 91561 Indonesia</p>
+            <p>http&nbsp;&nbsp;&nbsp;: <a href="https://www.basarnas.go.id" target="_blank" rel="noreferrer">www.basarnas.go.id</a></p>
+            <p>E-Mail : <a href="mailto:kansar.mamuju@gmail.com">kansar.mamuju@gmail.com</a></p>
+          </div>
+          <div class="kop-contact">
+            <p class="contact-line"><span>Tlp</span><span class="colon">:</span><span>(0426)2332181</span></p>
+            <p class="contact-line"><span>Fax</span><span class="colon">:</span><span>(0426)2332181</span></p>
+            <p class="contact-line"><span>Emergency</span><span class="colon">:</span><span>(0426)2332181, 115</span></p>
+          </div>
+        </div>
+      </div>
+      
+    </header>
+    <main>
+      <h1 class="document-title">Berita Acara Perbaikkan Rescue Car Double Cabin D-MAX TYPE II (DC 8145)</h1>
+      <p class="document-number">Nomor: BA/10/SP.03.02 /II/SARMMJ-2026</p>
+
+      <p class="intro-paragraph">
+        Pada hari ini, <strong><em>Kamis</em></strong> Tanggal <strong><em>Lima</em></strong> Bulan
+        <strong><em>Februari</em></strong> Tahun <strong><em>Dua Ribu Dua Puluh Enam</em></strong>,
+        telah dilakukan Pemeriksaan/pengecekan oleh Penanggung jawab <strong>ISUZU DMAX TYPE II (DC 8145)</strong>.
+        Hasil pengecekan sebagai berikut :
+      </p>
+
+      <p class="section-heading">1.&nbsp;&nbsp;Informasi kendala</p>
+
+      <table class="data-table" aria-label="Informasi kendala kendaraan">
+        <colgroup>
+          <col style="width:6.5%" />
+          <col style="width:34.3%" />
+          <col style="width:17.8%" />
+          <col style="width:16.6%" />
+          <col style="width:24.8%" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>NO</th>
+            <th>Nama Barang</th>
+            <th>Merk/Type</th>
+            <th>Jumlah</th>
+            <th>Keterangan</th>
+          </tr>
+        </thead>
+        <tbody id="table-kendala-body"></tbody>
+      </table>
+
+      <h2 class="analysis-heading">2.&nbsp; Hasil pemeriksaan / Analisa :</h2>
+      <ol class="analysis-list" type="a" id="list-analisa-awal"></ol>
+    </main>
+  </section>
+
+  <!-- HALAMAN 2: SISA ANALISIS, PENUTUP, DAN TANDA TANGAN -->
+  <section class="sheet page-break" aria-label="Halaman 2">
+    <main>
+      <ol class="analysis-list" type="a" start="3" id="list-analisa-lanjutan"></ol>
+
+      <p class="closing-paragraph">
+        Dengan ini Kami mengajukan Berita Acara Perbaikan Kendaraan ISUZU DMAX TYPE II ( DC 8145)
+        dimana pada saat ini Kendaraan Tersebut perlu perbaikan. Demikian surat permohonan kami,
+        atas bantuan dan dukungannya kami ucapkan terimakasih.
+      </p>
+
+      <div class="signature-container">
+        <div class="signature-box">
+          <p>Mengajukan,</p>
+          <p class="signature-role">Kepala Subseksi Sumber Daya</p>
+          <div class="signature-space" aria-hidden="true"></div>
+          <p class="signature-name">Zulkfli S.I.P</p>
+          <p>Penata Muda Tk.I (III/b)</p>
+        </div>
+        <div class="signature-box">
+          <p>Yang Melaporkan,</p>
+          <p class="signature-role">Penanggung Jawab Kendaraan</p>
+          <div class="signature-space" aria-hidden="true"></div>
+          <p class="signature-name">Muh. Haerul</p>
+          <p>Pengatur Muda (II/a)</p>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- HALAMAN 3: DOKUMENTASI. Foto masih placeholder dari sumber eksternal. -->
+  <section class="sheet" id="halaman-dokumentasi" aria-label="Halaman 3: Dokumentasi">
+    <h2 class="documentation-title">DOKUMENTASI</h2>
+    <p class="documentation-note">Foto di bawah merupakan gambar sementara dari sumber eksternal dan dapat diganti dengan foto kendaraan asli.</p>
+    <div class="doc-grid" id="documentation-grid"></div>
+  </section>
+
+  <script>
+    // Data tabel ditranskripsikan dari Berita Acara Word yang diberikan.
+    const dataKendala = [
+      { no: 1,  barang: 'Service Mesin',                 merk: 'Standar', jumlah: '1 Set', ket: 'Perlu Di Service' },
+      { no: 2,  barang: 'Service AC',                    merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di Service' },
+      { no: 3,  barang: 'Lampu Utama',                   merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di Ganti' },
+      { no: 4,  barang: 'Lampu stop',                    merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di ganti' },
+      { no: 5,  barang: 'Lampu Sein',                    merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di ganti' },
+      { no: 6,  barang: 'Lampu Cabin',                   merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di ganti' },
+      { no: 7,  barang: 'Pemutar kaca',                  merk: 'Standar', jumlah: '2 set', ket: 'Perlu Diganti' },
+      { no: 8,  barang: 'Lampu Foglamp',                 merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di ganti' },
+      { no: 9,  barang: 'Ban',                           merk: 'Standar', jumlah: '2 pcs', ket: 'Perlu Di ganti' },
+      { no: 10, barang: 'Kunci roda Dan Dongkrak',        merk: 'Standar', jumlah: '1 set', ket: 'Perlu Di ganti' },
+      { no: 11, barang: 'Lampu rotator dan sirine',       merk: 'Standar', jumlah: '1 Set', ket: 'Perlu di Ganti' },
+      { no: 12, barang: 'Pintu sopir',                    merk: 'Standar', jumlah: '1 Set', ket: 'Perlu Di Service' },
+      { no: 13, barang: 'Tangki air radiator',            merk: 'Standar', jumlah: '1 Set', ket: 'Perlu di ganti' },
+      { no: 14, barang: 'Kisi kisi Ac',                  merk: 'Standar', jumlah: '1 Set', ket: 'Perlu Di ganti' },
+      { no: 15, barang: 'Kaca Film',                     merk: 'standar', jumlah: '1 set', ket: 'Perlu di ganti' }
+    ];
+
+    // Isi analisis dipertahankan sesuai Word. Item pemutar kaca belum memiliki uraian
+    // analisis tersendiri di dokumen sumber, sehingga tidak ditambahkan alasan baru.
+    const dataAnalisa = [
+      'Mesin perlu di service karena di temukan beberapa kebocoran oli pada mesin dan kenalpot mengeluarkan asap putih.',
+      'Service AC perlu dilakukan karena suhu pada cabin tidak tersirkulasi dengan baik dan menimbulkan embun pada kaca saat digunakan dalam kondisi hujan.',
+      'Lampu utama perlu diganti karena ditemukan lampu dalam kondisi mati dan berembun',
+      'Lampu stop perlu diganti karna di temukan lampu stop pecah dan retak',
+      'Lampu sein perlu di ganti karna di temukan lampu sein tidak menyala dan mika pada lampu sein hilang',
+      'Lampu cabin perlu di ganti karena di temukan lampu baca pada cabin mati',
+      'Lampu foglamp perlu di ganti karena di temukan lampu foglamp pada mobil redup/kurang terang pada kondisi kabut',
+      'Ban perlu di ganti karna di temukan ban dalam kondisi karet mati/tidak layak pakai',
+      'Lampu rotator dan sirine perlu diganti karena di temukan dalam kondisi tidak bisa di nyalakan/rusak',
+      'Kunci roda Dan Dongkrak perlu diganti karena hilang saat digunakan sebelum nya',
+      'Pintu sopir perlu di service karena di temukan pintu susah rapat dan sering terbuka sendiri saat di gunakan',
+      'Tangki air radiator perlu di ganti karena di temukan rusak pada penutuk tangki dan retak pada tangki air radiator',
+      'Kisi kisi AC perlu di ganti Karna di temukan dalam kondisi rusak',
+      'Kaca film perlu di ganti karna di temukan cahaya tidak teredam dengan baik dan menyebabkan silau saat di gunakan.'
+    ];
+
+    // Foto dokumentasi sementara dari Unsplash. Ganti nilai img dengan URL foto asli nanti.
+    const dataDokumentasi = [
+      { label: 'Lampu Stop Pecah/Retak',       img: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Lampu Sein / Mika',            img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Pemutar Kaca',                 img: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Lampu Cabin',                  img: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Rotator / Sirine',             img: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Pintu Sopir',                  img: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Tangki Radiator',              img: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Kondisi Kendaraan',            img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80' },
+      { label: 'Ban Kendaraan',                img: 'https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80' }
+    ];
+
+    function renderKendala() {
+      const tbody = document.getElementById('table-kendala-body');
+      tbody.innerHTML = dataKendala.map((item) => `
+        <tr>
+          <td class="center">${item.no}</td>
+          <td class="item-name">${item.barang}</td>
+          <td class="center">${item.merk}</td>
+          <td class="center">${item.jumlah}</td>
+          <td class="center">${item.ket}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAnalisa() {
+      const awal = document.getElementById('list-analisa-awal');
+      const lanjutan = document.getElementById('list-analisa-lanjutan');
+
+      awal.innerHTML = dataAnalisa.slice(0, 2)
+        .map((uraian) => `<li>${uraian}</li>`)
+        .join('');
+
+      lanjutan.innerHTML = dataAnalisa.slice(2)
+        .map((uraian) => `<li>${uraian}</li>`)
+        .join('');
+    }
+
+    function renderDokumentasi() {
+      const grid = document.getElementById('documentation-grid');
+      grid.innerHTML = dataDokumentasi.map((item) => `
+        <figure class="doc-item">
+          <img src="${item.img}" alt="${item.label}" loading="lazy"
+               onerror="this.onerror=null; this.style.display='none';" />
+          <figcaption>${item.label}</figcaption>
+        </figure>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderKendala();
+      renderAnalisa();
+      renderDokumentasi();
+    });
+  </script>
+</body>
+</html>

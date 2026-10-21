@@ -17,13 +17,6 @@ import {
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 
-const kondisiOptions: KondisiHasil[] = [
-  "Baik",
-  "Rusak Ringan",
-  "Rusak Berat",
-  "Belum Diperiksa",
-];
-
 const jenisArmadaOptions: { value: JenisArmada; label: string; icon: React.ElementType }[] = [
   { value: "Kapal", label: "Kapal", icon: Anchor },
   { value: "RIB", label: "RIB / Perahu", icon: Ship },
@@ -261,9 +254,6 @@ export default function BuatChecklistPage() {
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {jenisArmadaOptions.map((opt) => {
                 const isActive = jenisUnit === opt.value;
-                const hasTemplates = checklistTemplates.some(
-                  (t) => t.jenisArmada === opt.value || t.jenisArmada === "Lainnya"
-                );
                 const templateCount = checklistTemplates.filter(
                   (t) => t.jenisArmada === opt.value
                 ).length;

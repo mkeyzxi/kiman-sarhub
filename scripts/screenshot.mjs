@@ -39,7 +39,11 @@ class Cdp {
       if (m.id && this.pending.has(m.id)) {
         const { resolve, reject } = this.pending.get(m.id);
         this.pending.delete(m.id);
-        m.error ? reject(new Error(JSON.stringify(m.error))) : resolve(m.result);
+        if (m.error) {
+          reject(new Error(JSON.stringify(m.error)));
+        } else {
+          resolve(m.result);
+        }
       }
     });
   }

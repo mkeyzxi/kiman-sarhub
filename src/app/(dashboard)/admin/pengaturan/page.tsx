@@ -1,28 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   Settings,
   Shield,
   Bell,
   Database,
-  Clock,
-  Users,
-  Save,
-  RotateCcw,
   CheckCircle2,
   AlertTriangle,
   HardDrive,
-  Globe,
   Lock,
-  Mail,
-  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input, Select, Label } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 // ─── Data Pengaturan ─────────────────────────────────────────────────────────

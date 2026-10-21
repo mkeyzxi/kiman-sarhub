@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Pencil,
@@ -22,6 +23,7 @@ import type { UserProfile } from "@/types/supabase";
 import { PasswordModal } from "./password-modal";
 
 export function UserDetailClient({ user }: { user: UserProfile }) {
+  const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -47,10 +49,12 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
 
       setDeleteSuccess(true);
       setTimeout(() => {
-        window.location.href = "/admin/pengguna";
+        router.push("/admin/pengguna");
+        router.refresh();
       }, 2000);
-    } catch (err: any) {
-      setDeleteError(err.message || "Terjadi kesalahan");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setDeleteError(message);
     } finally {
       setIsDeleting(false);
     }
@@ -156,10 +160,10 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wider text-slate-500">
-                  Email
+                  Email / Kontak
                 </p>
                 <p className="text-sm font-medium text-slate-800">
-                  {user.email}
+                  {user.email || "-"}
                 </p>
               </div>
             </div>
@@ -255,7 +259,7 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
             </div>
             <p className="mb-6 text-sm text-slate-600">
               Anda akan menghapus akun{" "}
-              <strong>{user.nama}</strong> ({user.email}). Pengguna tidak akan
+              <strong>{user.nama}</strong> (NIP {user.nip}). Pengguna tidak akan
               bisa login lagi, namun data akan tetap tersimpan di database.
             </p>
             <div className="flex justify-end gap-3">
