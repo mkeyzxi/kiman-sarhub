@@ -21,6 +21,8 @@ const PATHS = [
   "/bmn/maintenance",
   "/pimpinan",
   "/operator/checklist",
+  "/operator/checklist/buat",
+  "/operator/checklist/arm-001/berita-acara",
   "/bmn",
 ];
 

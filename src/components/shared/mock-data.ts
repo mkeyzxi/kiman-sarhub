@@ -161,12 +161,231 @@ export type KondisiItem = "Baik" | "Rusak Ringan" | "Rusak Berat";
 /** Jenis armada sesuai form fisik kantor (dokumentasi_utuh.md Bagian 4). */
 export type JenisArmada = "Kapal" | "RIB" | "RBB" | "Mobil" | "Motor" | "Lainnya";
 
+// ─── BERITA ACARA ────────────────────────────────────────────────────────────
+
+/**
+ * Status berita acara kerusakan dari penyerahan Penanggung Jawab (PJ) aset
+ * sampai keputusan final Pengelola BMN.
+ */
+export type StatusBeritaAcara =
+  | "Draf"
+  | "Diserahkan"
+  | "Diproses"
+  | "Disetujui"
+  | "Ditolak";
+
+/**
+ * Nilai bawaan keterangan aset saat berita acara DISETUJUI: unit dikirim ke
+ * tempat service (aset berstatus "Dipindahkan").
+ */
+export const KETERANGAN_SERVICE_DEFAULT =
+  "Dikirim ke tempat service untuk perbaikan";
+
+/** Sifat kerusakan pada item — menentukan prioritas tiket EWS. */
+export type SifatKerusakan = "Ringan" | "Berat";
+
+/**
+ * Baris tabel "Informasi Kendala" pada berita acara — sama persis dengan
+ * kolom tabel di template `berita-acara-basarnas-lengkap.html`:
+ * NO | Nama Barang | Merk/Type | Jumlah | Keterangan.
+ */
+export interface BarisKendala {
+  /** Nama Barang — label item yang rusak. */
+  label: string;
+  /** Merk/Type — diisi manual oleh PJ (default "Standar"). */
+  merk: string;
+  /** Jumlah — diisi manual oleh PJ (default "1 set"). */
+  jumlah: string;
+  /** Keterangan — deskripsi kerusakan / kondisi. */
+  keterangan: string;
+  /** Sifat kerusakan (Ringan/Berat) — menentukan prioritas tiket otomatis. */
+  sifat: SifatKerusakan;
+}
+
+/**
+ * Berita acara kerusakan yang dibuat Penanggung Jawab (PJ) aset berdasarkan
+ * hasil checklist harian.
+ *
+ * Bagian yang terisi otomatis:
+ * - nama aset & kode (dari master aset yang diperiksa),
+ * - hari + tanggal + bulan + tahun dalam kata (dari tanggal checklist),
+ * - nama pelapor (nama PJ dari data aset),
+ * - baris "Informasi Kendala" (item yang dinilai rusak oleh PJ).
+ *
+ * Nomor berita acara sengaja dikosongkan — nomor resmi diberikan oleh unit
+ * administrasi.
+ *
+ * TODO: migrasi ke tabel `berita_acara` di Supabase.
+ */
+export interface BeritaAcara {
+  id: string;
+  tanggal: string;
+  /** Inti subjek dokumen: nama aset (tanpa kode, kode ditulis terpisah). */
+  namaAset: string;
+  /** Kode aset, mis. "BMN-KND-001". */
+  kodeAset: string;
+  /** Kosongkan dulu — nomor resmi diberikan unit administrasi. */
+  nomor: string;
+  asetId: string;
+  /** Checklist asal, bila ada. */
+  checklistId?: string;
+  /** Tiket EWS yang dibuat bersamaan saat penyerahan. */
+  tiketId?: string;
+  /** ID user penyerah (tersimpan saat penyerahan). */
+  pengajuId?: string;
+  pelapor: string;
+  pelaporJabatan: string;
+  pengajuNama?: string;
+  pengajuJabatan?: string;
+  tanggalBuat: string;
+  tanggalUpdate: string;
+  status: StatusBeritaAcara;
+  /**
+   * Daftar item rusak beserta sifatnya (Ringan/Berat). Dipakai untuk mengisi
+   * tabel "Informasi Kendala" dan menentukan prioritas tiket otomatis.
+   */
+  kendala: BarisKendala[];
+  /** Foto bukti — buffer base64 untuk sekarang (backend Supabase Storage nanti). */
+  fotoBukti: string[];
+  /** Uraian hasil pemeriksaan / analisa yang ditambahkan PJ. */
+  uraian: string;
+  /** Terisi bila keputusan BMN adalah "Ditolak". */
+  alasanPenolakan?: string;
+  /**
+   * Keterangan aset terkait: nilai bawaan "Dikirim ke Tempat Service".
+   * Ketika berita acara disetujui, status aset menjadi "Dipindahkan".
+   */
+  keterangan: string;
+}
+
 export interface RiwayatAset {
   tanggal: string;
   aksi: string;
   keterangan: string;
   userId: string;
 }
+
+// ─── HELPER TANGGAL DALAM KATA ───────────────────────────────────────────────
+
+const NAMA_HARI = [
+  "Minggu",
+  "Senin",
+  "Selasa",
+  "Rabu",
+  "Kamis",
+  "Jumat",
+  "Sabtu",
+];
+
+const NAMA_BULAN = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+
+const ANGKA_HURUF: Record<number, string> = {
+  0: "Nol",
+  1: "Satu",
+  2: "Dua",
+  3: "Tiga",
+  4: "Empat",
+  5: "Lima",
+  6: "Enam",
+  7: "Tujuh",
+  8: "Delapan",
+  9: "Sembilan",
+  10: "Sepuluh",
+  11: "Sebelas",
+  12: "Dua Belas",
+  13: "Tiga Belas",
+  14: "Empat Belas",
+  15: "Lima Belas",
+  16: "Enam Belas",
+  17: "Tujuh Belas",
+  18: "Delapan Belas",
+  19: "Sembilan Belas",
+  20: "Dua Puluh",
+};
+
+/**
+ * Ubah angka tahun (mis. 2026) menjadi kata: "Dua Ribu Dua Puluh Enam".
+ * Dipakai untuk paragraf pembuka dokumen berita acara.
+ */
+export function tahunTeks(tahun: number): string {
+  const ribuan = Math.floor(tahun / 1000);
+  const sisa = tahun % 1000;
+  const ratusan = Math.floor(sisa / 100);
+  const puluhan = Math.floor((sisa % 100) / 10);
+  const satuan = sisa % 10;
+  const parts: string[] = [`${ANGKA_HURUF[ribuan]} Ribu`];
+  if (ratusan > 0) parts.push(`${ANGKA_HURUF[ratusan]} Ratus`);
+  if (puluhan > 0) parts.push(`${ANGKA_HURUF[puluhan]} Puluh`);
+  if (satuan > 0) parts.push(ANGKA_HURUF[satuan]);
+  return parts.join(" ");
+}
+
+/**
+ * Ubah angka menjadi kata bahasa Indonesia (1–99).
+ * Contoh: 5 → "Lima", 25 → "Dua Puluh Lima".
+ * Dipakai untuk tanggal hari pada paragraf pembuka berita acara
+ * (mis. "Tanggal Lima" — mengikuti template acuan berita acara BASARNAS).
+ */
+export function angkaTeks(n: number): string {
+  const satuan = [
+    "Nol",
+    "Satu",
+    "Dua",
+    "Tiga",
+    "Empat",
+    "Lima",
+    "Enam",
+    "Tujuh",
+    "Delapan",
+    "Sembilan",
+  ];
+  if (!Number.isFinite(n) || n < 0) return String(n);
+  if (n < 10) return satuan[n];
+  if (n === 10) return "Sepuluh";
+  if (n < 20) return `Sepuluh ${satuan[n - 10]}`;
+  const puluh = Math.floor(n / 10);
+  const sisa = n % 10;
+  return `${satuan[puluh]} Puluh${sisa ? ` ${satuan[sisa]}` : ""}`;
+}
+
+/**
+ * Ubah tanggal ISO (YYYY-MM-DD) menjadi teks dokumen:
+ * "Hari: Kamis · Tanggal: 5 · Bulan: Februari · Tahun: Dua Ribu Dua Puluh Enam".
+ */
+export function tanggalTeks(
+  tanggalISO: string
+): {
+  hari: string;
+  tanggal: string;
+  bulan: string;
+  tahun: string;
+  tahunKata: string;
+} | null {
+  const [th, bl, hr] = tanggalISO.split("-").map(Number);
+  if (!th || !bl || !hr) return null;
+  const d = new Date(th, bl - 1, hr);
+  return {
+    hari: NAMA_HARI[d.getDay()] ?? "-",
+    tanggal: String(hr),
+    bulan: NAMA_BULAN[bl - 1] ?? "-",
+    tahun: String(th),
+    tahunKata: tahunTeks(th),
+  };
+}
+
 
 export interface Aset {
   id: string;
@@ -1823,7 +2042,12 @@ export interface ChecklistHarian {
   jenisUnit: "Kapal" | "Mobil" | "Motor" | "Perahu";
   /** Template asal checklist ini, dipakai untuk melihat daftar item standar. */
   templateId?: string;
+  /** Nama pemeriksa (PJ) — terisi otomatis dari akun yang login. */
   pemeriksa: string;
+  /** ID user pemeriksa (untuk riwayat & auto-fill berita acara). */
+  pemeriksaId?: string;
+  /** Aset BMN terkait (untuk mengisi otomatis berita acara). */
+  asetId?: string;
   status: "Lengkap" | "Belum Lengkap";
   /** Item yang benar-benar sudah diperiksa (dihitung dari `items`). */
   itemChecked: number;
@@ -2499,7 +2723,7 @@ export function updateAset(
 
 /**
  * Ubah status aset sekaligus catat riwayatnya — dipakai aksi "Selesai
- * Digunakan" pada halaman detail.
+ * Digunakan" pada halaman detail. Aksi yang tercatat bisa disesuaikan.
  *
  * TODO: ganti dengan UPDATE ke tabel `aset` + INSERT ke `riwayat_aset`.
  */
@@ -2507,11 +2731,248 @@ export function ubahStatusAset(
   id: string,
   status: StatusAset,
   userId: string,
-  keterangan: string
+  keterangan: string,
+  aksi: string = "Selesai Digunakan"
 ): Aset | undefined {
   const aset = getAsetById(id);
   if (!aset || aset.status === status) return aset;
   return updateAset(id, { status }, [
-    { tanggal: todayISODate(), aksi: "Selesai Digunakan", keterangan, userId },
+    { tanggal: todayISODate(), aksi, keterangan, userId },
   ]);
+}
+
+export const beritaAcaraList: BeritaAcara[] = [
+  {
+    id: "ba-001",
+    tanggal: "2026-09-25",
+    namaAset: "Tenda Medis Emergency 6x4",
+    kodeAset: "BMN-MED-001",
+    nomor: "",
+    asetId: "ast-005",
+    tiketId: "ews-001",
+    pengajuId: "usr-002",
+    pengajuNama: "Kauluddin",
+    pengajuJabatan: "Pengelola BMN",
+    pelapor: "Kauluddin",
+    pelaporJabatan: "Pengelola BMN",
+    tanggalBuat: "2026-09-25",
+    tanggalUpdate: "2026-09-26",
+    status: "Diserahkan",
+    kendala: [
+      {
+        label: "Pin Tiang Tenda",
+        merk: "Standar",
+        jumlah: "1 pcs",
+        keterangan: "Patah, perlu diganti",
+        sifat: "Ringan",
+      },
+      {
+        label: "Atap Tenda",
+        merk: "Standar",
+        jumlah: "1 set",
+        keterangan: "Robek ± 30 cm, perlu jahit ulang",
+        sifat: "Ringan",
+      },
+    ],
+    uraian:
+      "Pin tiang patah sebelah kiri, atap robek ± 30 cm sehingga tenda tidak layak didirikan di lapangan. Diusulkan ke tempat service untuk penggantian pin dan jahit ulang.",
+    fotoBukti: [],
+    keterangan: KETERANGAN_SERVICE_DEFAULT,
+  },
+  {
+    id: "ba-002",
+    tanggal: "2026-09-26",
+    namaAset: "Peralatan Selam Regulator Scubapro",
+    kodeAset: "BMN-SAR-003",
+    nomor: "",
+    asetId: "ast-011",
+    tiketId: "ews-006",
+    pengajuId: "usr-001",
+    pengajuNama: "Medlyn R. Pagali",
+    pengajuJabatan: "Pengelola BMN",
+    pelapor: "Medlyn R. Pagali",
+    pelaporJabatan: "Pengelola BMN",
+    tanggalBuat: "2026-09-26",
+    tanggalUpdate: "2026-09-26",
+    status: "Diserahkan",
+    kendala: [
+      {
+        label: "Regulator Scuba",
+        merk: "Scubapro",
+        jumlah: "1 set",
+        keterangan: "Free-flow pada kedalaman 15 m, perlu ganti seal",
+        sifat: "Berat",
+      },
+    ],
+    uraian:
+      "Regulator mengalami free-flow saat uji fungsi di kedalaman 15 meter. Regulator tidak boleh digunakan untuk penyelaman sebelum seal diganti dan diuji ulang.",
+    fotoBukti: [],
+    keterangan: KETERANGAN_SERVICE_DEFAULT,
+  },
+];
+
+/** ID berita acara berikutnya, mis. "ba-003". */
+function nextBeritaAcaraId(): string {
+  const maks = beritaAcaraList.reduce((acc, ba) => {
+    const nomor = Number(ba.id.replace(/\D/g, ""));
+    return Number.isFinite(nomor) ? Math.max(acc, nomor) : acc;
+  }, 0);
+  return `ba-${String(maks + 1).padStart(3, "0")}`;
+}
+
+/**
+ * Tambah berita acara baru (status "Draf").
+ *
+ * TODO: ganti dengan INSERT ke tabel `berita_acara`.
+ */
+export function tambahBeritaAcara(
+  input: Omit<
+    BeritaAcara,
+    "id" | "status" | "tanggalBuat" | "tanggalUpdate"
+  > & {
+    pengajuId?: string;
+    pengajuNama?: string;
+    pengajuJabatan?: string;
+    tiketId?: string;
+    checklistId?: string;
+  }
+): BeritaAcara {
+  const hariIni = todayISODate();
+  const ba: BeritaAcara = {
+    ...input,
+    id: nextBeritaAcaraId(),
+    status: "Draf",
+    tanggalBuat: hariIni,
+    tanggalUpdate: hariIni,
+  };
+  beritaAcaraList.unshift(ba);
+  return ba;
+}
+
+/** Ambil satu berita acara berdasarkan ID. */
+export function getBeritaAcaraById(id: string): BeritaAcara | undefined {
+  return beritaAcaraList.find((b) => b.id === id);
+}
+
+/** Ambil berita acara berdasarkan tiket terkait (bila ada). */
+export function getBeritaAcaraByTiketId(tiketId: string): BeritaAcara | undefined {
+  return beritaAcaraList.find((b) => b.tiketId === tiketId);
+}
+
+/** Ambil daftar berita acara per aset. */
+export function getBeritaAcaraByAsetId(asetId: string): BeritaAcara[] {
+  return beritaAcaraList.filter((b) => b.asetId === asetId);
+}
+
+/**
+ * Ubah status berita acara sekaligus catat keputusan. Dipakai alur
+ * penyerahan PJ dan persetujuan/penolakan BMN.
+ *
+ * TODO: ganti dengan UPDATE ke tabel `berita_acara`.
+ */
+export function ubahStatusBeritaAcara(
+  id: string,
+  status: StatusBeritaAcara,
+  extra: Partial<
+    Pick<
+      BeritaAcara,
+      | "alasanPenolakan"
+      | "keterangan"
+      | "pengajuId"
+      | "pengajuNama"
+      | "pengajuJabatan"
+      | "tiketId"
+    >
+  > = {}
+): BeritaAcara | undefined {
+  const ba = getBeritaAcaraById(id);
+  if (!ba) return undefined;
+  ba.status = status;
+  ba.tanggalUpdate = todayISODate();
+  if (extra.alasanPenolakan !== undefined)
+    ba.alasanPenolakan = extra.alasanPenolakan;
+  if (extra.keterangan !== undefined) ba.keterangan = extra.keterangan;
+  if (extra.pengajuId !== undefined) ba.pengajuId = extra.pengajuId;
+  if (extra.pengajuNama !== undefined) ba.pengajuNama = extra.pengajuNama;
+  if (extra.pengajuJabatan !== undefined)
+    ba.pengajuJabatan = extra.pengajuJabatan;
+  if (extra.tiketId !== undefined) ba.tiketId = extra.tiketId;
+  return ba;
+}
+
+/**
+ * Perbarui isi berita acara (bagian yang diisi PJ): nomor, uraian, tabel
+ * kendala, dan foto bukti. Dipakai saat form BA disimpan.
+ *
+ * TODO: ganti dengan UPDATE ke tabel `berita_acara`.
+ */
+export function ubahIsiBeritaAcara(
+  id: string,
+  isi: Partial<
+    Pick<BeritaAcara, "nomor" | "uraian" | "kendala" | "fotoBukti" | "namaAset" | "kodeAset">
+  >
+): BeritaAcara | undefined {
+  const ba = getBeritaAcaraById(id);
+  if (!ba) return undefined;
+  if (isi.nomor !== undefined) ba.nomor = isi.nomor;
+  if (isi.uraian !== undefined) ba.uraian = isi.uraian;
+  if (isi.kendala !== undefined) ba.kendala = isi.kendala;
+  if (isi.fotoBukti !== undefined) ba.fotoBukti = isi.fotoBukti;
+  if (isi.namaAset !== undefined) ba.namaAset = isi.namaAset;
+  if (isi.kodeAset !== undefined) ba.kodeAset = isi.kodeAset;
+  ba.tanggalUpdate = todayISODate();
+  return ba;
+}
+
+/**
+ * Hitung status aset yang disarankan dari hasil checklist:
+ * ada item rusak berat → "Rusak Berat"; hanya rusak ringan → "Rusak Ringan".
+ */
+export function hitungStatusAsetDariChecklist(
+  items: ItemHasilPengecekan[]
+): "Rusak Berat" | "Rusak Ringan" | null {
+  if (items.some((i) => i.kondisi === "Rusak Berat")) return "Rusak Berat";
+  if (items.some((i) => i.kondisi === "Rusak Ringan")) return "Rusak Ringan";
+  return null;
+}
+
+/** Cari aset berdasarkan nama unit yang ditulis pada form checklist. */
+export function cariAsetDmUnit(unit: string): Aset | undefined {
+  const needle = unit.trim().toLowerCase();
+  if (!needle) return undefined;
+  return asetList.find((a) => {
+    const nama = a.nama.toLowerCase();
+    const kode = a.kode.toLowerCase();
+    // Cocokkan nama atau kode aset, atau nama yang mengandung frasa unit
+    return (
+      nama === needle ||
+      kode === needle ||
+      nama.includes(needle) ||
+      needle.includes(nama)
+    );
+  });
+}
+
+/** Item-item yang berstatus rusak pada sebuah checklist — siap jadi baris "Informasi Kendala". */
+export function ekstrakItemRusak(
+  items: ItemHasilPengecekan[]
+): BarisKendala[] {
+  return items
+    .filter((i) => i.kondisi === "Rusak Ringan" || i.kondisi === "Rusak Berat")
+    .map((i) => ({
+      label: i.label,
+      merk: "Standar",
+      jumlah: "1 set",
+      keterangan: i.keterangan,
+      sifat: i.kondisi === "Rusak Berat" ? ("Berat" as const) : ("Ringan" as const),
+    }));
+}
+
+/** Tingkat keparahan tiket otomatis: ada rusak berat → Tinggi, jika tidak → Sedang. */
+export function hitungTingkatKeparahan(
+  items: ItemHasilPengecekan[]
+): TingkatKeparahan {
+  return items.some((i) => i.kondisi === "Rusak Berat")
+    ? "Tinggi"
+    : "Sedang";
 }

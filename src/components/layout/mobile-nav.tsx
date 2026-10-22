@@ -67,7 +67,7 @@ export function MobileNav({ role }: { role?: UserRole }) {
   return (
     <nav
       className={cn(
-        "md:hidden hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 shadow-lg rounded-tr-2xl rounded-tl-2xl safe-area-bottom",
+        "md:hidden hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 shadow-lg rounded-tr-2xl rounded-tl-2xl safe-area-bottom print:hidden",
         "transition-transform duration-300 ease-out motion-reduce:transition-none",
         isVisible ? "translate-y-0" : "translate-y-full"
       )}

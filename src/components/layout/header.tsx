@@ -42,7 +42,7 @@ export function Header({ onMenuClick, role }: HeaderProps) {
   const displayInitials = getInitials(displayName);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 shrink-0">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 shrink-0 print:hidden">
       {/* Left: hamburger for mobile */}
       <div className="flex items-center gap-3">
         <Button
