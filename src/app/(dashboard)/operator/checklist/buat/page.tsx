@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Wrench, Plus, Trash2, PencilLine } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Wrench, Plus, Trash2, PencilLine, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,10 +11,14 @@ import {
   checklistTemplates,
   getKategoriTemplate,
   asetList,
-  users,
+  cariAsetDmUnit,
+  getUserById,
   type KondisiHasil,
   type JenisArmada,
+  type ItemHasilPengecekan,
 } from "@/components/shared/mock-data";
+import { useSesiUser, jabatanUser } from "@/components/shared/use-session";
+import { tambahChecklist, ambilChecklist } from "@/components/shared/checklist-store";
 import { cn } from "@/lib/utils";
 
 const jenisArmadaOptions: { value: JenisArmada; label: string; icon: React.ElementType }[] = [
@@ -70,12 +74,26 @@ function getUnitOptionsForArmada(jenisArmada: JenisArmada): { value: string; lab
 }
 
 export default function BuatChecklistPage() {
+  const ses = useSesiUser();
   const [tanggal, setTanggal] = useState("");
   const [unit, setUnit] = useState("");
   const [jenisUnit, setJenisUnit] = useState<JenisArmada>("Kapal");
-  const [pemeriksa, setPemeriksa] = useState("");
+  /** PJ (pemeriksa) terisi otomatis dari akun yang sedang login — bukan dropdown. */
+  const [pemeriksa, _setPemeriksa] = useState(ses.nama);
   const [templateId, setTemplateId] = useState("");
   const [catatan, setCatatan] = useState("");
+  /** Tersimpan sementara ID checklist yang baru dibuat (untuk tombol berita acara). */
+  const [checklistBaruId, setChecklistBaruId] = useState<string | null>(null);
+
+  // Aset terkait unit yang dipilih — untuk menampilkan PJ aset pada form.
+  const asetTerkait = useMemo(() => cariAsetDmUnit(unit), [unit]);
+  const pjAset = asetTerkait
+    ? {
+        id: asetTerkait.penanggungJawab,
+        nama: getUserById(asetTerkait.penanggungJawab)?.nama ?? "-",
+        jabatan: jabatanUser(asetTerkait.penanggungJawab),
+      }
+    : undefined;
 
   // Mode manual dipakai untuk peralatan yang tidak punya template dari form
   // fisik kantor (mis. Medis & Komunikasi). Item ditulis sendiri oleh pemeriksa.
@@ -152,6 +170,7 @@ export default function BuatChecklistPage() {
     setKeterangan({});
     setModeManual(newJenis === "Lainnya");
     setItemManual([]);
+    setChecklistBaruId(null);
   };
 
   /** Tambah baris item baru pada mode input manual. */
@@ -177,24 +196,68 @@ export default function BuatChecklistPage() {
       prev.map((i) => (i.id === id ? { ...i, ...perubahan } : i))
     );
 
+  /**
+   * Simpan checklist harian ke memori sesi (TODO: Supabase INSERT).
+   * Jika ada item Rusak Ringan/Berat → tampilkan tombol "Pengisian Berita Acara".
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log({
+
+    // Kumpulkan item hasil pemeriksaan
+    const items: ItemHasilPengecekan[] = modeManual
+      ? itemManual.map((i) => ({
+          label: i.label,
+          wajib: true,
+          kondisi: i.kondisi,
+          keterangan: i.keterangan,
+        }))
+      : template
+        ? template.items.map((i) => ({
+            label: i.label,
+            wajib: i.wajib,
+            kondisi: hasil[i.label] ?? "Belum Diperiksa",
+            keterangan: keterangan[i.label] ?? "",
+          }))
+        : [];
+
+    const itemChecked = items.filter(
+      (i) => i.kondisi !== "Belum Diperiksa"
+    ).length;
+
+    // Simpan checklist
+    const result = tambahChecklist({
       tanggal,
       unit,
-      jenisUnit,
-      pemeriksa,
+      jenisUnit: (jenisUnit === "RIB" || jenisUnit === "RBB")
+        ? "Perahu"
+        : (jenisUnit as "Kapal" | "Mobil" | "Motor"),
       templateId: modeManual ? undefined : templateId,
-      hasil: modeManual
-        ? Object.fromEntries(itemManual.map((i) => [i.label, i.kondisi]))
-        : hasil,
-      keterangan: Object.fromEntries(
-        itemManual.map((i) => [i.label, i.keterangan])
-      ),
+      pemeriksa,
+      pemeriksaId: ses.id,
+      itemChecked,
+      itemTotal: items.length,
+      items,
       catatan,
+      asetId: asetTerkait?.id,
     });
+    setChecklistBaruId(result.id);
+
+    // Reset form agar siap buat checklist berikutnya
+    setTanggal("");
+    setUnit("");
+    setTemplateId("");
+    setCatatan("");
+    setHasil({});
+    setKeterangan({});
+    setItemManual([]);
   };
+
+  /** Apakah hasil pemeriksaan barusan ada item rusak? */
+  const adaItemRusak = checklistBaruId
+    ? (ambilChecklist(checklistBaruId)?.items.some(
+        (i) => i.kondisi === "Rusak Ringan" || i.kondisi === "Rusak Berat"
+      ) ?? false)
+    : false;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -232,19 +295,16 @@ export default function BuatChecklistPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="pemeriksa">Pemeriksa</Label>
-              <Select
+              <Input
                 id="pemeriksa"
                 value={pemeriksa}
-                onChange={(e) => setPemeriksa(e.target.value)}
+                disabled
                 required
-              >
-                <option value="">Pilih pemeriksa</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.nama}>
-                    {u.nama}
-                  </option>
-                ))}
-              </Select>
+              />
+              <p className="text-xs text-slate-400">
+                Otomatis terisi dari akun yang sedang login
+                {unit && asetTerkait ? ` — Penanggung Jawab aset: ${pjAset?.nama ?? "-"}` : ""}
+              </p>
             </div>
           </div>
 
@@ -762,6 +822,42 @@ export default function BuatChecklistPage() {
             Simpan Checklist
           </Button>
         </div>
+
+        {/* Setelah simpan: jika ada item rusak → tombol pengisian berita acara */}
+        {checklistBaruId && adaItemRusak && (
+          <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-800">
+                Checklist berhasil disimpan. Terdapat item rusak — silakan
+                lanjutkan pengisian Berita Acara.
+              </p>
+            </div>
+            <Link href={`/operator/checklist/${checklistBaruId}/berita-acara`}>
+              <Button variant="primary" size="sm">
+                <FileText className="h-4 w-4" />
+                Pengisian Berita Acara
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {checklistBaruId && !adaItemRusak && (
+          <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-800">
+                Checklist berhasil disimpan. Tidak ada item rusak — unit siap
+                operasional.
+              </p>
+            </div>
+            <Link href={`/operator/checklist/${checklistBaruId}`}>
+              <Button variant="outline" size="sm">
+                Lihat Detail
+              </Button>
+            </Link>
+          </div>
+        )}
       </form>
     </div>
   );

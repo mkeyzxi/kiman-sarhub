@@ -68,7 +68,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-x-clip">
+    <div className="flex h-screen overflow-x-clip app-shell">
       {/* Guard: pastikan akun masih aktif (jika dinonaktifkan, logout otomatis) */}
       <AccountStatusGuard />
 
@@ -84,7 +84,7 @@ export default function DashboardLayout({
           membuatnya tidak mau menyempit di bawah lebar min-content
           elemen di dalamnya. Tanpa itu, konten lebar memaksa halaman
           ikut melebar dan bisa digeser ke samping. */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:pl-64">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:pl-64 app-shell-content">
         {/* Header — hamburger menu terhubung ke sidebar drawer */}
         <Header
           onMenuClick={() => setSidebarOpen(true)}
@@ -94,7 +94,7 @@ export default function DashboardLayout({
         {/* Konten halaman — hanya area ini yang scroll.
             `min-w-0` + `overflow-x-clip` menjaga agar tidak ada
             elemen yang membuat halaman bisa digeser ke samping. */}
-        <main className="flex-1 overflow-y-auto overflow-x-clip min-w-0 bg-slate-50 p-4 md:p-6 pb-20 md:pb-6">
+        <main className="flex-1 overflow-y-auto overflow-x-clip min-w-0 bg-slate-50 p-4 md:p-6 pb-20 md:pb-6 app-main">
           {children}
         </main>
       </div>

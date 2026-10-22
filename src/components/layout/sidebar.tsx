@@ -162,7 +162,7 @@ export function Sidebar({
   return (
     <>
       {/* ── Desktop sidebar (always visible ≥ md) ── */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200 z-30">
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200 z-30 print:hidden">
         <SidebarContent role={effectiveRole} />
       </aside>
 
@@ -170,9 +170,9 @@ export function Sidebar({
       {open && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden" onClick={onClose} />
+          <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden print:hidden" onClick={onClose} />
           {/* Drawer */}
-          <aside className="fixed inset-y-0 left-0 w-72 bg-white z-50 flex flex-col shadow-xl md:hidden animate-slide-in">
+          <aside className="fixed inset-y-0 left-0 w-72 bg-white z-50 flex flex-col shadow-xl md:hidden animate-slide-in print:hidden">
             <SidebarContent role={effectiveRole} onClose={onClose} />
           </aside>
         </>

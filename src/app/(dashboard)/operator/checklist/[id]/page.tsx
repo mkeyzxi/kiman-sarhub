@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   Bike,
@@ -11,12 +13,15 @@ import {
   User,
   CheckCircle2,
   AlertTriangle,
+  FileText,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import RincianItemTable from "./rincian-item-table";
+import TombolBeritaAcara from "./tombol-berita-acara";
+import { ambilChecklist } from "@/components/shared/checklist-store";
 import {
-  getChecklistHarianById,
   checklistTemplates,
   formatTanggal,
 } from "@/components/shared/mock-data";
@@ -29,16 +34,29 @@ const unitIcon = {
   Perahu: Package,
 } as const;
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+export default function DetailChecklistPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
 
-export default async function DetailChecklistPage({ params }: PageProps) {
-  const { id } = await params;
-  const checklist = getChecklistHarianById(id);
+  // Checklist bisa berasal dari data seed maupun checklist yang baru dibuat
+  // pada sesi ini (disimpan di memori) — keduanya dibaca dari store.
+  const checklist = ambilChecklist(id);
 
   if (!checklist) {
-    notFound();
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <FileText className="h-12 w-12 text-slate-300" />
+        <h1 className="text-xl font-bold text-slate-800">
+          Checklist tidak ditemukan
+        </h1>
+        <p className="text-sm text-slate-500">
+          Checklist dengan ID &quot;{id}&quot; tidak tersedia.
+        </p>
+        <Link href="/operator/checklist">
+          <Button variant="outline">Kembali ke Daftar Checklist</Button>
+        </Link>
+      </div>
+    );
   }
 
   const Icon = unitIcon[checklist.jenisUnit] ?? Package;
@@ -90,12 +108,15 @@ export default async function DetailChecklistPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-        <Badge
-          variant={checklist.status === "Lengkap" ? "success" : "warning"}
-          className="w-fit px-3 py-1 text-sm"
-        >
-          {checklist.status}
-        </Badge>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <Badge
+            variant={checklist.status === "Lengkap" ? "success" : "warning"}
+            className="w-fit px-3 py-1 text-sm"
+          >
+            {checklist.status}
+          </Badge>
+          <TombolBeritaAcara checklistId={id} adaRusak={rusakCount > 0} />
+        </div>
       </div>
 
       {/* Ringkasan */}

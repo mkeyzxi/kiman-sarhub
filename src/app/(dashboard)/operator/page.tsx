@@ -18,8 +18,11 @@ import {
   catatanPerbaikanDarat,
   pengisianBBM_RIB02,
   STATUS_ASET_VARIANT,
+  asetList,
+  type Aset,
   type StatusAsetBadgeVariant,
 } from "@/components/shared/mock-data";
+import { beritaAcaraByAset } from "@/components/shared/berita-acara-store";
 import {
   ResponsiveTable,
   type ResponsiveField,
@@ -307,36 +310,79 @@ type UnitArmada = {
   rusak: boolean;
 };
 
+/**
+ * Pemetaan unit armada di dashboard → aset master.
+ *
+ * Dipakai supaya status unit di dashboard selalu sama dengan status aset
+ * terbaru — termasuk setelah Pengelola BMN menyetujui berita acara
+ * (aset jadi "Dipindahkan" dan tidak lagi standby).
+ */
+const PETA_ASET_ARMADA: Record<string, string> = {
+  "Kendaraan Ransel Toyota Hilux": "ast-007",
+  "Sepeda Motor Honda CRF150L": "ast-008",
+  "RIB 9 M (Zodiac MK III)": "ast-001",
+  "Mesin Outboard Yamaha 40 PK": "ast-002",
+};
+
 /** Unit darat: kategori Mobil & Motor. */
-const unitDarat: UnitArmada[] = [
-  { nama: "Kendaraan Ransel Toyota Hilux", status: "Rusak Berat", kondisi: "Rusak Ringan", lokasi: "Bengkel Resmi Toyota Mamuju", rusak: true },
-  { nama: "Sepeda Motor Honda CRF150L", status: "Sedang digunakan", kondisi: "Baik", lokasi: "Parkiran Utama", rusak: false },
+const UNIT_DARAT: Omit<UnitArmada, "status" | "kondisi" | "lokasi">[] = [
+  { nama: "Kendaraan Ransel Toyota Hilux", rusak: true },
+  { nama: "Sepeda Motor Honda CRF150L", rusak: false },
 ];
 
 /** Unit air: RIB / perahu karet + mesin outboard. */
-const unitAir: UnitArmada[] = [
-  { nama: "RIB 9 M (Zodiac MK III)", status: "Standby", kondisi: "Baik", lokasi: "Dermaga Kantor P3KB", rusak: false },
-  { nama: "RIB 12 M (Zodiac)", status: "Standby", kondisi: "Baik", lokasi: "Dermaga Kantor P3KB", rusak: false },
-  { nama: "Mesin Outboard Yamaha 40 PK", status: "Standby", kondisi: "Baik", lokasi: "Gudang SAR Lt. 1", rusak: false },
+const UNIT_AIR: Omit<UnitArmada, "status" | "kondisi" | "lokasi">[] = [
+  { nama: "RIB 9 M (Zodiac MK III)", rusak: false },
+  { nama: "RIB 12 M (Zodiac)", rusak: false },
+  { nama: "Mesin Outboard Yamaha 40 PK", rusak: false },
 ];
 
-/** Unit yang perlu perhatian (kondisi rusak, dari asetList + catatan perbaikan). */
-const unitPerluPerawatan: {
-  nama: string;
-  kondisi: string;
-  keterangan: string;
-}[] = [
-  {
-    nama: "Kendaraan Ransel Toyota Hilux",
-    kondisi: "Rusak Berat",
-    keterangan: "Bunyi kasar mesin, menunggu sparepart dari Makassar",
-  },
-  {
-    nama: "Tenda Medis Emergency 6x4",
-    kondisi: "Rusak Ringan",
-    keterangan: "Pin tiang patah, atap robek 30cm — rujuk ke bengkel jahit",
-  },
-];
+/** Ambil aset master yang terkait unit armada (bila ada). */
+function asetUnit(namaUnit: string): Aset | undefined {
+  const id = PETA_ASET_ARMADA[namaUnit];
+  if (!id) return undefined;
+  return asetList.find((a) => a.id === id);
+}
+
+/** Susun daftar unit armada dengan status live dari master aset. */
+function susunUnitArmada(
+  dasar: Omit<UnitArmada, "status" | "kondisi" | "lokasi">[]
+): UnitArmada[] {
+  return dasar.map((u) => {
+    const aset = asetUnit(u.nama);
+    if (!aset) {
+      return {
+        ...u,
+        status: "Standby",
+        kondisi: "Baik",
+        lokasi: "-",
+      };
+    }
+    return {
+      nama: u.nama,
+      status: aset.status,
+      kondisi: aset.kondisi,
+      lokasi: aset.lokasi,
+      rusak: aset.kondisi !== "Baik" || aset.status === "Rusak Berat" || aset.status === "Rusak Ringan",
+    };
+  });
+}
+
+/** Catatan terakhir pada riwayat aset (paling baru). */
+function keteranganTerakhir(aset: Aset): string {
+  if (aset.riwayat.length === 0) return "-";
+  let terbaru = aset.riwayat[0];
+  for (const r of aset.riwayat) {
+    // Riwayat tersusun dari yang terbaru; tanggal sama → ambil yang terakhir.
+    if (r.tanggal >= terbaru.tanggal) terbaru = r;
+  }
+  return terbaru.keterangan;
+}
+
+/** Berita acara terakhir milik sebuah aset (bila ada). */
+function beritaAcaraAset(asetId: string) {
+  return beritaAcaraByAset(asetId)[0];
+}
 
 /**
  * Kartu kondisi armada: ringkasan di atas (angka standby vs tidak standby),
@@ -452,6 +498,33 @@ const CEKLIST_FIELDS: ResponsiveField<ItemCeklist>[] = [
 export default function OperatorPage() {
   const [activeTab, setActiveTab] = useState<"rib" | "kapal" | "mobil" | "motor">("rib");
   const [armadaFilter, setArmadaFilter] = useState<"Semua" | "Mobil" | "Motor" | "Kapal">("Semua");
+
+  // ── Status live dari master aset ──────────────────────────────────────────
+  // Dihitung saat render supaya keputusan Pengelola BMN (setujui → aset
+  // "Dipindahkan", tolak → aset tetap "Rusak") langsung tercermin di sini.
+  const unitDarat = susunUnitArmada(UNIT_DARAT);
+  const unitAir = susunUnitArmada(UNIT_AIR);
+
+  /** Unit yang perlu perhatian: aset rusak atau sudah dikirim ke service. */
+  const unitPerluPerawatan = asetList
+    .filter((aset) => {
+      if (aset.kondisi !== "Baik") return true;
+      if (aset.status === "Rusak Berat" || aset.status === "Rusak Ringan")
+        return true;
+      // Dipindahkan karena berita acara disetujui → menunggu service.
+      const ba = beritaAcaraAset(aset.id);
+      return aset.status === "Dipindahkan" && ba?.status === "Disetujui";
+    })
+    .map((aset) => {
+      const ba = beritaAcaraAset(aset.id);
+      // Status operasional aset yang ditampilkan (bukan kondisi fisik):
+      // setelah BA disetujui aset menjadi "Dipindahkan" ke tempat service.
+      const keterangan =
+        ba?.status === "Disetujui"
+          ? `Berita acara disetujui — ${ba.keterangan || "dikirim ke tempat service"}`
+          : keteranganTerakhir(aset);
+      return { nama: aset.nama, kondisi: aset.status, keterangan };
+    });
 
   // `armada` menentukan journal mana yang terlihat untuk tiap jenis armada
   const tabs = [
