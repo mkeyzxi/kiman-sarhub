@@ -68,7 +68,7 @@ function getUnitOptionsForArmada(
     .filter(
       (a) => cocokJenisArmada(a, jenisArmada) && a.penanggungJawab === userId
     )
-    .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
+    .map((a) => ({ value: a.kode, label: `${a.nama} (${a.kode})` }));
 }
 
 export default function BuatChecklistPage() {
@@ -234,7 +234,7 @@ export default function BuatChecklistPage() {
     // Simpan checklist
     const result = tambahChecklist({
       tanggal,
-      unit,
+      unit: asetTerkait?.nama ?? unit,
       jenisUnit: (jenisUnit === "RIB" || jenisUnit === "RBB")
         ? "Perahu"
         : (jenisUnit as "Kapal" | "Mobil" | "Motor"),

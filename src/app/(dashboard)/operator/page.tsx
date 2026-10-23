@@ -303,6 +303,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Data Kondisi Armada (turunan dari asetList & logbook) ─────────────────
 // Sumber tunggal: asetList (mock-data). Status "Standby" = siap operasional.
 type UnitArmada = {
+  id: string;
   nama: string;
   status: string;
   kondisi: string;
@@ -326,6 +327,7 @@ function susunUnitArmada(jenis: JenisArmadaDashboard): UnitArmada[] {
         : a.kategori === "Kapal"
     )
     .map((aset) => ({
+      id: aset.id,
       nama: aset.noPolisi ? `${aset.nama} (${aset.noPolisi})` : aset.nama,
       status: aset.status,
       kondisi: aset.kondisi,
@@ -403,7 +405,7 @@ function KondisiArmadaCard({
           ) : (
             <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {standby.map((u) => (
-                <li key={u.nama} className="flex items-center justify-between gap-2 text-sm">
+                <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-slate-700">{u.nama}</span>
                   <span className="text-xs text-slate-400">{u.lokasi}</span>
                 </li>
@@ -421,7 +423,7 @@ function KondisiArmadaCard({
             </p>
             <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {tidakStandby.map((u) => (
-                <li key={u.nama} className="flex items-center justify-between gap-2 text-sm">
+                <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-slate-700">{u.nama}</span>
                   <Badge variant={(STATUS_ASET_VARIANT as Record<string, StatusAsetBadgeVariant>)[u.status] ?? "outline"} className="text-xs">
                     {u.status}
@@ -492,7 +494,7 @@ export default function OperatorPage() {
         ba?.status === "Disetujui"
           ? `Berita acara disetujui — ${ba.keterangan || "dikirim ke tempat service"}`
           : keteranganTerakhir(aset);
-      return { nama: aset.nama, kondisi: aset.status, keterangan };
+      return { id: aset.id, nama: aset.nama, kondisi: aset.status, keterangan };
     });
 
   // `armada` menentukan journal mana yang terlihat untuk tiap jenis armada
@@ -564,7 +566,7 @@ export default function OperatorPage() {
           <div className="space-y-3">
             {unitPerluPerawatan.map((u) => (
               <div
-                key={u.nama}
+                key={u.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3"
               >
                 <div>

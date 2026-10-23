@@ -18,7 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { users, asetList, type FormLogbook } from "@/components/shared/mock-data";
+import {
+  users,
+  asetList,
+  cariAsetDmUnit,
+  type FormLogbook,
+} from "@/components/shared/mock-data";
 import { simpanTahapAwal } from "@/components/shared/logbook-store";
 import { cn } from "@/lib/utils";
 
@@ -73,7 +78,7 @@ function getUnitOptions(kategori: FormLogbook["kategoriUnit"]): {
       if (kategori === "Kapal") return !/RIB|RBB/i.test(a.nama);
       return false;
     })
-    .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
+    .map((a) => ({ value: a.kode, label: `${a.nama} (${a.kode})` }));
 }
 
 /**
@@ -161,7 +166,11 @@ export default function TambahLogbookPage() {
       return;
     }
 
-    const hasil = simpanTahapAwal(formData);
+    const asetUnit = cariAsetDmUnit(formData.jenisUnit);
+    const hasil = simpanTahapAwal({
+      ...formData,
+      jenisUnit: asetUnit?.nama ?? formData.jenisUnit,
+    });
 
     if ("error" in hasil) {
       setErrors(hasil.errors as Partial<Record<keyof FormLogbook, string>>);
