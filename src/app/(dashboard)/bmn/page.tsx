@@ -28,10 +28,14 @@ export default function MasterDataBMNPage() {
   const [statusFilter, setStatusFilter] = useState("Semua");
 
   const filteredAset = asetList.filter((aset) => {
+    const q = searchQuery.toLowerCase();
     const matchSearch =
-      aset.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      aset.kode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      aset.nup.includes(searchQuery);
+      aset.nama.toLowerCase().includes(q) ||
+      aset.kode.toLowerCase().includes(q) ||
+      aset.nup.includes(searchQuery) ||
+      (aset.kodeBarang ?? "").toLowerCase().includes(q) ||
+      (aset.noPolisi ?? "").toLowerCase().includes(q) ||
+      (aset.merk ?? "").toLowerCase().includes(q);
     const matchStatus = statusFilter === "Semua" || aset.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -114,7 +118,7 @@ export default function MasterDataBMNPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Cari nama aset, kode, atau NUP..."
+              placeholder="Cari nama, kode barang, NUP, atau nomor polisi..."
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

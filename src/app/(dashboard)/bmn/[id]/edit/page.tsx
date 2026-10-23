@@ -71,7 +71,7 @@ export default function EditAsetPage() {
     if (isKodeAsetTerpakai(formData.kode, aset.id)) {
       next.kode = "Kode aset sudah dipakai aset lain.";
     }
-    if (isNupAsetTerpakai(formData.nup, aset.id)) {
+    if (isNupAsetTerpakai(formData.nup, aset.id, aset.kodeBarang)) {
       next.nup = "NUP sudah terdaftar pada aset lain.";
     }
     if (!isValidISODate(formData.tanggalPenetapan)) {
@@ -311,11 +311,16 @@ export default function EditAsetPage() {
                 required
               >
                 <option value="">Pilih penanggung jawab</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.nama}
-                  </option>
-                ))}
+                {users
+                  .filter(
+                    (user) =>
+                      user.role === "OPERATOR_LAPANGAN" && user.aktif
+                  )
+                  .map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nama}
+                    </option>
+                  ))}
               </Select>
             </div>
           </div>

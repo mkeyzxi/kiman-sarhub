@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   readinessStats,
   riwayatOperasi,
+  logbookPerjalananList,
 } from "@/components/shared/mock-data";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -48,6 +49,27 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function LaporanPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
+
+  // Rekap perjalanan diturunkan dari logbook agar angkanya selalu sinkron.
+  const perjalananAir = logbookPerjalananList.filter(
+    (l) =>
+      l.kategoriUnit === "Kapal" ||
+      l.kategoriUnit === "RIB" ||
+      l.kategoriUnit === "RBB"
+  ).length;
+  const perjalananDarat = logbookPerjalananList.filter(
+    (l) => l.kategoriUnit === "Mobil" || l.kategoriUnit === "Motor"
+  ).length;
+  const jamPersonel = Math.round(
+    logbookPerjalananList.reduce((total, l) => {
+      if (!l.jamKembali) return total;
+      const [jamBerangkat, menitBerangkat] = l.jamBerangkat.split(":").map(Number);
+      const [jamKembali, menitKembali] = l.jamKembali.split(":").map(Number);
+      const durasiJam =
+        (jamKembali * 60 + menitKembali - (jamBerangkat * 60 + menitBerangkat)) / 60;
+      return total + (durasiJam > 0 ? durasiJam : 0) * l.jumlahPersonel;
+    }, 0)
+  );
 
   return (
     <div className="space-y-6">
@@ -95,7 +117,7 @@ export default function LaporanPage() {
           iconColor="text-blue-600"
         />
         <StatCard
-          label="Personel Siaga"
+          label="Personel Standby"
           value={45}
           icon={Users}
           iconBg="bg-amber-50"
@@ -173,12 +195,12 @@ export default function LaporanPage() {
                   <Ship className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-800">Perahu Karet</p>
-                  <p className="text-xs text-slate-500">RIB 9M & 12M</p>
+                  <p className="text-sm font-medium text-slate-800">Kapal & Perahu Karet</p>
+                  <p className="text-xs text-slate-500">Kapal, RIB & RBB</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-slate-800">12</p>
+                <p className="text-lg font-bold text-slate-800">{perjalananAir}</p>
                 <p className="text-xs text-slate-500">perjalanan</p>
               </div>
             </div>
@@ -188,12 +210,12 @@ export default function LaporanPage() {
                   <Package className="h-5 w-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-800">Kendaraan</p>
-                  <p className="text-xs text-slate-500">Hilux & CRF</p>
+                  <p className="text-sm font-medium text-slate-800">Kendaraan Darat</p>
+                  <p className="text-xs text-slate-500">Mobil & Motor</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-slate-800">43</p>
+                <p className="text-lg font-bold text-slate-800">{perjalananDarat}</p>
                 <p className="text-xs text-slate-500">perjalanan</p>
               </div>
             </div>
@@ -208,7 +230,7 @@ export default function LaporanPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-slate-800">260</p>
+                <p className="text-lg font-bold text-slate-800">{jamPersonel}</p>
                 <p className="text-xs text-slate-500">jam operasi</p>
               </div>
             </div>

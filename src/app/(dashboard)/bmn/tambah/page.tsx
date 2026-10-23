@@ -295,11 +295,16 @@ export default function TambahAsetPage() {
                 required
               >
                 <option value="">Pilih penanggung jawab</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.nama} ({user.role})
-                  </option>
-                ))}
+                {users
+                  .filter(
+                    (user) =>
+                      user.role === "OPERATOR_LAPANGAN" && user.aktif
+                  )
+                  .map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nama} ({user.role})
+                    </option>
+                  ))}
               </Select>
             </div>
           </div>

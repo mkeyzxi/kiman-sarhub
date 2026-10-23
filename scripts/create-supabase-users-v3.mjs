@@ -1,27 +1,49 @@
 /**
- * Script v3.1: Membuat user Supabase via Admin API + cleanup
+ * Script v3.2: Membuat user Supabase via Admin API + cleanup
  *
  * Jalankan dengan:
  *   node scripts/create-supabase-users-v3.mjs               (dry-run: tampilkan saja)
  *   node scripts/create-supabase-users-v3.mjs --apply       (hapus data lama + buat baru)
  *   node scripts/create-supabase-users-v3.mjs --apply --skip-cleanup
- *      (buat user baru TANPA hapus data lama — upsert pakai NIP sebagai kunci)
+ *      (buat user baru TANPA hapus data lama; user existing dengan NIP sama dilewati)
+ *
+ * Script memuat kredensial dari `.env` (Node >= 20.12):
+ *   NEXT_PUBLIC_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY
  *
  * Perubahan:
  *   1. Login sekarang berbasis NIP → email identitas di auth.users = {nip}@basarnas.ac.id
- *   2. Validasi format NIP 16-18 digit
+ *   2. Validasi format NIP 16-18 digit + cek NIP duplikat
  *   3. `app_metadata` di-fill saat create (untuk performa login 0 RTT)
- *   4. `user_metadata` sinkron dengan public.users (source of truth)
+ *   4. `user_metadata` menyimpan profil tambahan, termasuk `kendaraan`
  *   5. Flag --dry-run (default), --apply, --skip-cleanup
- *   6. Data selaras dengan kondisi live di database (9 user, termasuk
- *      Muhammad Makbul N = nonaktif, Mahmud Afandi = KAKANSAR)
+ *   6. Data: 4 user non-operator + 17 operator PIC kendaraan + 2 operator
+ *      existing yang tidak ada di daftar PIC (total 23 user)
+ *   7. `kendaraan` adalah referensi penugasan di script; public.users belum
+ *      memiliki kolom kendaraan
  */
 
+import { loadEnvFile } from "node:process";
 import { createClient } from "@supabase/supabase-js";
 
+// Muat .env jika ada; kalau tidak ada, pakai environment variable yang sudah diset.
+try {
+  loadEnvFile();
+} catch {
+  // Abaikan — nanti dicek apakah SUPABASE_SERVICE_ROLE_KEY tersedia.
+}
+
 // Konfigurasi Supabase
-const SUPABASE_URL = "https://yzswezcgttegsrqisrfq.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY = "sb_secret_MaYZXFo-08LcmBAY9W9H7g_MbVPz5Q2";
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://yzswezcgttegsrqisrfq.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error(
+    "SUPABASE_SERVICE_ROLE_KEY belum diset. Isi .env atau jalankan dengan --env-file=.env"
+  );
+  process.exit(1);
+}
 
 const APPLY = process.argv.includes("--apply");
 const SKIP_CLEANUP = process.argv.includes("--skip-cleanup");
@@ -41,20 +63,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 // ============================================================
-// DATA USER (selaras dengan kondisi live, 9 user)
+// DATA USER
 //
 // Catatan:
 //  - email TIDAK perlu di-fill: akan di-generate otomatis dari NIP.
 //    Tapi Anda boleh menambah `email` per-user kalau mau set kontak.
 //  - `aktif: false` = soft delete; `password_changed: false` = password
 //    masih default (admin IT harus minta user ganti).
+//  - `kendaraan` = label operasional penanggung jawab kendaraan.
+//    Satu orang bisa bertanggung jawab atas lebih dari satu kendaraan.
+//    Data ini masih berupa referensi di script; public.users belum
+//    memiliki kolom kendaraan.
 // ============================================================
-const users = [
+
+const DEFAULT_PASSWORD = "password123";
+
+const nonOperatorUsers = [
   {
     nip: "198208042009121003",
     nama: "Mahmud Afandi",
     role: "KAKANSAR",
-    password: "password123",
+    password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
   },
@@ -62,7 +91,7 @@ const users = [
     nip: "199810212022032001",
     nama: "Medline",
     role: "PENGELOLA_BMN",
-    password: "password123",
+    password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
   },
@@ -70,47 +99,7 @@ const users = [
     nip: "200006042025061006",
     nama: "Oky Juneva Marsel",
     role: "ADMIN_IT",
-    password: "password123",
-    aktif: true,
-    password_changed: true,
-  },
-  {
-    nip: "198607222007121001",
-    nama: "Andi Juli Adenam Syariyanto",
-    role: "OPERATOR_LAPANGAN",
-    password: "password123",
-    aktif: true,
-    password_changed: true,
-  },
-  {
-    nip: "198212022007121002",
-    nama: "Hasril",
-    role: "OPERATOR_LAPANGAN",
-    password: "password123",
-    aktif: true,
-    password_changed: true,
-  },
-  {
-    nip: "198908082010121001",
-    nama: "Agustang",
-    role: "OPERATOR_LAPANGAN",
-    password: "password123",
-    aktif: true,
-    password_changed: true,
-  },
-  {
-    nip: "199806052022031001",
-    nama: "Muhammad Adiaksa",
-    role: "OPERATOR_LAPANGAN",
-    password: "password123",
-    aktif: true,
-    password_changed: true,
-  },
-  {
-    nip: "199811292022031001",
-    nama: "Andrie Nurseta",
-    role: "OPERATOR_LAPANGAN",
-    password: "password123",
+    password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
   },
@@ -119,17 +108,208 @@ const users = [
     nip: "1111111111111111",
     nama: "Muhammad Makbul N",
     role: "PENGELOLA_BMN",
-    password: "password123",
+    password: DEFAULT_PASSWORD,
     aktif: false,
     password_changed: false,
   },
 ];
 
+// Operator lapangan yang menjadi penanggung jawab kendaraan.
+// Urutan mengikuti daftar PIC kendaraan. Hasril muncul dua kali di daftar
+// sumber, tetapi digabung menjadi satu user dengan dua kendaraan.
+const operatorLapangan = [
+  {
+    nip: "198908082010121001",
+    nama: "Agustang",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Rescue Car D-Max Compartement 02"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: true,
+  },
+  {
+    nip: "198802052007121001",
+    nama: "Abd. Malik",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Kendaraan Umum"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "199709262022031001",
+    nama: "Fajar Farial",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["KN SAR Parikesit"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "198102142005021001",
+    nama: "Ardiansyah",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["RBB"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "199806052022031001",
+    nama: "Muhammad Adiaksa",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Rescue Truck 01"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: true,
+  },
+  {
+    nip: "199811182022031001",
+    nama: "Agan Kalana",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Peralatan Gudang"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    // Di daftar penugasan disebut "Muh. Haerul"; nama resmi mengikuti NIP.
+    nip: "200001052025211020",
+    nama: "Haerul Vikra",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["D-Max Double Cabin 02"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "200206132025061001",
+    nama: "Muh. Abduh Yanis",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Truck Compartement"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "200004152022031002",
+    nama: "Ibnu Anjaya",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["D-Max 01"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "200305132025061001",
+    nama: "Calvin Datundelang",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Motor Trail 04"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "199807192025211027",
+    nama: "Wahyudi",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Rescue Truck 02"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "199610042025211053",
+    nama: "Muhammad Fajrin S.Y.",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Rescue Car Carier"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "200409052025061001",
+    nama: "Sulaeman Mustamin",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Motor Trail 02"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "198212022007121002",
+    nama: "Hasril",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["RIB 02 - 12 M", "Rescue Car Compartment"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: true,
+  },
+  {
+    nip: "198807022022031001",
+    nama: "Ahmad Aidid",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["RIB 01 - 9 M"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "199612212022031001",
+    nama: "Akmal Suryadil",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Rescue Car Dmax Double Cabin 03", "Rescue Motor Trail 01"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+  {
+    nip: "199705052022031001",
+    nama: "Muhammad Akbar",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: ["Rescue Car Dmax 01", "Rescue Motor Trail 03"],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: false,
+  },
+];
+
+// Operator lapangan existing yang tidak tercantum dalam daftar PIC kendaraan.
+// Tetap dipertahankan agar akun live tidak terhapus saat cleanup.
+const operatorLapanganLain = [
+  {
+    nip: "198607222007121001",
+    nama: "Andi Juli Adenam Syariyanto",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: [],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: true,
+  },
+  {
+    nip: "199811292022031001",
+    nama: "Andrie Nurseta",
+    role: "OPERATOR_LAPANGAN",
+    kendaraan: [],
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: true,
+  },
+];
+
+// Total 23 user: 4 non-operator + 19 operator lapangan
+// (17 PIC kendaraan + 2 operator existing tanpa data PIC).
+const users = [...nonOperatorUsers, ...operatorLapangan, ...operatorLapanganLain];
+
 // ============================================================
 // VALIDASI: pastikan semua NIP valid 16-18 digit
 // ============================================================
+function normalizeNip(nip) {
+  return String(nip).replace(/[\s.\-_]/g, "").trim();
+}
+
 function validateNip(nip) {
-  const clean = String(nip).replace(/[\s.\-_]/g, "").trim();
+  const clean = normalizeNip(nip);
   if (!/^\d{16,18}$/.test(clean)) {
     return { ok: false, message: `NIP ${nip} tidak valid (harus 16-18 digit)` };
   }
@@ -138,11 +318,19 @@ function validateNip(nip) {
 
 function validateAll() {
   let ok = true;
+  const seenNip = new Map();
+
   for (const u of users) {
+    const cleanNip = normalizeNip(u.nip);
     const r = validateNip(u.nip);
     if (!r.ok) {
       console.error(`  ❌ ${r.message}`);
       ok = false;
+    } else if (seenNip.has(cleanNip)) {
+      console.error(`  ❌ NIP duplikat: ${cleanNip} (${seenNip.get(cleanNip)} & ${u.nama})`);
+      ok = false;
+    } else {
+      seenNip.set(cleanNip, u.nama);
     }
     if (typeof u.password !== "string" || u.password.length < 8) {
       console.error(`  ❌ ${u.nama}: password minimal 8 karakter`);
@@ -152,13 +340,17 @@ function validateAll() {
       console.error(`  ❌ ${u.nip}: nama wajib diisi`);
       ok = false;
     }
+    if (u.kendaraan !== undefined && !Array.isArray(u.kendaraan)) {
+      console.error(`  ❌ ${u.nama}: kendaraan harus berupa array`);
+      ok = false;
+    }
   }
   if (!ok) process.exit(1);
 }
 
 // Helper: generate email internal dari NIP
 function generateInternalEmail(nip) {
-  return `${String(nip).toLowerCase().replace(/[\s.\-_]/g, "")}@basarnas.ac.id`;
+  return `${normalizeNip(nip).toLowerCase()}@basarnas.ac.id`;
 }
 
 // ============================================================
@@ -177,7 +369,7 @@ async function cleanup() {
   if (authTestError) {
     console.error("SERVICE ROLE KEY TIDAK VALID!");
     console.error("Error:", authTestError.message);
-    console.error("\nPastikan service_role key benar di file script.");
+    console.error("\nPastikan SUPABASE_SERVICE_ROLE_KEY di .env benar.");
     process.exit(1);
   }
   console.log(`Service role key valid. ${authTest.users.length} auth users ditemukan.`);
@@ -222,22 +414,25 @@ async function createUsers() {
   for (const user of users) {
     try {
       // 1. Siapkan data
-      const normalizeNip = String(user.nip).replace(/[\s.\-_]/g, "").trim();
-      const internalEmail = user.email || generateInternalEmail(normalizeNip);
+      const cleanNip = normalizeNip(user.nip);
+      const kendaraan = (user.kendaraan ?? []).join(", ") || "-";
+      const internalEmail = user.email || generateInternalEmail(cleanNip);
 
       // Validasi email @basarnas.ac.id prefix == NIP (jika diberikan)
       if (user.email && user.email.toLowerCase().endsWith("@basarnas.ac.id")) {
         const prefix = user.email.toLowerCase().split("@")[0];
-        if (prefix !== normalizeNip.toLowerCase()) {
+        if (prefix !== cleanNip.toLowerCase()) {
           console.error(
-            `  ❌ ${user.nama}: email @basarnas.ac.id harus sesuai NIP (${normalizeNip})`
+            `  ❌ ${user.nama}: email @basarnas.ac.id harus sesuai NIP (${cleanNip})`
           );
           continue;
         }
       }
 
       if (DRY_RUN) {
-        console.log(`  [DRY-RUN] akan membuat: ${user.nama} (${normalizeNip}) email=${internalEmail} role=${user.role}`);
+        console.log(
+          `  [DRY-RUN] akan membuat: ${user.nama} (${cleanNip}) email=${internalEmail} role=${user.role} kendaraan=${kendaraan}`
+        );
         continue;
       }
 
@@ -248,8 +443,9 @@ async function createUsers() {
         email_confirm: true,
         user_metadata: {
           role: user.role,
-          nip: normalizeNip,
+          nip: cleanNip,
           nama: user.nama,
+          kendaraan: user.kendaraan ?? [],
         },
       });
 
@@ -260,6 +456,7 @@ async function createUsers() {
 
       console.log(`  Auth user dibuat: ${internalEmail}`);
       console.log(`    ID: ${authData.user.id}`);
+      console.log(`    Kendaraan: ${kendaraan}`);
 
       // 3. Insert ke public.users
       const { error: insertError } = await supabase
@@ -268,7 +465,7 @@ async function createUsers() {
           {
             id: authData.user.id,
             email: internalEmail,
-            nip: normalizeNip,
+            nip: cleanNip,
             nama: user.nama,
             role: user.role,
             aktif: user.aktif,
@@ -293,7 +490,7 @@ async function createUsers() {
           provider: "email",
           providers: ["email"],
           role: user.role,
-          nip: normalizeNip,
+          nip: cleanNip,
           nama: user.nama,
           aktif: user.aktif,
           password_changed: user.password_changed,
@@ -322,7 +519,8 @@ async function verify() {
   for (const u of authUsers.users) {
     const am = u.app_metadata ?? {};
     const role = am.role ?? u.user_metadata?.role ?? "?";
-    console.log(`  - [${role}] ${u.email} (aktif=${am.aktif ?? "?"})`);
+    const kendaraan = (u.user_metadata?.kendaraan ?? []).join(", ") || "-";
+    console.log(`  - [${role}] ${u.email} (aktif=${am.aktif ?? "?"}, kendaraan=${kendaraan})`);
   }
 
   // Cek public.users
@@ -361,7 +559,7 @@ async function verify() {
 // MAIN
 // ============================================================
 async function main() {
-  console.log("=== SUPABASE USER CREATION SCRIPT v3.1 ===\n");
+  console.log("=== SUPABASE USER CREATION SCRIPT v3.2 ===\n");
 
   validateAll();
   await cleanup();

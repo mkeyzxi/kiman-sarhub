@@ -122,8 +122,12 @@ try {
     await client.send("Page.navigate", { url: `${origin}/login` });
     await sleep(2000);
     await client.send("Runtime.evaluate", {
-      expression: `localStorage.setItem('userRole','OPERATOR_LAPANGAN');
-                   localStorage.setItem('userNama','Ahmad Fauzi');`,
+      expression: `localStorage.setItem('userRole', ${JSON.stringify(
+        process.env.CDP_ROLE ?? "OPERATOR_LAPANGAN"
+      )});
+                   localStorage.setItem('userNama', ${JSON.stringify(
+                     process.env.CDP_NAMA ?? "Ahmad Fauzi"
+                   )});`,
     });
   }
 

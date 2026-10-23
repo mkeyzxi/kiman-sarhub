@@ -28,7 +28,7 @@ import {
   logAktivitas,
   riwayatOperasi,
   STATUS_ASET_VARIANT,
-  STATUS_ASET_SIAGA,
+  STATUS_ASET_STANDBY,
   type StatusAset,
 } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export default function PimpinanPage() {
   const readinessIndex = readinessStats.readinessIndex;
 
   // Status aset yang dihitung "lengkap" = benar-benar siap operasional.
-  const siap = (status: StatusAset) => STATUS_ASET_SIAGA.includes(status);
+  const siap = (status: StatusAset) => STATUS_ASET_STANDBY.includes(status);
   const filteredAset = asetList.filter((aset) => {
     if (asetFilter === "Standby") return siap(aset.status);
     if (asetFilter === "Belum Lengkap") return !siap(aset.status);
@@ -104,7 +104,7 @@ export default function PimpinanPage() {
           iconColor="text-emerald-600"
         />
         <StatCard
-          label="Personel Siaga"
+          label="Personel Standby"
           value={45}
           icon={Users}
           iconBg="bg-amber-50"
@@ -112,7 +112,7 @@ export default function PimpinanPage() {
         />
       </div>
 
-      {/* Rincian Aset Siaga &amp; Tidak Lengkap */}
+      {/* Rincian Aset Standby &amp; Tidak Lengkap */}
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

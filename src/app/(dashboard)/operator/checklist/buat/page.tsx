@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Wrench, Plus, Trash2, PencilLine, FileText } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Plus, Trash2, PencilLine, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,9 @@ import {
   getKategoriTemplate,
   asetList,
   cariAsetDmUnit,
+  bolehIsiChecklist,
   getUserById,
+  type Aset,
   type KondisiHasil,
   type JenisArmada,
   type ItemHasilPengecekan,
@@ -27,50 +29,46 @@ const jenisArmadaOptions: { value: JenisArmada; label: string; icon: React.Eleme
   { value: "RBB", label: "RBB", icon: Ship },
   { value: "Mobil", label: "Mobil", icon: Car },
   { value: "Motor", label: "Motor", icon: Bike },
-  { value: "Lainnya", label: "Peralatan Lainnya", icon: Wrench },
 ];
 
 /**
- * Mapping dari JenisArmada ke KategoriAset di asetList.
- * Digunakan untuk menyajikan dropdown unit yang relevan.
+ * Pemetaan jenis armada ke kategori aset. RIB dan RBB termasuk kategori
+ * "Kapal" pada register BMN, sehingga dibedakan lewat nama aset.
  */
 const kategoriAsetMapping: Record<JenisArmada, string[]> = {
   Kapal: ["Kapal"],
-  RIB: ["Peralatan SAR"],
-  RBB: ["Peralatan SAR"],
+  RIB: ["Kapal"],
+  RBB: ["Kapal"],
   Mobil: ["Mobil"],
   Motor: ["Motor"],
-  Lainnya: ["Medis", "Komunikasi", "Dokumentasi", "Peralatan SAR"],
+  Lainnya: ["Peralatan SAR", "Medis", "Komunikasi", "Dokumentasi"],
 };
 
-/** Daftar unit yang tersedia berdasarkan jenis armada. */
-function getUnitOptionsForArmada(jenisArmada: JenisArmada): { value: string; label: string }[] {
-  const staticUnits: Record<string, { value: string; label: string }[]> = {
-    RIB: [
-      { value: "RIB 9 M", label: "RIB 9 M" },
-      { value: "RIB 12 M", label: "RIB 12 M" },
-    ],
-    Kapal: [
-      { value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" },
-    ],
-    RBB: [
-      { value: "RBB 309 MAMUJU", label: "RBB 309 MAMUJU" },
-    ],
-  };
+/** Apakah aset termasuk jenis armada yang dipilih pada form. */
+function cocokJenisArmada(aset: Aset, jenisArmada: JenisArmada): boolean {
+  if (!kategoriAsetMapping[jenisArmada].includes(aset.kategori)) return false;
+  if (jenisArmada === "RIB") {
+    return /RIB|perahu/i.test(aset.nama) && !/RBB/i.test(aset.nama);
+  }
+  if (jenisArmada === "RBB") return /RBB/i.test(aset.nama);
+  if (jenisArmada === "Kapal") return !/RIB|RBB/i.test(aset.nama);
+  return true;
+}
 
-  const kategoriList = kategoriAsetMapping[jenisArmada] ?? [];
-  const asetUnits = asetList
-    .filter((a) => kategoriList.includes(a.kategori))
-    .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
-
-  const merged = [...(staticUnits[jenisArmada] ?? [])];
-  asetUnits.forEach((u) => {
-    if (!merged.some((m) => m.value === u.value)) {
-      merged.push(u);
-    }
-  });
-
-  return merged;
+/**
+ * Daftar unit yang boleh diperiksa: hanya aset yang menjadi tanggung jawab
+ * user. Unit statis lama (RIB 9 M, KN SAR MAMUJU 01) tidak dipakai lagi karena
+ * tidak ada di register BMN.
+ */
+function getUnitOptionsForArmada(
+  jenisArmada: JenisArmada,
+  userId: string
+): { value: string; label: string }[] {
+  return asetList
+    .filter(
+      (a) => cocokJenisArmada(a, jenisArmada) && a.penanggungJawab === userId
+    )
+    .map((a) => ({ value: a.kode, label: `${a.nama} (${a.kode})` }));
 }
 
 export default function BuatChecklistPage() {
@@ -79,7 +77,7 @@ export default function BuatChecklistPage() {
   const [unit, setUnit] = useState("");
   const [jenisUnit, setJenisUnit] = useState<JenisArmada>("Kapal");
   /** PJ (pemeriksa) terisi otomatis dari akun yang sedang login — bukan dropdown. */
-  const [pemeriksa, _setPemeriksa] = useState(ses.nama);
+  const pemeriksa = ses.nama;
   const [templateId, setTemplateId] = useState("");
   const [catatan, setCatatan] = useState("");
   /** Tersimpan sementara ID checklist yang baru dibuat (untuk tombol berita acara). */
@@ -87,6 +85,12 @@ export default function BuatChecklistPage() {
 
   // Aset terkait unit yang dipilih — untuk menampilkan PJ aset pada form.
   const asetTerkait = useMemo(() => cariAsetDmUnit(unit), [unit]);
+  /**
+   * Hak pengisian: user harus operator lapangan DAN penanggung jawab aset.
+   * Unit yang dipilih selalu berasal dari aset milik user, tetapi pengecekan
+   * ini tetap dilakukan sebagai lapisan pengaman saat submit.
+   */
+  const bolehIsiUnit = bolehIsiChecklist(asetTerkait, ses.id, ses.role);
   const pjAset = asetTerkait
     ? {
         id: asetTerkait.penanggungJawab,
@@ -96,7 +100,7 @@ export default function BuatChecklistPage() {
     : undefined;
 
   // Mode manual dipakai untuk peralatan yang tidak punya template dari form
-  // fisik kantor (mis. Medis & Komunikasi). Item ditulis sendiri oleh pemeriksa.
+  // fisik kantor (mis. peralatan lain). Item ditulis sendiri oleh pemeriksa.
   const [modeManual, setModeManual] = useState(false);
   const [itemManual, setItemManual] = useState<
     { id: string; label: string; kondisi: KondisiHasil; keterangan: string }[]
@@ -111,17 +115,17 @@ export default function BuatChecklistPage() {
     [templateId]
   );
 
-  // Hanya armada yang punya template dari form fisik kantor. Peralatan Medis &
-  // Komunikasi tidak punya template, jadi memakai mode input manual.
+  // Hanya armada yang punya template dari form fisik kantor. Peralatan
+  // "Lainnya" memakai mode input manual.
   const templateTersedia = useMemo(
     () => checklistTemplates.filter((t) => t.jenisArmada === jenisUnit),
     [jenisUnit]
   );
 
-  // Unit options berdasarkan jenis armada
+  // Unit options hanya aset yang menjadi tanggung jawab user yang login.
   const unitOptions = useMemo(
-    () => getUnitOptionsForArmada(jenisUnit),
-    [jenisUnit]
+    () => getUnitOptionsForArmada(jenisUnit, ses.id),
+    [jenisUnit, ses.id]
   );
 
   // Item dikelompokkan mengikuti bagian pada form fisik (mis. "Kamar Mesin").
@@ -203,6 +207,9 @@ export default function BuatChecklistPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Hanya operator lapangan yang menjadi PJ unit boleh menyimpan checklist.
+    if (!bolehIsiUnit) return;
+
     // Kumpulkan item hasil pemeriksaan
     const items: ItemHasilPengecekan[] = modeManual
       ? itemManual.map((i) => ({
@@ -227,7 +234,7 @@ export default function BuatChecklistPage() {
     // Simpan checklist
     const result = tambahChecklist({
       tanggal,
-      unit,
+      unit: asetTerkait?.nama ?? unit,
       jenisUnit: (jenisUnit === "RIB" || jenisUnit === "RBB")
         ? "Perahu"
         : (jenisUnit as "Kapal" | "Mobil" | "Motor"),
@@ -258,6 +265,32 @@ export default function BuatChecklistPage() {
         (i) => i.kondisi === "Rusak Ringan" || i.kondisi === "Rusak Berat"
       ) ?? false)
     : false;
+
+  // Aturan akses: hanya Operator Lapangan yang boleh membuka form pengisian.
+  // Pengelola BMN, Kakansar, dan Admin IT hanya dapat melihat checklist.
+  if (ses.role !== "OPERATOR_LAPANGAN") {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Card className="p-8 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-amber-500" />
+          <h1 className="text-lg font-semibold text-slate-800">
+            Tidak berhak mengisi checklist
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Checklist perawatan hanya dapat diisi oleh{" "}
+            <strong>Operator Lapangan</strong> yang ditunjuk sebagai penanggung
+            jawab unit. Peran Anda saat ini: <strong>{ses.jabatan}</strong>.
+          </p>
+          <Link href="/operator/checklist" className="mt-5 inline-block">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4" />
+              Kembali ke Checklist
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -374,19 +407,26 @@ export default function BuatChecklistPage() {
                   ))}
                 </Select>
               ) : (
-                <Input
-                  id="unit"
-                  placeholder="Masukkan nama unit..."
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  required
-                />
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  Tidak ada unit{" "}
+                  <strong>
+                    {jenisArmadaOptions.find((j) => j.value === jenisUnit)?.label ??
+                      jenisUnit}
+                  </strong>{" "}
+                  yang menjadi tanggung jawab Anda.
+                </div>
               )}
               <p className="text-xs text-slate-500">
                 {unitOptions.length > 0
-                  ? "Pilih unit dari daftar yang tersedia"
-                  : "Ketik manual nama unit yang diperiksa"}
+                  ? "Hanya unit yang menjadi tanggung jawab Anda yang ditampilkan."
+                  : "Hubungi Pengelola BMN bila penanggung jawab unit perlu diubah."}
               </p>
+              {unit && !bolehIsiUnit && (
+                <p className="text-xs text-rose-600">
+                  Anda bukan penanggung jawab unit ini sehingga tidak dapat
+                  menyimpan checklist.
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -810,13 +850,14 @@ export default function BuatChecklistPage() {
           <Button
             type="submit"
             disabled={
-              modeManual
+              !bolehIsiUnit ||
+              (modeManual
                 ? itemManual.length === 0 ||
                   itemBelumDijawab > 0 ||
                   itemManualRusakTanpaKeterangan > 0
                 : !template ||
                   itemBelumDijawab > 0 ||
-                  itemRusakTanpaKeterangan > 0
+                  itemRusakTanpaKeterangan > 0)
             }
           >
             Simpan Checklist

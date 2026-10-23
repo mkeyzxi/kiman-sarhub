@@ -153,7 +153,7 @@ export default function TambahPenggunaPage() {
               <Label htmlFor="nama">Nama Lengkap</Label>
               <Input
                 id="nama"
-                placeholder="Contoh: Siti Nurhaliza"
+                placeholder="Contoh: Fajar Farial"
                 value={formData.nama}
                 onChange={(e) => handleChange("nama", e.target.value)}
                 required
