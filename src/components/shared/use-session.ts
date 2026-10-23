@@ -30,18 +30,23 @@ export function useSesiUser(): SesiUser {
   // Cocokkan nama login dengan daftar user mock
   const cocok = nama ? users.find((u) => u.nama === nama) : undefined;
 
-  if (nama && cocok) {
-    const peran = (role || cocok.role) as UserRole;
+  if (nama) {
+    const peran = (role || cocok?.role || "PENGELOLA_BMN") as UserRole;
     return {
-      id: cocok.id,
-      nama: cocok.nama,
+      id: cocok?.id ?? `login:${nama}`,
+      nama,
       role: peran,
       jabatan: roleLabels[peran],
     };
   }
 
-  // Fallback: user pertama (preview)
-  const fallback = getUserById("usr-001") ?? users[0];
+  // Fallback untuk preview tanpa login: operator lapangan, supaya form
+  // checklist tetap dapat dicoba. Saat login, identitas asli dari localStorage
+  // yang dipakai.
+  const fallback =
+    getUserById("usr-005") ??
+    users.find((u) => u.role === "OPERATOR_LAPANGAN") ??
+    users[0];
   const peranFallback = fallback.role;
   return {
     id: fallback.id,

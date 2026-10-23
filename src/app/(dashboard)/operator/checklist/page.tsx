@@ -23,6 +23,7 @@ import { Input, Select } from "@/components/ui/input";
 import { checklistTemplates, countItemKritis, getUserById } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
 import { checklistHarianList } from "@/components/shared/mock-data";
+import { useSesiUser } from "@/components/shared/use-session";
 
 // ─── Data Checklist Perawatan ────────────────────────────────────────────────
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -52,6 +53,8 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function ChecklistPerawatanPage() {
+  const ses = useSesiUser();
+  const bolehBuatChecklist = ses.role === "OPERATOR_LAPANGAN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
@@ -79,12 +82,18 @@ export default function ChecklistPerawatanPage() {
             Pemeriksaan harian dan perawatan unit SAR
           </p>
         </div>
-        <Link href="/operator/checklist/buat">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Buat Checklist
-          </Button>
-        </Link>
+        {bolehBuatChecklist ? (
+          <Link href="/operator/checklist/buat">
+            <Button>
+              <Plus className="h-4 w-4" />
+              Buat Checklist
+            </Button>
+          </Link>
+        ) : (
+          <Badge variant="outline" className="self-start">
+            Pengisian hanya oleh operator lapangan
+          </Badge>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -131,7 +140,7 @@ export default function ChecklistPerawatanPage() {
             onChange={(e) => setJenisFilter(e.target.value)}
           >
             <option value="Semua">Semua Jenis</option>
-            <option value="Kapal">Kapal (KN SAR)</option>
+            <option value="Kapal">Kapal</option>
             <option value="Perahu">Perahu (RIB)</option>
             <option value="Mobil">Mobil</option>
             <option value="Motor">Motor</option>

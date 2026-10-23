@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Ship,
   FileText,
@@ -32,9 +32,9 @@ import {
 const jurnalRIB = [
   {
     id: "rib-01",
-    nama: "RIB 9 M",
+    nama: "RIB Kelas I Vektor RIB 1100",
     tahun: "2009",
-    status: "Siaga",
+    status: "Standby",
     kondisi: "Baik",
     endurance: "85%",
     waktu: "2 Jam 30 Menit",
@@ -64,9 +64,9 @@ const jurnalRIB = [
   },
   {
     id: "rib-02",
-    nama: "RIB 12 M",
+    nama: "RIB Kelas I Sea First",
     tahun: "2021",
-    status: "Siaga",
+    status: "Standby",
     kondisi: "Baik",
     endurance: "92%",
     waktu: "3 Jam 15 Menit",
@@ -100,8 +100,8 @@ const jurnalRIB = [
 const logbookKapal = [
   {
     id: "log-01",
-    namaKapal: "KN SAR MAMUJU 01",
-    noLambung: "309",
+    namaKapal: "Kapal SAR Kelas II",
+    noLambung: "-",
     tanggal: "2026-10-08",
     bbm: "82.64%",
     endurance: "76 Jam",
@@ -118,7 +118,7 @@ const logbookKapal = [
     ],
     jurnalOlahGerak: [
       { jamStart: "08:00", jamStop: "10:00", rute: "Dermaga - Perairan Mamuju", kecepatan: "12 Knot", endurance: "76 Jam", bbm: "82.64%", nahkoda: "Ansaruddin" },
-      { jamStart: "10:30", jamStop: "12:30", rute: "Perairan Mamuju - Pantai Karampuang", kecepatan: "10 Knot", endurance: "74 Jam", bbm: "78.50%", nahkoda: "Siti Nurhaliza" },
+      { jamStart: "10:30", jamStop: "12:30", rute: "Perairan Mamuju - Pantai Karampuang", kecepatan: "10 Knot", endurance: "74 Jam", bbm: "78.50%", nahkoda: "Fajar Farial" },
     ],
   },
 ];
@@ -127,10 +127,10 @@ const logbookKapal = [
 const logbookDarat = [
   {
     id: "dar-01",
-    jenisKendaraan: "Toyota Hilux",
-    noPolisi: "DA 1234 SAR",
-    tahun: "2019",
-    tipe: "Double Cabin 4x4",
+    jenisKendaraan: "Rescue Truck ISUZU",
+    noPolisi: "DC 8982",
+    tahun: "2018",
+    tipe: "Truk Rescue",
     km: "45.230",
     bbm: "75%",
     jenisUnit: "Mobil",
@@ -310,62 +310,31 @@ type UnitArmada = {
   rusak: boolean;
 };
 
+/** Unit armada diturunkan langsung dari master aset (real data BMN). */
+type JenisArmadaDashboard = "darat" | "air";
+
 /**
- * Pemetaan unit armada di dashboard → aset master.
- *
- * Dipakai supaya status unit di dashboard selalu sama dengan status aset
- * terbaru — termasuk setelah Pengelola BMN menyetujui berita acara
- * (aset jadi "Dipindahkan" dan tidak lagi standby).
+ * Susun daftar unit armada dengan status live dari {@link asetList}.
+ * - `darat`: kategori Mobil & Motor
+ * - `air`: kategori Kapal (kapal, RIB, RBB, dan mesin tempel)
  */
-const PETA_ASET_ARMADA: Record<string, string> = {
-  "Kendaraan Ransel Toyota Hilux": "ast-007",
-  "Sepeda Motor Honda CRF150L": "ast-008",
-  "RIB 9 M (Zodiac MK III)": "ast-001",
-  "Mesin Outboard Yamaha 40 PK": "ast-002",
-};
-
-/** Unit darat: kategori Mobil & Motor. */
-const UNIT_DARAT: Omit<UnitArmada, "status" | "kondisi" | "lokasi">[] = [
-  { nama: "Kendaraan Ransel Toyota Hilux", rusak: true },
-  { nama: "Sepeda Motor Honda CRF150L", rusak: false },
-];
-
-/** Unit air: RIB / perahu karet + mesin outboard. */
-const UNIT_AIR: Omit<UnitArmada, "status" | "kondisi" | "lokasi">[] = [
-  { nama: "RIB 9 M (Zodiac MK III)", rusak: false },
-  { nama: "RIB 12 M (Zodiac)", rusak: false },
-  { nama: "Mesin Outboard Yamaha 40 PK", rusak: false },
-];
-
-/** Ambil aset master yang terkait unit armada (bila ada). */
-function asetUnit(namaUnit: string): Aset | undefined {
-  const id = PETA_ASET_ARMADA[namaUnit];
-  if (!id) return undefined;
-  return asetList.find((a) => a.id === id);
-}
-
-/** Susun daftar unit armada dengan status live dari master aset. */
-function susunUnitArmada(
-  dasar: Omit<UnitArmada, "status" | "kondisi" | "lokasi">[]
-): UnitArmada[] {
-  return dasar.map((u) => {
-    const aset = asetUnit(u.nama);
-    if (!aset) {
-      return {
-        ...u,
-        status: "Standby",
-        kondisi: "Baik",
-        lokasi: "-",
-      };
-    }
-    return {
-      nama: u.nama,
+function susunUnitArmada(jenis: JenisArmadaDashboard): UnitArmada[] {
+  return asetList
+    .filter((a) =>
+      jenis === "darat"
+        ? a.kategori === "Mobil" || a.kategori === "Motor"
+        : a.kategori === "Kapal"
+    )
+    .map((aset) => ({
+      nama: aset.noPolisi ? `${aset.nama} (${aset.noPolisi})` : aset.nama,
       status: aset.status,
       kondisi: aset.kondisi,
       lokasi: aset.lokasi,
-      rusak: aset.kondisi !== "Baik" || aset.status === "Rusak Berat" || aset.status === "Rusak Ringan",
-    };
-  });
+      rusak:
+        aset.kondisi !== "Baik" ||
+        aset.status === "Rusak Berat" ||
+        aset.status === "Rusak Ringan",
+    }));
 }
 
 /** Catatan terakhir pada riwayat aset (paling baru). */
@@ -432,7 +401,7 @@ function KondisiArmadaCard({
           {standby.length === 0 ? (
             <p className="text-sm text-slate-400">Tidak ada unit yang standby.</p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {standby.map((u) => (
                 <li key={u.nama} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-slate-700">{u.nama}</span>
@@ -450,7 +419,7 @@ function KondisiArmadaCard({
               <Wrench className="h-3.5 w-3.5" />
               Tidak Standby
             </p>
-            <ul className="space-y-1.5">
+            <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {tidakStandby.map((u) => (
                 <li key={u.nama} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-slate-700">{u.nama}</span>
@@ -502,8 +471,8 @@ export default function OperatorPage() {
   // ── Status live dari master aset ──────────────────────────────────────────
   // Dihitung saat render supaya keputusan Pengelola BMN (setujui → aset
   // "Dipindahkan", tolak → aset tetap "Rusak") langsung tercermin di sini.
-  const unitDarat = susunUnitArmada(UNIT_DARAT);
-  const unitAir = susunUnitArmada(UNIT_AIR);
+  const unitDarat = susunUnitArmada("darat");
+  const unitAir = susunUnitArmada("air");
 
   /** Unit yang perlu perhatian: aset rusak atau sudah dikirim ke service. */
   const unitPerluPerawatan = asetList
@@ -538,12 +507,11 @@ export default function OperatorPage() {
     (tab) => armadaFilter === "Semua" || tab.armada.includes(armadaFilter)
   );
 
-  // Auto-pindah ke tab pertama yang valid saat filter armada berubah
-  useEffect(() => {
-    if (!visibleTabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab(visibleTabs[0]?.id ?? "rib");
-    }
-  }, [armadaFilter, activeTab]);
+  // Jika filter armada menyembunyikan tab yang sedang aktif, tampilkan tab
+  // valid pertama tanpa memicu setState di dalam effect.
+  const tabAktif = visibleTabs.some((tab) => tab.id === activeTab)
+    ? activeTab
+    : (visibleTabs[0]?.id ?? "rib");
 
   return (
     <div className="space-y-6">
@@ -679,7 +647,7 @@ export default function OperatorPage() {
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
-                activeTab === tab.id
+                tabAktif === tab.id
                   ? "border-primary text-primary"
                   : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
               )}
@@ -701,7 +669,7 @@ export default function OperatorPage() {
       )}
 
       {/* Tab Content */}
-      {activeTab === "rib" && (
+      {tabAktif === "rib" && (
         <div className="space-y-6">
           {jurnalRIB.map((rib) => (
             <Card key={rib.id}>
@@ -892,7 +860,7 @@ export default function OperatorPage() {
         </div>
       )}
 
-      {activeTab === "kapal" && (
+      {tabAktif === "kapal" && (
         <div className="space-y-6">
           {logbookKapal.map((kapal) => (
             <Card key={kapal.id}>
@@ -1068,16 +1036,16 @@ export default function OperatorPage() {
         </div>
       )}
 
-      {(activeTab === "mobil" || activeTab === "motor") && (
+      {(tabAktif === "mobil" || tabAktif === "motor") && (
         <div className="space-y-6">
           {logbookDarat
-            .filter((kendaraan) => kendaraan.jenisUnit === (activeTab === "mobil" ? "Mobil" : "Motor"))
+            .filter((kendaraan) => kendaraan.jenisUnit === (tabAktif === "mobil" ? "Mobil" : "Motor"))
             .map((kendaraan) => (
             <Card key={kendaraan.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    {activeTab === "mobil" ? <Car className="h-5 w-5 text-primary" /> : <Bike className="h-5 w-5 text-primary" />}
+                    {tabAktif === "mobil" ? <Car className="h-5 w-5 text-primary" /> : <Bike className="h-5 w-5 text-primary" />}
                     Logbook {kendaraan.jenisKendaraan}
                   </CardTitle>
                   <Badge variant="success">Siap Operasional</Badge>
@@ -1087,7 +1055,7 @@ export default function OperatorPage() {
                 {/* Info Kendaraan */}
                 <div>
                   <SectionTitle>
-                    {activeTab === "mobil" ? <Car className="h-5 w-5 text-primary" /> : <Bike className="h-5 w-5 text-primary" />}
+                    {tabAktif === "mobil" ? <Car className="h-5 w-5 text-primary" /> : <Bike className="h-5 w-5 text-primary" />}
                     I. Informasi Kendaraan
                   </SectionTitle>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">

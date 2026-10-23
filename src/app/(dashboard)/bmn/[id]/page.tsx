@@ -174,6 +174,9 @@ export default function DetailAsetPage() {
                   {penanggungJawab?.nama ?? "-"}
                 </p>
                 <p className="text-xs text-slate-500">
+                  {penanggungJawab?.nip ? `NIP ${penanggungJawab.nip}` : "-"}
+                </p>
+                <p className="text-xs text-slate-500">
                   {penanggungJawab?.role ?? "-"}
                 </p>
               </div>
@@ -209,6 +212,65 @@ export default function DetailAsetPage() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Data BMN */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Data Register BMN
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { label: "Kode Barang", value: aset.kodeBarang },
+              { label: "Merk", value: aset.merk },
+              { label: "Tipe", value: aset.tipe },
+              { label: "No. Polisi", value: aset.noPolisi },
+              { label: "No. STNK", value: aset.noStnk },
+              {
+                label: "Tanggal Perolehan",
+                value: aset.tanggalPerolehan
+                  ? formatTanggal(aset.tanggalPerolehan)
+                  : undefined,
+              },
+              { label: "No. PSP", value: aset.noPsp },
+              {
+                label: "Tanggal PSP",
+                value: aset.tanggalPsp ? formatTanggal(aset.tanggalPsp) : undefined,
+              },
+
+              {
+                label: "Umur Aset",
+                value:
+                  aset.umurAsetTahun !== undefined
+                    ? `${aset.umurAsetTahun} tahun`
+                    : undefined,
+              },
+              { label: "Status Penggunaan", value: aset.statusPenggunaan },
+              { label: "Status BMN", value: aset.statusBmn },
+              { label: "Kode Register", value: aset.kodeRegister },
+            ]
+              .filter((item) => item.value)
+              .map((item) => (
+                <div key={item.label}>
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
+                    {item.label}
+                  </p>
+                  <p className="mt-0.5 break-words text-sm font-medium text-slate-800">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+          </div>
+          {aset.jumlahFoto !== undefined && (
+            <p className="mt-4 text-xs text-slate-500">
+              {aset.jumlahFoto} foto terdokumentasi pada register BMN.
+            </p>
+          )}
         </CardContent>
       </Card>
 

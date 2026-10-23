@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { createSupabaseAdminClient } from "@/lib/supabase-server";
+import type { UserProfile } from "@/types/supabase";
 import { UserDetailClient } from "./client";
 
 interface PageProps {
@@ -8,20 +10,22 @@ interface PageProps {
 export default async function DetailPenggunaPage({ params }: PageProps) {
   const { id } = await params;
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/pengguna/${id}`,
-    { cache: "no-store" }
-  );
+  // Query langsung ke Supabase (bypass RLS via admin client).
+  //
+  // PENTING: jangan fetch API sendiri lewat `http://localhost:3000`.
+  // Di lokal itu kebetulan jalan (dev server ada di port 3000), tapi di
+  // Vercel tidak ada proses di localhost → fetch ditolak (ECONNREFUSED)
+  // → Server Component crash → "This page couldn't load".
+  const supabaseAdmin = createSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
 
-  if (!res.ok) {
+  if (error || !data) {
     notFound();
   }
 
-  const json = await res.json();
-
-  if (json.error || !json.data) {
-    notFound();
-  }
-
-  return <UserDetailClient user={json.data} />;
+  return <UserDetailClient user={data as UserProfile} />;
 }

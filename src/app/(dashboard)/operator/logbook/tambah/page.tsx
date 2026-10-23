@@ -56,41 +56,24 @@ function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
   return "Pengemudi / Driver";
 }
 
-/** Daftar unit berdasarkan kategori, termasuk unit standar + dari asetList. */
+/** Daftar unit berdasarkan kategori, diambil dari master aset real. */
 function getUnitOptions(kategori: FormLogbook["kategoriUnit"]): {
   value: string;
   label: string;
 }[] {
-  const staticUnits: Record<string, { value: string; label: string }[]> = {
-    RIB: [
-      { value: "RIB 9 M", label: "RIB 9 M" },
-      { value: "RIB 12 M", label: "RIB 12 M" },
-    ],
-    RBB: [{ value: "RBB 309 MAMUJU", label: "RBB 309 MAMUJU" }],
-    Kapal: [{ value: "KN SAR MAMUJU 01", label: "KN SAR MAMUJU 01" }],
-    Mobil: [],
-    Motor: [],
-  };
-
-  // Tambahkan dari asetList yang cocok kategori
-  const kategoriMap: Record<string, string[]> = {
-    RIB: ["Peralatan SAR"],
-    RBB: ["Peralatan SAR"],
-    Kapal: ["Kapal"],
-    Mobil: ["Mobil"],
-    Motor: ["Motor"],
-  };
-
-  const dariAset = asetList
-    .filter((a) => kategoriMap[kategori]?.includes(a.kategori))
+  return asetList
+    .filter((a) => {
+      if (kategori === "Mobil") return a.kategori === "Mobil";
+      if (kategori === "Motor") return a.kategori === "Motor";
+      if (a.kategori !== "Kapal") return false;
+      if (kategori === "RIB") {
+        return /RIB|perahu/i.test(a.nama) && !/RBB/i.test(a.nama);
+      }
+      if (kategori === "RBB") return /RBB/i.test(a.nama);
+      if (kategori === "Kapal") return !/RIB|RBB/i.test(a.nama);
+      return false;
+    })
     .map((a) => ({ value: a.nama, label: `${a.nama} (${a.kode})` }));
-
-  const gabung = [...(staticUnits[kategori] ?? []), ...dariAset];
-
-  // Hilangkan duplikat berdasarkan nilai.
-  return gabung.filter(
-    (u, i) => gabung.findIndex((x) => x.value === u.value) === i
-  );
 }
 
 /**
@@ -117,7 +100,7 @@ const FORM_KOSONG: FormLogbook = {
   rute: "",
   tujuan: "",
   kategoriUnit: "RIB",
-  jenisUnit: "RIB 9 M",
+  jenisUnit: getUnitOptions("RIB")[0]?.value ?? "",
   nahkoda: "",
   jumlahPersonel: "1",
   bbmSebelum: "",
@@ -170,6 +153,14 @@ export default function TambahLogbookPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.jenisUnit) {
+      setErrors((prev) => ({ ...prev, jenisUnit: "Pilih unit terlebih dahulu" }));
+      setErrorUmum("Unit belum dipilih.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     const hasil = simpanTahapAwal(formData);
 
     if ("error" in hasil) {
@@ -379,6 +370,7 @@ export default function TambahLogbookPage() {
                 {unitOptions.length === 0 && (
                   <option value="">Tidak ada unit tersedia</option>
                 )}
+                {unitOptions.length > 0 && <option value="">Pilih unit</option>}
                 {unitOptions.map((u) => (
                   <option key={u.value} value={u.value}>
                     {u.label}

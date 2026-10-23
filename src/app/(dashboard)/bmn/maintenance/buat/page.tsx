@@ -135,7 +135,7 @@ export default function BuatTiketPage() {
               <Label htmlFor="judul">Judul Tiket</Label>
               <Input
                 id="judul"
-                placeholder="Contoh: Mesin Hilux Bunyi Kasar"
+                placeholder="Contoh: Mesin Rescue Truck Bunyi Kasar"
                 value={formData.judul}
                 onChange={(e) =>
                   setFormData({ ...formData, judul: e.target.value })
