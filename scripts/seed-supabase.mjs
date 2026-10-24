@@ -14,14 +14,20 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { loadEnvFile } from "node:process";
 import fs from "node:fs";
 import path from "node:path";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://yzswezcgttegsrqisrfq.supabase.co";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "ENV_REPLACE_SECRET";
+// Load environment variables from .env file
+loadEnvFile();
 
-if (!supabaseKey || supabaseKey === "ENV_REPLACE_SECRET") {
-  console.error("⚠️  SUPABASE_SERVICE_ROLE_KEY tidak ditemukan di environment. Tambahkan ke .env.");
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://yzswezcgttegsrqisrfq.supabase.co";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseKey) {
+  console.error("❌ SUPABASE_SERVICE_ROLE_KEY tidak ditemukan di environment.");
+  console.error("   Silakan tambahkan ke file .env dengan format:");
+  console.error("   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here");
   process.exit(1);
 }
 
