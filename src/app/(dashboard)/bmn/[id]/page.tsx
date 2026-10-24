@@ -21,35 +21,73 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import RiwayatTable from "./riwayat-table";
 import {
-  getAsetById,
   getUserById,
   formatTanggal,
-  ubahStatusAset,
   STATUS_ASET_VARIANT,
 } from "@/components/shared/mock-data";
+import { useAsetById } from "@/components/shared/use-supabase-data";
+import { updateAsetStatus } from "@/components/shared/db-writes";
+import { useSesiUser } from "@/components/shared/use-session";
+import { useState } from "react";
 
 export default function DetailAsetPage() {
   const { id } = useParams<{ id: string }>();
-  const aset = getAsetById(id);
+  const router = useRouter();
+  const ses = useSesiUser();
+  // Aset dari Supabase.
+  const { data: aset, loading, error, refetch } = useAsetById(id);
+  const [gagal, setGagal] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <p className="text-sm text-slate-500">Memuat aset…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
+        <p className="text-sm font-medium text-rose-700">
+          Gagal memuat aset dari database
+        </p>
+        <p className="text-xs text-rose-600">{error}</p>
+        <button
+          type="button"
+          onClick={refetch}
+          className="rounded-md bg-rose-600 px-4 py-2 text-xs font-medium text-white hover:bg-rose-700"
+        >
+          Coba lagi
+        </button>
+      </div>
+    );
+  }
 
   if (!aset) {
     notFound();
   }
 
   const penanggungJawab = getUserById(aset.penanggungJawab);
-  const router = useRouter();
 
-  const handleSelesaiDigunakan = () => {
-    // TODO: ganti dengan PATCH ke endpoint aset saat API tersedia.
-    ubahStatusAset(
-      aset.id,
-      "Standby",
-      penanggungJawab?.id ?? "usr-unknown",
-      "Aset selesai digunakan, kembali ke status Standby"
-    );
-
-    // Refresh agar kartu detail membaca status terbaru.
-    router.refresh();
+  const handleSelesaiDigunakan = async () => {
+    // UPDATE status aset + entri riwayat ke Supabase.
+    try {
+      await updateAsetStatus(
+        aset.id,
+        "Standby",
+        ses.id || (penanggungJawab?.id ?? ""),
+        "Aset selesai digunakan, kembali ke status Standby",
+        "Selesai Digunakan",
+        "Baik"
+      );
+      setGagal(null);
+      // Muat ulang data terbaru dari database.
+      refetch();
+      router.refresh();
+    } catch (e) {
+      setGagal(e instanceof Error ? e.message : "Gagal memperbarui aset");
+    }
   };
 
   return (
@@ -304,20 +342,25 @@ export default function DetailAsetPage() {
             <p className="text-sm text-slate-600 mb-4">
               Aset sedang digunakan. Klik di bawah untuk menandai sebagai selesai digunakan dan kembali ke status Standby.
             </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                Batal
-              </Button>
-              <Button
-                onClick={handleSelesaiDigunakan}
-                className="bg-primary text-primary-foreground"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Selesaikan Penggunaan
-              </Button>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={handleSelesaiDigunakan}
+                  className="bg-primary text-primary-foreground"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Selesaikan Penggunaan
+                </Button>
+              </div>
+              {gagal && (
+                <p className="text-xs text-rose-700">{gagal}</p>
+              )}
             </div>
           </CardContent>
         </Card>

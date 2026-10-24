@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import {
   logbookPerjalananList,
   logbookKeForm,
@@ -16,21 +17,16 @@ import {
 /**
  * Store logbook perjalanan di sisi klien.
  *
- * Mengikuti pola `ticket-store.ts`: data awal dari mock-data, lalu bisa ditambah
- * dan dilengkapi selama sesi berjalan. Modul-level supaya tidak butuh provider
- * dan tetap konsisten antar halaman.
+ * - **Baca**: gabungan mock seed + in-memory sesi + data Supabase.
+ * - **Tulis**: INSERT/UPDATE ke Supabase `logbook_perjalanan` (Tahap 4);
+ *   tetap masuk in-memory sebagai fallback (UI tidak hangus saat offline).
  *
  * Aturan penting yang ditegakkan store ini:
  *
- * 1. Tahap awal hanya menyetor data keberangkatan. `status` bukan input operator
- *    melainkan diturunkan dari isi form (`statusPenggunaanOtomatis`).
- * 2. Tahap pelengkapan **memperbarui catatan yang sama berdasarkan ID** — tidak
- *    pernah membuat entri baru, sehingga tidak ada duplikasi data.
- * 3. Tahap pelengkapan hanya boleh dipanggil bila `validasiTahapAkhir` lolos;
- *    hanya setelah itu status menjadi `Selesai`.
- *
- * Catatan: ini hanya bertahan selama tab browser terbuka. Saat proyek pindah ke
- * backend, seluruh fungsi di bawah tinggal diganti dengan pemanggilan API.
+ * 1. Tahap awal hanya menyetor data keberangkatan. `status` bukan input
+ *    operator melainkan diturunkan dari isi form.
+ * 2. Tahap pelengkapan **memperbarui catatan yang sama berdasarkan ID**.
+ * 3. Tahap pelengkapan hanya boleh dipanggil bila `validasiTahapAkhir` lolos.
  */
 
 let logbooks: LogbookPerjalanan[] = [...logbookPerjalananList];
@@ -58,6 +54,27 @@ export function useLogbook(): LogbookPerjalanan[] {
 }
 
 /**
+ * Merge logbook dari Supabase dengan data in-memory.
+ * Logbook dari Supabase yang tidak ada di `logbooks` (in-memory)
+ * ditambahkan; yang sudah ada di in-memory (belum persist ke Supabase)
+ * dipertahankan. Urutan: paling baru di atas (berdasarkan tanggalSimpan).
+ */
+export function mergeLogbooksWithSupabase(
+  supabaseLogbooks: LogbookPerjalanan[]
+): LogbookPerjalanan[] {
+  const inMemoryIds = new Set(logbooks.map((l) => l.id));
+  const fromSupabase = supabaseLogbooks.filter((l) => !inMemoryIds.has(l.id));
+  const merged = [...logbooks, ...fromSupabase];
+  // Urutkan: tanggalSimpan terbaru di atas; yang belum disimpan di bawah.
+  merged.sort((a, b) => {
+    if (!a.tanggalSimpan) return 1;
+    if (!b.tanggalSimpan) return -1;
+    return b.tanggalSimpan.localeCompare(a.tanggalSimpan);
+  });
+  return merged;
+}
+
+/**
  * Daftar catatan tanpa memakai hook.
  *
  * Berguna di konteks non-komponen (mis. pengujian atau hitung ringkasan di luar
@@ -81,13 +98,68 @@ function idBerikutnya(): string {
   return `lp-${String(logbooks.length + 1).padStart(2, "0")}`;
 }
 
+// ── Helpers INSERT/UPDATE ke Supabase ───────────────────────────────────────
+
+/** Mapping LogbookPerjalanan (camelCase) → baris INSERT Supabase (snake_case). */
+function toSupabaseRow(l: LogbookPerjalanan) {
+  return {
+    id: l.id,
+    tanggal: l.tanggal,
+    jam_berangkat: l.jamBerangkat,
+    jam_kembali: l.jamKembali,
+    rute: l.rute,
+    tujuan: l.tujuan,
+    kategori_unit: l.kategoriUnit ?? "",
+    jenis_unit: l.jenisUnit,
+    nahkoda: l.nahkoda,
+    jumlah_personel: l.jumlahPersonel,
+    bbm_sebelum: l.bbmSebelum,
+    bbm_sesudah: l.bbmSesudah,
+    endurance_awal: l.enduranceAwal ?? "",
+    endurance_akhir: l.enduranceAkhir ?? "",
+    km_sebelum: l.kmSebelum ?? "",
+    km_sesudah: l.kmSesudah ?? "",
+    status: l.status,
+    catatan: l.catatan,
+    tanggal_simpan: l.tanggalSimpan ?? null,
+    tanggal_lengkap: l.tanggalLengkap ?? null,
+  };
+}
+
+/**
+ * INSERT logbook baru ke Supabase. Silent (tanpa error) bila Supabase belum
+ * aktif / offline — data tetap masuk in-memory.
+ */
+async function persistInsert(l: LogbookPerjalanan): Promise<void> {
+  try {
+    const supa = getSupabaseBrowserClient();
+    await supa.from("logbook_perjalanan").insert(toSupabaseRow(l));
+  } catch {
+    // Offline / Supabase belum dikonfigurasi — abaikan, data in-memory.
+  }
+}
+
+/**
+ * UPDATE logbook di Supabase (stages 2 / tandaiBerangkat). Silent pada gagal.
+ */
+async function persistUpdate(id: string, l: LogbookPerjalanan): Promise<void> {
+  try {
+    const supa = getSupabaseBrowserClient();
+    await supa.from("logbook_perjalanan").update(toSupabaseRow(l)).eq("id", id);
+  } catch {
+    // Offline / Supabase belum dikonfigurasi — abaikan, data in-memory.
+  }
+}
+
+// ── Fungsi publik ────────────────────────────────────────────────────────────
+
 /**
  * Simpan data awal (tahap 1).
  *
- * Endurance akhir sengaja tidak ada di sini: unit masih dalam perjalanan ketika
- * tahap ini dicatat, jadi operator cukup mengisi `enduranceAwal`.
+ * Endurance akhir sengaja tidak ada di sini: unit masih dalam perjalanan
+ * ketika tahap ini dicatat, jadi operator cukup mengisi `enduranceAwal`.
  *
- * @returns catatan yang tersimpan, atau `null` bila validasi gagal.
+ * @returns catatan yang tersimpan.
  */
 export function simpanTahapAwal(
   form: FormLogbook
@@ -123,6 +195,8 @@ export function simpanTahapAwal(
 
   logbooks = [logbook, ...logbooks];
   emit();
+  // Persist ke Supabase (fire-and-forget, silent).
+  void persistInsert(logbook);
   return { logbook };
 }
 
@@ -178,6 +252,8 @@ export function simpanTahapAkhir(
 
   logbooks = logbooks.map((l) => (l.id === id ? terupdate : l));
   emit();
+  // Persist update ke Supabase (fire-and-forget, silent).
+  void persistUpdate(id, terupdate);
   return { logbook: terupdate };
 }
 
@@ -193,4 +269,7 @@ export function tandaiBerangkat(id: string): void {
       : l
   );
   emit();
+  // Persist status update ke Supabase.
+  const updated = logbooks.find((l) => l.id === id);
+  if (updated) void persistUpdate(id, updated);
 }

@@ -20,11 +20,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   users,
-  asetList,
   cariAsetDmUnit,
   type FormLogbook,
+  type Aset,
 } from "@/components/shared/mock-data";
 import { simpanTahapAwal } from "@/components/shared/logbook-store";
+import { useAsets } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 /**
@@ -62,11 +64,14 @@ function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
 }
 
 /** Daftar unit berdasarkan kategori, diambil dari master aset real. */
-function getUnitOptions(kategori: FormLogbook["kategoriUnit"]): {
+function getUnitOptions(
+  kategori: FormLogbook["kategoriUnit"],
+  asets: Aset[]
+): {
   value: string;
   label: string;
 }[] {
-  return asetList
+  return asets
     .filter((a) => {
       if (kategori === "Mobil") return a.kategori === "Mobil";
       if (kategori === "Motor") return a.kategori === "Motor";
@@ -105,7 +110,8 @@ const FORM_KOSONG: FormLogbook = {
   rute: "",
   tujuan: "",
   kategoriUnit: "RIB",
-  jenisUnit: getUnitOptions("RIB")[0]?.value ?? "",
+  // jenisUnit diisi di runtime oleh komponen (asset belum tersedia saat modul load).
+  jenisUnit: "",
   nahkoda: "",
   jumlahPersonel: "1",
   bbmSebelum: "",
@@ -119,6 +125,8 @@ const FORM_KOSONG: FormLogbook = {
 
 export default function TambahLogbookPage() {
   const router = useRouter();
+  // Aset dari Supabase — dipakai untuk daftar unit.
+  const { data: asetList, loading, error, refetch } = useAsets();
   const [formData, setFormData] = useState<FormLogbook>(FORM_KOSONG);
   const [errors, setErrors] = useState<Partial<Record<keyof FormLogbook, string>>>(
     {}
@@ -126,11 +134,24 @@ export default function TambahLogbookPage() {
   const [errorUmum, setErrorUmum] = useState<string | null>(null);
 
   const unitOptions = useMemo(
-    () => getUnitOptions(formData.kategoriUnit),
-    [formData.kategoriUnit]
+    () => getUnitOptions(formData.kategoriUnit, asetList),
+    [formData.kategoriUnit, asetList]
   );
 
   const laut = isArmadaLaut(formData.kategoriUnit);
+
+  if (loading) {
+    return <DataLoading label="Menyiapkan form logbook…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat aset dari database"
+      />
+    );
+  }
 
   /** Perbarui satu field dan bersihkan errorassociated-nya. */
   const setField = <K extends keyof FormLogbook>(
@@ -143,7 +164,7 @@ export default function TambahLogbookPage() {
   };
 
   const handleKategoriChange = (kategori: FormLogbook["kategoriUnit"]) => {
-    const units = getUnitOptions(kategori);
+    const units = getUnitOptions(kategori, asetList);
     const keDarat = kategori === "Mobil" || kategori === "Motor";
     setFormData((prev) => ({
       ...prev,

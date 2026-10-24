@@ -8,11 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
-  asetList,
   users,
   type TingkatKeparahan,
+ 
 } from "@/components/shared/mock-data";
 import { addTicket } from "@/components/shared/ticket-store";
+import { buatUsulanApproval } from "@/components/shared/db-writes";
+import { useAsets } from "@/components/shared/use-supabase-data";
+import { useSesiUser } from "@/components/shared/use-session";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 
 const keparahanOptions: TingkatKeparahan[] = ["Rendah", "Sedang", "Tinggi"];
 
@@ -23,6 +27,8 @@ const keparahanHints: Record<TingkatKeparahan, string> = {
 };
 
 export default function BuatTiketPage() {
+  // Aset dari Supabase.
+  const { data: asetList, loading, error, refetch } = useAsets();
   const [formData, setFormData] = useState({
     asetId: "",
     judul: "",
@@ -32,22 +38,81 @@ export default function BuatTiketPage() {
   });
 
   const router = useRouter();
+  const ses = useSesiUser();
   const [menyimpan, setMenyimpan] = useState(false);
+  const [gagal, setGagal] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  if (loading) {
+    return <DataLoading label="Memuat daftar aset…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat aset dari database"
+      />
+    );
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMenyimpan(true);
-    addTicket({
+    setGagal(null);
+    const tiket = addTicket({
       asetId: formData.asetId,
       judul: formData.judul,
       deskripsi: formData.deskripsi,
       tingkatKeparahan: formData.tingkatKeparahan,
       assignedTo: formData.assignedTo,
     });
+
+    // Tiket atas aset rusak otomatis membuat usulan untuk pimpinan
+    // (KAKANSAR) — diputus di /pimpinan/approval.
+    if (
+      asetTerpilih &&
+      (asetTerpilih.status === "Rusak Ringan" ||
+        asetTerpilih.status === "Rusak Berat")
+    ) {
+      try {
+        await buatUsulanApproval({
+          id: `apr-${tiket.id}`,
+          kode: `UP-${asetTerpilih.kode}`,
+          namaAset: asetTerpilih.nama,
+          kategori: asetTerpilih.kategori,
+          pengajuanOleh: ses.id,
+          alasan: formData.deskripsi || formData.judul,
+          rincian: [
+            { label: "Kondisi Aset Lama", value: asetTerpilih.kondisi },
+            { label: "Status Aset", value: asetTerpilih.status },
+            {
+              label: "Tingkat Keparahan Tiket",
+              value: formData.tingkatKeparahan,
+            },
+            { label: "Tiket", value: tiket.id },
+          ],
+        });
+      } catch (e) {
+        setGagal(
+          e instanceof Error
+            ? e.message
+            : "Gagal membuat usulan approval ke database"
+        );
+        setMenyimpan(false);
+        return;
+      }
+    }
+
     router.push("/bmn/maintenance");
   };
 
   const asetTerpilih = asetList.find((a) => a.id === formData.asetId);
+
+  // Dropdown tiket hanya memuat aset yang benar-benar bermasalah.
+  // Aset kondisi baik tidak perlu tiket maintenance.
+  const asetRusak = asetList.filter(
+    (a) => a.status === "Rusak Ringan" || a.status === "Rusak Berat"
+  );
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -75,7 +140,7 @@ export default function BuatTiketPage() {
           </h2>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="asetId">Pilih Aset</Label>
+              <Label htmlFor="asetId">Pilih Aset Rusak</Label>
               <Select
                 id="asetId"
                 value={formData.asetId}
@@ -84,13 +149,20 @@ export default function BuatTiketPage() {
                 }
                 required
               >
-                <option value="">Pilih aset yang bermasalah</option>
-                {asetList.map((aset) => (
+                <option value="">Pilih aset rusak (ringan/berat)</option>
+                {asetRusak.map((aset) => (
                   <option key={aset.id} value={aset.id}>
-                    {aset.kode} ({aset.nama})
+                    {aset.kode} ({aset.nama}) — {aset.status}
                   </option>
                 ))}
               </Select>
+              {asetList.length > 0 && asetRusak.length === 0 && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Belum ada aset berstatus Rusak Ringan/Rusak Berat. Aset masuk
+                  ke daftar ini setelah operator menyerahkan kerusakan lewat
+                  form checklist &rarr; &quot;Serahkan ke BMN&quot;.
+                </p>
+              )}
             </div>
 
             {asetTerpilih && (
@@ -218,6 +290,11 @@ export default function BuatTiketPage() {
             {menyimpan ? "Menyimpan..." : "Buat Tiket"}
           </Button>
         </div>
+        {gagal && (
+          <p className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+            {gagal}
+          </p>
+        )}
       </form>
     </div>
   );

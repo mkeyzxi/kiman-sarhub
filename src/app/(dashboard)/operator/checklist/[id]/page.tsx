@@ -20,7 +20,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import RincianItemTable from "./rincian-item-table";
 import TombolBeritaAcara from "./tombol-berita-acara";
-import { ambilChecklist } from "@/components/shared/checklist-store";
+import { useChecklistsCombined } from "@/components/shared/checklist-store";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   checklistTemplates,
   formatTanggal,
@@ -38,9 +39,22 @@ export default function DetailChecklistPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
-  // Checklist bisa berasal dari data seed maupun checklist yang baru dibuat
-  // pada sesi ini (disimpan di memori) — keduanya dibaca dari store.
-  const checklist = ambilChecklist(id);
+  // Checklist dari Supabase + data sesi berjalan (in-memory), digabung.
+  const { data, loading, error, refetch } = useChecklistsCombined();
+  const checklist = data.find((c) => c.id === id);
+
+  if (loading) {
+    return <DataLoading label="Memuat detail checklist…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat checklist dari database"
+      />
+    );
+  }
 
   if (!checklist) {
     return (

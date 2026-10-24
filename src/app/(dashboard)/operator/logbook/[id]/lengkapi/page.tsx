@@ -29,11 +29,14 @@ import {
   formatEndurance,
   formatTanggal,
   type FormLogbook,
+  type LogbookPerjalanan,
 } from "@/components/shared/mock-data";
 import {
-  useLogbook,
   simpanTahapAkhir,
+  mergeLogbooksWithSupabase,
 } from "@/components/shared/logbook-store";
+import { useLogbooks } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 /**
@@ -63,7 +66,16 @@ function sanitizeEndurance(nilai: string): string {
 export default function LengkapiLogbookPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const logbooks = useLogbook();
+  // Data logbook dari Supabase.
+  const {
+    data: supabaseLogbooks,
+    loading,
+    error,
+    refetch,
+  } = useLogbooks();
+  const logbooks = mergeLogbooksWithSupabase(
+    supabaseLogbooks as unknown as LogbookPerjalanan[]
+  );
   const logbook = logbooks.find((l) => l.id === params.id);
 
   const [form, setForm] = useState<FormLogbook | null>(() =>
@@ -73,6 +85,19 @@ export default function LengkapiLogbookPage() {
     {}
   );
   const [errorUmum, setErrorUmum] = useState<string | null>(null);
+
+  if (loading) {
+    return <DataLoading label="Memuat logbook…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat logbook dari database"
+      />
+    );
+  }
 
   if (!logbook || !form) {
     return (

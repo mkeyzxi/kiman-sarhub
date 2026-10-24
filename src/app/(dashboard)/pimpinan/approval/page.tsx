@@ -8,10 +8,11 @@ import { Card } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   getUserById,
-  approvalList,
   type StatusApproval,
   formatTanggal,
 } from "@/components/shared/mock-data";
+import { useApprovals } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 
 
 const statusBadgeVariant: Record<
@@ -24,7 +25,21 @@ const statusBadgeVariant: Record<
 };
 
 export default function ApprovalPage() {
-  const approvals = approvalList;
+  // Data approval dari Supabase.
+  const { data: approvals, loading, error, refetch } = useApprovals();
+
+  if (loading) {
+    return <DataLoading label="Memuat daftar pengajuan…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat pengajuan dari database"
+      />
+    );
+  }
 
   const totalPending = approvals.filter((a) => a.status === "Menunggu").length;
   const disetujui = approvals.filter((a) => a.status === "Disetujui").length;
@@ -91,7 +106,7 @@ export default function ApprovalPage() {
           cardTitle={(row) => row.namaAset}
           cardSubtitle={(row) => `${row.kode} \u00b7 ${formatTanggal(row.tanggal)}`}
           cardBadge={(row) => (
-            <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+            <Badge variant={statusBadgeVariant[row.status as StatusApproval]}>{row.status}</Badge>
           )}
           cardPreviewCount={2}
           detailLabel="Lihat detail pengajuan"
@@ -118,7 +133,7 @@ export default function ApprovalPage() {
             {
               key: "pengajuanOleh",
               header: "Pengajuan Oleh",
-              render: (row) => getUserById(row.pengajuanOleh)?.nama ?? "-",
+              render: (row) => getUserById(row.pengajuanOleh ?? "")?.nama ?? "-",
               cellClassName: "text-slate-600",
             },
             {
@@ -132,7 +147,7 @@ export default function ApprovalPage() {
               key: "status",
               header: "Status",
               render: (row) => (
-                <Badge variant={statusBadgeVariant[row.status]}>{row.status}</Badge>
+                <Badge variant={statusBadgeVariant[row.status as StatusApproval]}>{row.status}</Badge>
               ),
               hideOnCard: true,
             },

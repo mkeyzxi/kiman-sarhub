@@ -22,18 +22,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea, Label } from "@/components/ui/input";
 import {
-  getAsetById,
   getUserById,
   formatTanggal,
-  ubahStatusBeritaAcara,
-  ubahStatusAset,
   KETERANGAN_SERVICE_DEFAULT,
   type TingkatKeparahan,
   type StatusTicket,
   type StatusBeritaAcara,
 } from "@/components/shared/mock-data";
-import { beritaAcaraByTiket } from "@/components/shared/berita-acara-store";
-import { useTickets, updateTicketStatus } from "@/components/shared/ticket-store";
+import {
+  beritaAcaraByTiket,
+  ubahStatusBeritaAcaraSupabase,
+  useBeritaAcara,
+} from "@/components/shared/berita-acara-store";
+import {
+  useTicketsCombined,
+  updateTicketStatus,
+} from "@/components/shared/ticket-store";
+import {
+  updateAsetStatus,
+  buatUsulanApproval,
+} from "@/components/shared/db-writes";
+import { useAsetById } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { useSesiUser } from "@/components/shared/use-session";
 import { cn } from "@/lib/utils";
 
@@ -69,13 +79,42 @@ const statusBAVariant: Record<
 
 export default function DetailTiketPage() {
   const params = useParams<{ id: string }>();
-  const tickets = useTickets();
+  const { data: tickets, loading, error, refetch } = useTicketsCombined();
   const ses = useSesiUser();
+  // Pasang hidrasi berita acara dari Supabase sekali (sekaligus memicu
+  // render ulang setelah baris DB masuk ke daftar store).
+  useBeritaAcara();
   const [alasanPenolakan, setAlasanPenolakan] = useState("");
   const [pesan, setPesan] = useState<string | null>(null);
+  const [gagal, setGagal] = useState<string | null>(null);
 
   const ticket = tickets.find((t) => t.id === params.id);
   const beritaAcara = ticket ? beritaAcaraByTiket(ticket.id) : undefined;
+
+  /** Kondisi fisik aset menurut sifat kendala pada berita acara ini. */
+  const kondisiDariBA = beritaAcara
+    ? beritaAcara.kendala.some((k) => k.sifat === "Berat")
+      ? ("Rusak Berat" as const)
+      : beritaAcara.kendala.length > 0
+        ? ("Rusak Ringan" as const)
+        : undefined
+    : undefined;
+
+  // Aset dari database Supabase (bukan mock). Hook dipanggil selalu — id
+  // undefined saat tiket belum ketemu → tidak fetch.
+  const { data: aset, refetch: refetchAset } = useAsetById(
+    ticket?.asetId || undefined
+  );
+  const petugas = ticket ? getUserById(ticket.assignedTo) : undefined;
+
+  if (loading) {
+    return <DataLoading label="Memuat detail tiket…" />;
+  }
+  if (error) {
+    return (
+      <DataError error={error} onRetry={refetch} label="Gagal memuat tiket" />
+    );
+  }
 
   if (!ticket) {
     return (
@@ -92,49 +131,107 @@ export default function DetailTiketPage() {
     );
   }
 
-  const aset = getAsetById(ticket.asetId);
-  const petugas = getUserById(ticket.assignedTo);
   const StatusIcon = statusIcon[ticket.status];
 
   /** Setujui berita acara → aset dikirim ke service. */
-  const handleSetujui = () => {
+  const handleSetujui = async () => {
     if (!beritaAcara) return;
-    ubahStatusBeritaAcara(beritaAcara.id, "Disetujui", {
+    ubahStatusBeritaAcaraSupabase(beritaAcara.id, "Disetujui", {
       keterangan: KETERANGAN_SERVICE_DEFAULT,
     });
     if (beritaAcara.asetId) {
-      ubahStatusAset(
-        beritaAcara.asetId,
-        "Dipindahkan",
-        ses.id,
-        KETERANGAN_SERVICE_DEFAULT,
-        "Berita Acara Disetujui"
-      );
+      try {
+        await updateAsetStatus(
+          beritaAcara.asetId,
+          "Dipindahkan",
+          ses.id,
+          KETERANGAN_SERVICE_DEFAULT,
+          "Berita Acara Disetujui",
+          kondisiDariBA
+        );
+      } catch (e) {
+        setGagal(e instanceof Error ? e.message : "Gagal memperbarui aset");
+        return;
+      }
     }
     updateTicketStatus(ticket.id, "Selesai");
+    void refetchAset();
+
+    // Usulan untuk pimpinan (KAKANSAR) memutuskan di /pimpinan/approval.
+    if (beritaAcara.asetId) {
+      try {
+        await buatUsulanApproval({
+          id: `apr-${beritaAcara.id}`,
+          kode: `UP-${beritaAcara.kodeAset || beritaAcara.asetId}`,
+          namaAset: beritaAcara.namaAset,
+          kategori: aset?.kategori ?? "-",
+          pengajuanOleh: ses.id,
+          alasan: `Berita acara disetujui Pengelola BMN — pemeriksa ${
+            beritaAcara.pengajuNama ?? beritaAcara.pelapor
+          }. ${
+            beritaAcara.uraian ||
+            `Item rusak: ${beritaAcara.kendala
+              .map((k) => k.label)
+              .join(", ")}`
+          }`,
+          rincian: [
+            {
+              label: "Kondisi Aset Lama",
+              value: kondisiDariBA ?? "Rusak Ringan",
+            },
+            {
+              label: "Sifat Kerusakan",
+              value: beritaAcara.kendala.some((k) => k.sifat === "Berat")
+                ? "Berat"
+                : "Ringan",
+            },
+            {
+              label: "Dikirim ke",
+              value: KETERANGAN_SERVICE_DEFAULT,
+            },
+            {
+              label: "Berita Acara",
+              value: beritaAcara.nomor || beritaAcara.id,
+            },
+          ],
+        });
+      } catch (e) {
+        setGagal(
+          `${e instanceof Error ? e.message : "Gagal membuat usulan approval"}`
+        );
+        return;
+      }
+    }
     setPesan(
-      "Berita acara disetujui — aset dikirim ke tempat service (status: Dipindahkan)."
+      "Berita acara disetujui — aset dikirim ke tempat service dan usulan telah dibuat untuk pimpinan di menu Approval."
     );
   };
 
   /** Tolak berita acara → aset tetap bermasalah, perlu pemeriksaan ulang. */
-  const handleTolak = () => {
+  const handleTolak = async () => {
     if (!beritaAcara) return;
-    ubahStatusBeritaAcara(beritaAcara.id, "Ditolak", {
+    ubahStatusBeritaAcaraSupabase(beritaAcara.id, "Ditolak", {
       alasanPenolakan: alasanPenolakan.trim() || "Tidak memenuhi syarat verifikasi",
     });
     // Kembalikan status aset sesuai tingkat kerusakan pada berita acara.
     if (beritaAcara.asetId) {
       const adaBerat = beritaAcara.kendala.some((k) => k.sifat === "Berat");
-      ubahStatusAset(
-        beritaAcara.asetId,
-        adaBerat ? "Rusak Berat" : "Rusak Ringan",
-        ses.id,
-        `Berita acara ditolak: ${alasanPenolakan.trim() || "tidak memenuhi syarat"}`,
-        "Berita Acara Ditolak"
-      );
+      try {
+        await updateAsetStatus(
+          beritaAcara.asetId,
+          adaBerat ? "Rusak Berat" : "Rusak Ringan",
+          ses.id,
+          `Berita acara ditolak: ${alasanPenolakan.trim() || "tidak memenuhi syarat"}`,
+          "Berita Acara Ditolak",
+          adaBerat ? "Rusak Berat" : "Rusak Ringan"
+        );
+      } catch (e) {
+        setGagal(e instanceof Error ? e.message : "Gagal memperbarui aset");
+        return;
+      }
     }
     updateTicketStatus(ticket.id, "Selesai");
+    void refetchAset();
     setPesan("Berita acara ditolak — kembalikan ke PJ untuk perbaikan.");
   };
 
@@ -182,7 +279,7 @@ export default function DetailTiketPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-slate-500">
                     Nama Aset
@@ -197,6 +294,14 @@ export default function DetailTiketPage() {
                   </p>
                   <p className="font-mono text-sm font-medium text-slate-800">
                     {aset.kode}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
+                    Kondisi &amp; Status
+                  </p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {aset.kondisi} · {aset.status}
                   </p>
                 </div>
                 <div>
@@ -404,6 +509,11 @@ export default function DetailTiketPage() {
                     Setujui &amp; Kirim ke Service
                   </Button>
                 </div>
+                {gagal && (
+                  <p className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+                    {gagal}
+                  </p>
+                )}
               </div>
             )}
 

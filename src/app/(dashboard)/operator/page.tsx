@@ -18,11 +18,12 @@ import {
   catatanPerbaikanDarat,
   pengisianBBM_RIB02,
   STATUS_ASET_VARIANT,
-  asetList,
   type Aset,
   type StatusAsetBadgeVariant,
 } from "@/components/shared/mock-data";
 import { beritaAcaraByAset } from "@/components/shared/berita-acara-store";
+import { useAsets } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   ResponsiveTable,
   type ResponsiveField,
@@ -319,8 +320,11 @@ type JenisArmadaDashboard = "darat" | "air";
  * - `darat`: kategori Mobil & Motor
  * - `air`: kategori Kapal (kapal, RIB, RBB, dan mesin tempel)
  */
-function susunUnitArmada(jenis: JenisArmadaDashboard): UnitArmada[] {
-  return asetList
+function susunUnitArmada(
+  jenis: JenisArmadaDashboard,
+  asets: Aset[]
+): UnitArmada[] {
+  return asets
     .filter((a) =>
       jenis === "darat"
         ? a.kategori === "Mobil" || a.kategori === "Motor"
@@ -470,11 +474,27 @@ export default function OperatorPage() {
   const [activeTab, setActiveTab] = useState<"rib" | "kapal" | "mobil" | "motor">("rib");
   const [armadaFilter, setArmadaFilter] = useState<"Semua" | "Mobil" | "Motor" | "Kapal">("Semua");
 
+  // Data master aset dari Supabase.
+  const { data: asetList, loading, error, refetch } = useAsets();
+
+  if (loading) {
+    return <DataLoading label="Memuat dashboard operasional…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat data dari database"
+      />
+    );
+  }
+
   // ── Status live dari master aset ──────────────────────────────────────────
   // Dihitung saat render supaya keputusan Pengelola BMN (setujui → aset
   // "Dipindahkan", tolak → aset tetap "Rusak") langsung tercermin di sini.
-  const unitDarat = susunUnitArmada("darat");
-  const unitAir = susunUnitArmada("air");
+  const unitDarat = susunUnitArmada("darat", asetList);
+  const unitAir = susunUnitArmada("air", asetList);
 
   /** Unit yang perlu perhatian: aset rusak atau sudah dikirim ke service. */
   const unitPerluPerawatan = asetList

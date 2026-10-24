@@ -122,7 +122,7 @@ const operatorLapangan = [
     nip: "198908082010121001",
     nama: "Agustang",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Rescue Car D-Max Compartement 02"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
@@ -131,7 +131,7 @@ const operatorLapangan = [
     nip: "198802052007121001",
     nama: "Abd. Malik",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Kendaraan Umum"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -140,7 +140,7 @@ const operatorLapangan = [
     nip: "199709262022031001",
     nama: "Fajar Farial",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["KN SAR Parikesit"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -149,7 +149,7 @@ const operatorLapangan = [
     nip: "198102142005021001",
     nama: "Ardiansyah",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["RBB"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -158,7 +158,7 @@ const operatorLapangan = [
     nip: "199806052022031001",
     nama: "Muhammad Adiaksa",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Rescue Truck 01"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
@@ -167,7 +167,7 @@ const operatorLapangan = [
     nip: "199811182022031001",
     nama: "Agan Kalana",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Peralatan Gudang"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -177,7 +177,7 @@ const operatorLapangan = [
     nip: "200001052025211020",
     nama: "Haerul Vikra",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["D-Max Double Cabin 02"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -186,7 +186,7 @@ const operatorLapangan = [
     nip: "200206132025061001",
     nama: "Muh. Abduh Yanis",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Truck Compartement"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -195,7 +195,7 @@ const operatorLapangan = [
     nip: "200004152022031002",
     nama: "Ibnu Anjaya",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["D-Max 01"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -204,7 +204,7 @@ const operatorLapangan = [
     nip: "200305132025061001",
     nama: "Calvin Datundelang",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Motor Trail 04"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -213,7 +213,7 @@ const operatorLapangan = [
     nip: "199807192025211027",
     nama: "Wahyudi",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Rescue Truck 02"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -222,7 +222,7 @@ const operatorLapangan = [
     nip: "199610042025211053",
     nama: "Muhammad Fajrin S.Y.",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Rescue Car Carier"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -231,7 +231,7 @@ const operatorLapangan = [
     nip: "200409052025061001",
     nama: "Sulaeman Mustamin",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Motor Trail 02"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -240,7 +240,7 @@ const operatorLapangan = [
     nip: "198212022007121002",
     nama: "Hasril",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["RIB 02 - 12 M", "Rescue Car Compartment"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
@@ -249,7 +249,7 @@ const operatorLapangan = [
     nip: "198807022022031001",
     nama: "Ahmad Aidid",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["RIB 01 - 9 M"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -258,7 +258,7 @@ const operatorLapangan = [
     nip: "199612212022031001",
     nama: "Akmal Suryadil",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Rescue Car Dmax Double Cabin 03", "Rescue Motor Trail 01"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -267,7 +267,7 @@ const operatorLapangan = [
     nip: "199705052022031001",
     nama: "Muhammad Akbar",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: ["Rescue Car Dmax 01", "Rescue Motor Trail 03"],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: false,
@@ -281,7 +281,7 @@ const operatorLapanganLain = [
     nip: "198607222007121001",
     nama: "Andi Juli Adenam Syariyanto",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: [],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,
@@ -290,7 +290,7 @@ const operatorLapanganLain = [
     nip: "199811292022031001",
     nama: "Andrie Nurseta",
     role: "OPERATOR_LAPANGAN",
-    kendaraan: [],
+    
     password: DEFAULT_PASSWORD,
     aktif: true,
     password_changed: true,

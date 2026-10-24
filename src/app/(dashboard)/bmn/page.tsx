@@ -18,14 +18,35 @@ import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
-  asetList,
   STATUS_ASET,
   STATUS_ASET_VARIANT,
+ 
 } from "@/components/shared/mock-data";
+import { useAsets } from "@/components/shared/use-supabase-data";
+import {
+  DataLoading,
+  DataError,
+  DataEmpty,
+} from "@/components/shared/data-state";
 
 export default function MasterDataBMNPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  // Aset dari Supabase.
+  const { data: asetList, loading, error, refetch } = useAsets();
+
+  if (loading) {
+    return <DataLoading label="Memuat master aset BMN…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat master aset dari database"
+      />
+    );
+  }
 
   const filteredAset = asetList.filter((aset) => {
     const q = searchQuery.toLowerCase();
@@ -138,6 +159,11 @@ export default function MasterDataBMNPage() {
           </Select>
         </div>
       </Card>
+
+      {/* Kosong total (bukan karena filter) → bimbingan aktif */}
+      {asetList.length === 0 && (
+        <DataEmpty message="Database Supabase terhubung, tetapi tidak ada baris aset yang dapat Anda baca. Cek: (1) Anda sudah login di aplikasi; (2) scripts/rls-policies.sql sudah dijalankan di SQL Editor Supabase." className="mb-4" />
+      )}
 
       {/* Table — otomatis menjadi kartu di layar kecil */}
       <Card>

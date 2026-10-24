@@ -22,8 +22,9 @@ import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { checklistTemplates, countItemKritis, getUserById } from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
-import { checklistHarianList } from "@/components/shared/mock-data";
 import { useSesiUser } from "@/components/shared/use-session";
+import { useChecklistsCombined } from "@/components/shared/checklist-store";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 
 // ─── Data Checklist Perawatan ────────────────────────────────────────────────
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -58,6 +59,22 @@ export default function ChecklistPerawatanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
+  // Data checklist: Supabase + tulisan sesi ini (in-memory), digabung.
+  const { data: checklistHarianList, loading, error, refetch } =
+    useChecklistsCombined();
+
+  if (loading) {
+    return <DataLoading label="Memuat daftar checklist harian…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat checklist dari database"
+      />
+    );
+  }
 
   const filteredChecklist = checklistHarianList.filter((item) => {
     const matchSearch =

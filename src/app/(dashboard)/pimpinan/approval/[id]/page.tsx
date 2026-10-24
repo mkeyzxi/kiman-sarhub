@@ -18,11 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
-  getApprovalById,
   getUserById,
   formatTanggal,
   type StatusApproval,
 } from "@/components/shared/mock-data";
+import { useApprovals } from "@/components/shared/use-supabase-data";
+import { saveApprovalKeputusan } from "@/components/shared/db-writes";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 
 const statusBadgeVariant: Record<
   StatusApproval,
@@ -42,12 +44,27 @@ const statusIcon: Record<StatusApproval, typeof Clock> = {
 export default function ApprovalDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const approval = getApprovalById(params.id);
 
-  const [status, setStatus] = useState<StatusApproval>(
-    approval?.status ?? "Menunggu"
-  );
+  // Pengajuan dari Supabase.
+  const { data: approvals, loading, error, refetch } = useApprovals();
+  const approval = approvals.find((a) => a.id === params.id);
+
   const [catatan, setCatatan] = useState("");
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [gagal, setGagal] = useState<string | null>(null);
+
+  if (loading) {
+    return <DataLoading label="Memuat detail pengajuan…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat pengajuan dari database"
+      />
+    );
+  }
 
   if (!approval) {
     return (
@@ -67,8 +84,22 @@ export default function ApprovalDetailPage() {
     );
   }
 
-  const pengaju = getUserById(approval.pengajuanOleh);
-  const StatusIcon = statusIcon[status];
+  const pengaju = getUserById(approval.pengajuanOleh ?? "");
+  const StatusIcon = statusIcon[approval.status];
+
+  /** Simpan keputusan pimpinan ke Supabase lalu kembali ke daftar. */
+  const putuskan = async (keputusan: StatusApproval) => {
+    setMenyimpan(true);
+    setGagal(null);
+    try {
+      await saveApprovalKeputusan(approval.id, keputusan, catatan.trim());
+      router.push("/pimpinan/approval");
+    } catch (e) {
+      setGagal(e instanceof Error ? e.message : "Gagal menyimpan keputusan.");
+    } finally {
+      setMenyimpan(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -92,11 +123,11 @@ export default function ApprovalDetailPage() {
           </div>
         </div>
         <Badge
-          variant={statusBadgeVariant[status]}
+          variant={statusBadgeVariant[approval.status]}
           className="flex w-fit items-center gap-1.5 px-3 py-1 text-sm"
         >
           <StatusIcon className="h-3.5 w-3.5" />
-          {status}
+          {approval.status}
         </Badge>
       </div>
 
@@ -231,19 +262,26 @@ export default function ApprovalDetailPage() {
               <Button
                 variant="outline"
                 className="gap-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                onClick={() => setStatus("Ditolak")}
+                onClick={() => putuskan("Ditolak")}
+                disabled={menyimpan}
               >
                 <XCircle className="h-4 w-4" />
                 Tolak Pengajuan
               </Button>
               <Button
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => setStatus("Disetujui")}
+                onClick={() => putuskan("Disetujui")}
+                disabled={menyimpan}
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Setujui Pengajuan
+                {menyimpan ? "Menyimpan…" : "Setujui Pengajuan"}
               </Button>
             </div>
+            {gagal && (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+                {gagal}
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -251,7 +289,7 @@ export default function ApprovalDetailPage() {
           <CardContent className="flex items-center gap-3 py-6">
             <StatusIcon
               className={
-                status === "Disetujui"
+                approval.status === "Disetujui"
                   ? "h-5 w-5 text-emerald-600"
                   : "h-5 w-5 text-rose-600"
               }
@@ -259,7 +297,7 @@ export default function ApprovalDetailPage() {
             <p className="text-sm text-slate-600">
               Pengajuan ini telah{" "}
               <strong>
-                {status === "Disetujui" ? "disetujui" : "ditolak"}
+                {approval.status === "Disetujui" ? "disetujui" : "ditolak"}
               </strong>{" "}
               oleh Kepala Kantor.
             </p>
