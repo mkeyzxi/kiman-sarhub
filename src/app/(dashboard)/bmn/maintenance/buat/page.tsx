@@ -1,21 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Wrench, Package, AlertTriangle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Wrench, Package, AlertTriangle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   users,
   type TingkatKeparahan,
- 
+
 } from "@/components/shared/mock-data";
 import { addTicket } from "@/components/shared/ticket-store";
-import { buatUsulanApproval } from "@/components/shared/db-writes";
+import {
+  updateBeritaAcaraStatus,
+} from "@/components/shared/db-writes";
 import { useAsets } from "@/components/shared/use-supabase-data";
-import { useSesiUser } from "@/components/shared/use-session";
+import {
+  useBeritaAcara,
+  terapkanPatchBeritaAcara,
+} from "@/components/shared/berita-acara-store";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 
 const keparahanOptions: TingkatKeparahan[] = ["Rendah", "Sedang", "Tinggi"];
@@ -27,10 +32,28 @@ const keparahanHints: Record<TingkatKeparahan, string> = {
 };
 
 export default function BuatTiketPage() {
+  // useSearchParams butuh batas Suspense pada prerender statis.
+  return (
+    <Suspense fallback={<DataLoading label="Menyiapkan form tiket…" />}>
+      <BuatTiketForm />
+    </Suspense>
+  );
+}
+
+function BuatTiketForm() {
+  // Prefill dari berita acara yang telah di-acc KAKANSAR:
+  // /bmn/maintenance/buat?aset=<asetId>&ba=<baId>
+  const searchParams = useSearchParams();
+  const asetPrefill = searchParams.get("aset") ?? "";
+  const baId = searchParams.get("ba") ?? "";
+
   // Aset dari Supabase.
   const { data: asetList, loading, error, refetch } = useAsets();
+  // Daftar BA untuk banner "tersambung ke berita acara" (hanya sebuah chip).
+  const baSemua = useBeritaAcara();
+  const baTersambung = baId ? baSemua.find((b) => b.id === baId) : undefined;
   const [formData, setFormData] = useState({
-    asetId: "",
+    asetId: asetPrefill,
     judul: "",
     deskripsi: "",
     tingkatKeparahan: "Sedang" as TingkatKeparahan,
@@ -38,7 +61,6 @@ export default function BuatTiketPage() {
   });
 
   const router = useRouter();
-  const ses = useSesiUser();
   const [menyimpan, setMenyimpan] = useState(false);
   const [gagal, setGagal] = useState<string | null>(null);
 
@@ -67,36 +89,20 @@ export default function BuatTiketPage() {
       assignedTo: formData.assignedTo,
     });
 
-    // Tiket atas aset rusak otomatis membuat usulan untuk pimpinan
-    // (KAKANSAR) — diputus di /pimpinan/approval.
-    if (
-      asetTerpilih &&
-      (asetTerpilih.status === "Rusak Ringan" ||
-        asetTerpilih.status === "Rusak Berat")
-    ) {
+    // Sambungkan tiket ke berita acara yang jadi dasarnya (status BA tetap
+    // "Disetujui" — hanya tiket_id yang diisi) supaya kartu BA tampil di
+    // detail tiket dan alur bisa dilacak dua arah.
+    if (baId) {
       try {
-        await buatUsulanApproval({
-          id: `apr-${tiket.id}`,
-          kode: `UP-${asetTerpilih.kode}`,
-          namaAset: asetTerpilih.nama,
-          kategori: asetTerpilih.kategori,
-          pengajuanOleh: ses.id,
-          alasan: formData.deskripsi || formData.judul,
-          rincian: [
-            { label: "Kondisi Aset Lama", value: asetTerpilih.kondisi },
-            { label: "Status Aset", value: asetTerpilih.status },
-            {
-              label: "Tingkat Keparahan Tiket",
-              value: formData.tingkatKeparahan,
-            },
-            { label: "Tiket", value: tiket.id },
-          ],
+        await updateBeritaAcaraStatus(baId, "Disetujui", {
+          tiketId: tiket.id,
         });
+        terapkanPatchBeritaAcara(baId, { tiketId: tiket.id });
       } catch (e) {
         setGagal(
           e instanceof Error
             ? e.message
-            : "Gagal membuat usulan approval ke database"
+            : "Gagal menyambungkan tiket ke berita acara"
         );
         setMenyimpan(false);
         return;
@@ -113,6 +119,13 @@ export default function BuatTiketPage() {
   const asetRusak = asetList.filter(
     (a) => a.status === "Rusak Ringan" || a.status === "Rusak Berat"
   );
+
+  // Tiket dari alur berita acara: aset sudah "Dipindahkan" (bukan lagi
+  // status Rusak*) — tetap muat ke daftar opsi agar dropdown tidak kosong.
+  const asetKandidat =
+    asetTerpilih && asetRusak.every((a) => a.id !== asetTerpilih.id)
+      ? [asetTerpilih, ...asetRusak]
+      : asetRusak;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -147,23 +160,40 @@ export default function BuatTiketPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, asetId: e.target.value })
                 }
+                // Dari alur berita acara: aset dikunci sesuai BA — memilih
+                // aset lain akan memutus relasi BA ↔ tiket.
+                disabled={!!baId}
                 required
               >
                 <option value="">Pilih aset rusak (ringan/berat)</option>
-                {asetRusak.map((aset) => (
+                {asetKandidat.map((aset) => (
                   <option key={aset.id} value={aset.id}>
                     {aset.kode} ({aset.nama}) — {aset.status}
                   </option>
                 ))}
               </Select>
-              {asetList.length > 0 && asetRusak.length === 0 && (
+              {asetList.length > 0 && asetKandidat.length === 0 && (
                 <p className="mt-1 text-xs text-slate-500">
                   Belum ada aset berstatus Rusak Ringan/Rusak Berat. Aset masuk
-                  ke daftar ini setelah operator menyerahkan kerusakan lewat
-                  form checklist &rarr; &quot;Serahkan ke BMN&quot;.
+                  ke daftar ini setelah alur berjalan: operator mengisi berita
+                  acara &rarr; &quot;Serahkan ke BMN&quot; &rarr; BMN mengisi
+                  nomor surat &rarr; KAKANSAR meng-acc berita acara.
                 </p>
               )}
             </div>
+
+            {/* Banner penyambungan berita acara (dari halaman BA BMN) */}
+            {baTersambung && (
+              <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                <p className="text-xs text-blue-800">
+                  Tiket ini akan disambungkan ke berita acara{" "}
+                  <strong>{baTersambung.nomor || baTersambung.id}</strong>{" "}
+                  ({baTersambung.namaAset}) yang telah disetujui KAKANSAR.
+                  Aset sudah terpilih otomatis di dropdown di atas.
+                </p>
+              </div>
+            )}
 
             {asetTerpilih && (
               <div className="grid grid-cols-1 gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-3">

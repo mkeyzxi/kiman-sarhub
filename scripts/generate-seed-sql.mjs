@@ -382,30 +382,6 @@ const riwOpRows = mock.riwayatOperasi.map((o) => ({
   keterangan: o.keterangan ?? "",
 }));
 
-// ---------- 9. APPROVAL ----------
-const approvalCols = [
-  "id",
-  "kode",
-  "nama_aset",
-  "kategori",
-  "pengajuan_oleh",
-  "tanggal",
-  "status",
-  "alasan",
-  "rincian",
-];
-const approvalRows = mock.approvalList.map((a) => ({
-  id: a.id,
-  kode: a.kode,
-  nama_aset: a.namaAset,
-  kategori: a.kategori,
-  pengajuan_oleh: a.pengajuanOleh,
-  tanggal: a.tanggal,
-  status: a.status,
-  alasan: a.alasan,
-  rincian: json(a.rincian),
-}));
-
 // ---------- 10. LOGBOOK PERJALANAN ----------
 const logbookCols = [
   "id",
@@ -720,24 +696,7 @@ out.push(`CREATE TABLE IF NOT EXISTS public.riwayat_operasi (
 out.push(``);
 
 out.push(`-- ==========================================================`);
-out.push(`-- 9. APPROVAL (approvals)`);
-out.push(`-- ==========================================================`);
-out.push(`CREATE TABLE IF NOT EXISTS public.approvals (
-  id              text PRIMARY KEY,
-  kode            text,
-  nama_aset       text,
-  kategori        text,
-  pengajuan_oleh  text REFERENCES public.users(nip) ON DELETE SET NULL,
-  tanggal         date,
-  status          text,
-  alasan          text,
-  rincian         jsonb,
-  created_at      timestamptz DEFAULT now()
-);`);
-out.push(``);
-
-out.push(`-- ==========================================================`);
-out.push(`-- 10. LOGBOOK PERJALANAN (logbook_perjalanan)`);
+out.push(`-- 9. LOGBOOK PERJALANAN (logbook_perjalanan)`);
 out.push(`-- ==========================================================`);
 out.push(`CREATE TABLE IF NOT EXISTS public.logbook_perjalanan (
   id                text PRIMARY KEY,
@@ -765,7 +724,7 @@ out.push(`CREATE TABLE IF NOT EXISTS public.logbook_perjalanan (
 out.push(``);
 
 out.push(`-- ==========================================================`);
-out.push(`-- 11. CHECKLIST HARIAN (checklist_harian)`);
+out.push(`-- 10. CHECKLIST HARIAN (checklist_harian)`);
 out.push(`-- ==========================================================`);
 out.push(`CREATE TABLE IF NOT EXISTS public.checklist_harian (
   id              text PRIMARY KEY,
@@ -786,7 +745,7 @@ out.push(`CREATE TABLE IF NOT EXISTS public.checklist_harian (
 out.push(``);
 
 out.push(`-- ==========================================================`);
-out.push(`-- 12. BERITA ACARA (berita_acara)`);
+out.push(`-- 10. BERITA ACARA (berita_acara)`);
 out.push(`-- ==========================================================`);
 out.push(`CREATE TABLE IF NOT EXISTS public.berita_acara (
   id                  text PRIMARY KEY,
@@ -827,7 +786,6 @@ DELETE FROM public.checklist_templates;
 DELETE FROM public.notifications;
 DELETE FROM public.activity_log;
 DELETE FROM public.riwayat_operasi;
-DELETE FROM public.approvals;
 DELETE FROM public.logbook_perjalanan;
 DELETE FROM public.checklist_harian;
 DELETE FROM public.berita_acara;`);
@@ -856,13 +814,11 @@ out.push(`-- 7. LOG AKTIVITAS (${logAktRows.length} baris)`);
 out.push(insertRows("public.activity_log", logAktCols, logAktRows));
 out.push(`-- 8. RIWAYAT OPERASI (${riwOpRows.length} baris)`);
 out.push(insertRows("public.riwayat_operasi", riwOpCols, riwOpRows));
-out.push(`-- 9. APPROVAL (${approvalRows.length} baris)`);
-out.push(insertRows("public.approvals", approvalCols, approvalRows));
-out.push(`-- 10. LOGBOOK PERJALANAN (${logbookRows.length} baris)`);
+out.push(`-- 9. LOGBOOK PERJALANAN (${logbookRows.length} baris)`);
 out.push(insertRows("public.logbook_perjalanan", logbookCols, logbookRows));
-out.push(`-- 11. CHECKLIST HARIAN (${chRows.length} baris)`);
+out.push(`-- 10. CHECKLIST HARIAN (${chRows.length} baris)`);
 out.push(insertRows("public.checklist_harian", chCols, chRows));
-out.push(`-- 12. BERITA ACARA (${baRows.length} baris)`);
+out.push(`-- 11. BERITA ACARA (${baRows.length} baris)`);
 out.push(insertRows("public.berita_acara", baCols, baRows));
 
 // --- COMMIT ---
@@ -885,7 +841,6 @@ UNION ALL SELECT 'checklist_items', count(*) FROM public.checklist_items
 UNION ALL SELECT 'notifications', count(*) FROM public.notifications
 UNION ALL SELECT 'activity_log', count(*) FROM public.activity_log
 UNION ALL SELECT 'riwayat_operasi', count(*) FROM public.riwayat_operasi
-UNION ALL SELECT 'approvals', count(*) FROM public.approvals
 UNION ALL SELECT 'logbook_perjalanan', count(*) FROM public.logbook_perjalanan
 UNION ALL SELECT 'checklist_harian', count(*) FROM public.checklist_harian
 UNION ALL SELECT 'berita_acara', count(*) FROM public.berita_acara
@@ -904,5 +859,5 @@ console.log(
   `   Notif: ${notifRows.length}, LogAkt: ${logAktRows.length}, RiwayatOp: ${riwOpRows.length}`
 );
 console.log(
-  `   Approval: ${approvalRows.length}, Logbook: ${logbookRows.length}, Checklist: ${chRows.length}, BA: ${baRows.length}`
+  `   Logbook: ${logbookRows.length}, Checklist: ${chRows.length}, BA: ${baRows.length}`
 );

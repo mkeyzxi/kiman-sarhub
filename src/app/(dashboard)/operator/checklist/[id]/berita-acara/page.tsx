@@ -21,7 +21,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   cariAsetDmUnit,
   ekstrakItemRusak,
-  hitungTingkatKeparahan,
   tanggalTeks,
   angkaTeks,
   KETERANGAN_SERVICE_DEFAULT,
@@ -31,12 +30,14 @@ import {
 import {
   DokumenBeritaAcara,
   susunButirAnalisa,
-} from "./dokumen-berita-acara";
-import "./berita-acara-print.css";
+} from "@/components/shared/dokumen-berita-acara";
+import "@/components/shared/berita-acara-print.css";
 import {
   beritaAcaraByChecklist,
   beritaAcaraById,
   mulaiHidrasi,
+  simpanIsiBeritaAcaraSupabase,
+  serahkanBeritaAcaraSupabase,
   tambahBeritaAcaraSupabase,
   ubahIsiBeritaAcaraSupabase,
   ubahStatusBeritaAcaraSupabase,
@@ -49,11 +50,7 @@ import {
 import { useChecklistsCombined } from "@/components/shared/checklist-store";
 import { useAsetById } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
-import { addTicket } from "@/components/shared/ticket-store";
-import {
-  serahkanKerusakanAset,
-  buatUsulanApproval,
-} from "@/components/shared/db-writes";
+import { serahkanKerusakanAset } from "@/components/shared/db-writes";
 import { cn } from "@/lib/utils";
 
 const statusVariant: Record<
@@ -91,7 +88,6 @@ export default function BeritaAcaraPage() {
   const [kendala, setKendala] = useState<BarisKendala[]>([]);
   const [pesan, setPesan] = useState<string | null>(null);
   const [gagal, setGagal] = useState<string | null>(null);
-  const [catatan, setCatatan] = useState<string | null>(null);
   const [menyerahkan, setMenyerahkan] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const baSiap = useRef(false);
@@ -189,18 +185,47 @@ export default function BeritaAcaraPage() {
     setPesan("Berita acara disimpan sebagai draf.");
   };
 
-  /** Serahkan ke Pengelola BMN + buat tiket EWS + tandai status aset rusak. */
+  /**
+   * Serahkan BA ke Pengelola BMN + tandai status aset rusak (RPC).
+   *
+   * Alur (sesuai prosedur):
+   *  1. Operator mengisi template BA → menyerahkan (status BA "Diserahkan",
+   *     aset → "Rusak Ringan/Berat").
+   *  2. Pengelola BMN mengisi nomor surat → BA "Diproses".
+   *  3. KAKANSAR meng-acc / menolak BA (di halaman pimpinan).
+   *  4. Setelah acc, Pengelola BMN membuat tiket maintenance.
+   *
+   * Oleh karena itu penyerahan TIDAK membuat tiket.
+   * Keputusan pimpinan ada di alur berita acara (BMN → KAKANSAR → tiket maintenance), bukan usulan approval.
+   */
   const handleSerahkan = async () => {
     if (!baId || !aset || menyerahkan) return;
     setMenyerahkan(true);
     setGagal(null);
-    setCatatan(null);
     setPesan(null);
 
-    ubahIsiBeritaAcaraSupabase(baId, { nomor, uraian, kendala, fotoBukti });
+    // Simpan isi BA — JIKA database menolak (RLS/FK/koneksi), operator
+    // melihat pesan gagal di layar, bukan sukses palsu.
+    try {
+      await simpanIsiBeritaAcaraSupabase(baId, {
+        nomor,
+        uraian,
+        kendala,
+        fotoBukti,
+      });
+    } catch (e) {
+      setGagal(
+        e instanceof Error
+          ? e.message
+          : "Gagal menyimpan isi berita acara ke database"
+      );
+      setMenyerahkan(false);
+      return;
+    }
 
     // Status aset langsung mencerminkan hasil pemeriksaan operator — jangan
-    // menunggu keputusan BMN (itu berjalan ke "Dipindahkan" saat disetujui).
+    // menunggu keputusan pimpinan (kondisi "Dipindahkan" berjalan saat BA
+    // di-setujui KAKANSAR).
     const adaBerat = kendala.some((k) => k.sifat === "Berat");
     if (kendala.length > 0) {
       try {
@@ -222,68 +247,31 @@ export default function BeritaAcaraPage() {
       }
     }
 
-    // Usulan untuk pimpinan (KAKANSAR) dibuat saat penyerahan — gagalnya
-    // dibuat TIDAK menggagalkan penyerahan (hanya catatan peringatan).
-    if (aset) {
-      try {
-        const hasil = await buatUsulanApproval({
-          id: `apr-${Date.now().toString(36)}`,
-          kode: `UP-${aset.kode}`,
-          namaAset: aset.nama,
-          kategori: aset.kategori,
-          pengajuanOleh: ses.id,
-          alasan: `Kerusakan dilaporkan ${checklist?.pemeriksa ?? ses.nama}${
-            uraian ? ` — ${uraian}` : ""
-          }. Item rusak: ${kendala.map((k) => k.label).join(", ")}`,
-          rincian: [
-            {
-              label: "Kondisi Aset",
-              value: adaBerat ? "Rusak Berat" : "Rusak Ringan",
-            },
-            {
-              label: "Sifat Kerusakan",
-              value: adaBerat ? "Berat" : "Ringan",
-            },
-            { label: "Checklist", value: checklist?.unit ?? aset.id },
-          ],
-        });
-        if (hasil === "dibuat") {
-          setCatatan(
-            "Usulan penggantian aset telah dibuat untuk pimpinan di menu Approval."
-          );
-        }
-      } catch (e) {
-        setCatatan(
-          `Catatan: usulan approval tidak dibuat (${e instanceof Error ? e.message : "gagal"}) — penyerahan tetap berhasil.`
-        );
-      }
+    // Ganti status BA menjadi "Diserahkan" — tulis DB di-await; gagal
+    // ditampilkan, bukan diam.
+    try {
+      await serahkanBeritaAcaraSupabase(baId, {
+        pengajuId: ses.id,
+        pengajuNama: ses.nama,
+        pengajuJabatan: ses.jabatan,
+        keterangan: KETERANGAN_SERVICE_DEFAULT,
+      });
+    } catch (e) {
+      setGagal(
+        e instanceof Error
+          ? e.message
+          : "Gagal menyerahkan berita acara ke database"
+      );
+      setMenyerahkan(false);
+      return;
     }
 
-    // Tiket EWS dibuat sekali saja — BA yang sudah tersambung tiket dari
-    // penyerahan sebelumnya tidak membentuk tiket duplikat.
-    const baLama = beritaAcaraByChecklist(checklistId);
-    const tiket = baLama?.tiketId
-      ? { id: baLama.tiketId }
-      : addTicket({
-          asetId: aset.id,
-          judul: `Kerusakan ${aset.nama}`,
-          deskripsi:
-            uraian ||
-            `Item rusak: ${kendala.map((k) => k.label).join(", ")}`,
-          tingkatKeparahan: hitungTingkatKeparahan(checklist?.items ?? []),
-          assignedTo: ses.id,
-        });
-
-    ubahStatusBeritaAcaraSupabase(baId, "Diserahkan", {
-      pengajuId: ses.id,
-      pengajuNama: ses.nama,
-      pengajuJabatan: ses.jabatan,
-      keterangan: KETERANGAN_SERVICE_DEFAULT,
-      tiketId: tiket.id,
-    });
-
-    // Kembali ke detail checklist — berita acara sudah masuk antrean
-    // Pengelola BMN. Operator lapangan tidak punya akses ke /bmn/*.
+    setPesan(
+      "Berita acara diserahkan ke Pengelola BMN untuk pengisian nomor surat."
+    );
+    // Beri waktu pesan terbaca sebelum kembali ke detail checklist —
+    // operator tidak punya akses ke /bmn/*.
+    await new Promise((r) => setTimeout(r, 1200));
     router.push(`/operator/checklist/${checklistId}`);
   };
 
@@ -431,18 +419,19 @@ export default function BeritaAcaraPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Nomor (kosong — diisi unit administrasi) */}
+            {/* Nomor (ditulis Pengelola BMN setelah BA diserahkan) */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="nomor">Nomor Berita Acara</Label>
                 <Input
                   id="nomor"
                   value={nomor}
-                  onChange={(e) => setNomor(e.target.value)}
-                  placeholder="Dikosongkan — diisi oleh unit administrasi"
+                  disabled
+                  placeholder="Diisi Pengelola BMN setelah diserahkan"
                 />
                 <p className="text-xs text-slate-400">
-                  Nomor resmi diberikan oleh unit administrasi.
+                  Diisi oleh Pengelola BMN setelah BA diserahkan — formulir ini
+                  otomatis diperbarui. Anda cukup mengisi analisa dan foto bukti.
                 </p>
               </div>
               <div className="space-y-2">
@@ -651,8 +640,9 @@ export default function BeritaAcaraPage() {
                   {KETERANGAN_SERVICE_DEFAULT}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Aset akan berstatus &quot;Dipindahkan&quot; setelah Pengelola BMN
-                  menyetujui berita acara ini.
+                  Aset akan berstatus &quot;Dipindahkan&quot; setelah KAKANSAR
+                  menyetujui berita acara ini. Selanjutnya Pengelola BMN membuat
+                  tiket maintenance.
                 </p>
               </div>
             </div>
@@ -668,13 +658,6 @@ export default function BeritaAcaraPage() {
               <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
                 <p className="text-xs text-rose-800">{gagal}</p>
-              </div>
-            )}
-
-            {catatan && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                <p className="text-xs text-amber-800">{catatan}</p>
               </div>
             )}
 

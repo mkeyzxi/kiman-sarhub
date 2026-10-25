@@ -1,16 +1,27 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import type { Database, UserUpdate } from "@/types/supabase";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+// Server-side Supabase client dengan service_role key (bypass RLS).
+// Dibuat lazily — modul harus aman dievaluasi oleh worker build (env tidak
+// selalu tersedia pada fase "collect page data").
+let adminRefKlien: SupabaseClient<Database> | null = null;
+
+function supaAdmin(): SupabaseClient<Database> {
+  if (!adminRefKlien) {
+    adminRefKlien = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
-);
+  return adminRefKlien;
+}
 
 /** Domain email internal untuk auth.users. */
 const INTERNAL_EMAIL_DOMAIN = "basarnas.ac.id";
@@ -28,7 +39,7 @@ function generateInternalEmail(nip: string): string {
  * `provider`/`providers` bawaan GoTrue saat menulis ulang app_metadata.
  */
 async function readAuthAppMetadata(userId: string): Promise<Record<string, unknown>> {
-  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+  const { data: authUser } = await supaAdmin().auth.admin.getUserById(userId);
   return authUser?.user?.app_metadata ?? {
     provider: "email",
     providers: ["email"],
@@ -42,7 +53,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supaAdmin()
       .from("users")
       .select("*")
       .eq("id", id)
@@ -82,8 +93,8 @@ export async function PUT(
 
     // Cek keunikan NIP baru (jika ada)
     if (normalizeNip) {
-      const { data: other } = await supabaseAdmin
-        .from("users")
+      const { data: other } = await supaAdmin()
+      .from("users")
         .select("id")
         .eq("nip", normalizeNip)
         .neq("id", id)
@@ -97,7 +108,7 @@ export async function PUT(
     }
 
     // ── Update public.users ────────────────────────────────────────────
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: UserUpdate = {
       updated_at: new Date().toISOString(),
     };
     if (nama !== undefined) updatePayload.nama = nama;
@@ -106,7 +117,7 @@ export async function PUT(
     if (normalizeNip) updatePayload.nip = normalizeNip;
     if (email !== undefined) updatePayload.email = email;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supaAdmin()
       .from("users")
       .update(updatePayload)
       .eq("id", id)
@@ -123,7 +134,7 @@ export async function PUT(
     // bisa dipakai untuk login.
     let authEmailToUpdate: string | undefined;
     const existingEmailBefore = data.email;
-    const existingNipBefore = (await supabaseAdmin
+    const existingNipBefore = (await supaAdmin()
       .from("users")
       .select("nip")
       .eq("id", id)
@@ -160,12 +171,12 @@ export async function PUT(
       authUpdate.email = authEmailToUpdate;
     }
 
-    await supabaseAdmin.auth.admin.updateUserById(id, authUpdate);
+    await supaAdmin().auth.admin.updateUserById(id, authUpdate);
 
     // ── Sync email di public.users jika NIP berubah ───────────────────
     if (authEmailToUpdate && email === undefined) {
-      await supabaseAdmin
-        .from("users")
+      await supaAdmin()
+      .from("users")
         .update({ email: authEmailToUpdate })
         .eq("id", id);
     }
@@ -188,12 +199,12 @@ export async function DELETE(
     const { id } = await params;
 
     // Soft delete: set aktif=false.
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: UserUpdate = {
       aktif: false,
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supaAdmin()
       .from("users")
       .update(updatePayload)
       .eq("id", id)
@@ -206,7 +217,7 @@ export async function DELETE(
 
     // Sync app_metadata.aktif = false agar JWT berikutnya tahu akun sudah nonaktif
     const prevMeta = await readAuthAppMetadata(id);
-    await supabaseAdmin.auth.admin.updateUserById(id, {
+    await supaAdmin().auth.admin.updateUserById(id, {
       app_metadata: {
         ...prevMeta,
         aktif: false,

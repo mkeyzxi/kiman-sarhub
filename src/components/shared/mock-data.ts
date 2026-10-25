@@ -2916,116 +2916,10 @@ export const complianceRanking: ComplianceRanking[] = [
   },
   {
     personelId: "200006042025061006",
-    nama: "Rizky Pratama",
+    nama: "Oky Juneva Marsel",
     telatKembali: 3,
     abaikanChecklist: 2,
     skorKepatuhan: 70,
-  },
-];
-
-// -----------------------------------------------------------------------------
-// 10. PENGAJUAN PERSETUJUAN
-// -----------------------------------------------------------------------------
-
-export type StatusApproval = "Menunggu" | "Disetujui" | "Ditolak";
-
-export interface Approval {
-  id: string;
-  kode: string;
-  namaAset: string;
-  kategori: KategoriAset;
-  pengajuanOleh: string;
-  tanggal: string;
-  status: StatusApproval;
-  alasan: string;
-  rincian: { label: string; value: string }[];
-}
-
-export const approvalList: Approval[] = [
-  {
-    id: "apr-001",
-    kode: "BMN-SAR-005",
-    namaAset: "Chain Stihl MS 261",
-    kategori: "Peralatan SAR",
-    pengajuanOleh: "199810212022032001",
-    tanggal: "2026-09-26",
-    status: "Menunggu",
-    alasan:
-      "Menggantikan chainsaw lama yang sudah tidak berfungsi optimal karena mata rantai aus.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Rusak Berat" },
-      { label: "Usia Pakai", value: "6 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 4.500.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-002",
-    kode: "BMN-KOM-003",
-    namaAset: "Thermal Imaging Camera FLIR",
-    kategori: "Komunikasi",
-    pengajuanOleh: "199810212022032001",
-    tanggal: "2026-09-21",
-    status: "Ditolak",
-    alasan:
-      "Usulan tidak sesuai prioritas kebutuhan. Anggaran tahun ini sudah terpakai untuk kebutuhan komunikasi VHF.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Baik" },
-      { label: "Usia Pakai", value: "1 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 38.000.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-003",
-    kode: "BMN-MED-003",
-    namaAset: "Tabung Oksigen 10L",
-    kategori: "Medis",
-    pengajuanOleh: "1111111111111111",
-    tanggal: "2026-09-24",
-    status: "Disetujui",
-    alasan:
-      "Menambah stok oksigen untuk tim medis lapangan agar siap pada setiap operasi evakuasi.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Habis Terpakai" },
-      { label: "Usia Pakai", value: "3 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 1.750.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-004",
-    kode: "BMN-DOK-003",
-    namaAset: "Laptop Field Rugged Panasonic",
-    kategori: "Dokumentasi",
-    pengajuanOleh: "198208042009121003",
-    tanggal: "2026-09-18",
-    status: "Menunggu",
-    alasan:
-      "Laptop lama sering gagal menyala di lapangan karena kompresinya sudah tidak stabil.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Rusak Ringan" },
-      { label: "Usia Pakai", value: "5 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 12.000.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-005",
-    kode: "BMN-KND-003",
-    namaAset: "Motor Honda CRF250R",
-    kategori: "Motor",
-    pengajuanOleh: "199810212022032001",
-    tanggal: "2026-09-20",
-    status: "Menunggu",
-    alasan:
-      "Menambah armada motor trail untuk memperbesar daya jangkau di wilayah pedalaman yang sulit dijangkau kendaraan roda empat.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Tidak Ada (Usulan Baru)" },
-      { label: "Usia Pakai", value: "-" },
-      { label: "Estimasi Biaya", value: "Rp 58.000.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
   },
 ];
 
@@ -3175,7 +3069,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Latihan SAR",
     kategoriUnit: "RIB",
     jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100",
-    nahkoda: "Medlyn R. Pagali",
+    nahkoda: "Medline",
     jumlahPersonel: 8,
     bbmSebelum: "100%",
     bbmSesudah: "70%",
@@ -3195,7 +3089,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Patroli rutin",
     kategoriUnit: "RIB",
     jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Sea First",
-    nahkoda: "Kauluddin",
+    nahkoda: "Muhammad Makbul N",
     jumlahPersonel: 4,
     bbmSebelum: "88%",
     bbmSesudah: "",
@@ -3214,7 +3108,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Patroli sore",
     kategoriUnit: "RIB",
     jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100",
-    nahkoda: "Rizky Pratama",
+    nahkoda: "Oky Juneva Marsel",
     jumlahPersonel: 3,
     bbmSebelum: "85%",
     bbmSesudah: "",
@@ -3238,7 +3132,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Patroli laut dan pengamatan korban",
     kategoriUnit: "Kapal",
     jenisUnit: "Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)",
-    nahkoda: "Ansaruddin",
+    nahkoda: "Mahmud Afandi",
     jumlahPersonel: 6,
     bbmSebelum: "88%",
     bbmSesudah: "74%",
@@ -3258,7 +3152,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Sosialisasi kesiapsiagaan SAR",
     kategoriUnit: "Kapal",
     jenisUnit: "Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)",
-    nahkoda: "Kauluddin",
+    nahkoda: "Muhammad Makbul N",
     jumlahPersonel: 5,
     bbmSebelum: "82%",
     bbmSesudah: "71%",
@@ -3400,7 +3294,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Evakuasi korban banjir",
     kategoriUnit: "Mobil",
     jenisUnit: "Rescue Truck ISUZU (DC 8982)",
-    nahkoda: "Medlyn R. Pagali",
+    nahkoda: "Medline",
     jumlahPersonel: 5,
     bbmSebelum: "100%",
     bbmSesudah: "",
@@ -3638,10 +3532,6 @@ export const checklistHarianList: ChecklistHarian[] = [
 
 // Helper Functions
 // -----------------------------------------------------------------------------
-
-export function getApprovalById(id: string): Approval | undefined {
-  return approvalList.find((a) => a.id === id);
-}
 
 export function getChecklistHarianById(id: string): ChecklistHarian | undefined {
   return checklistHarianList.find((c) => c.id === id);
@@ -4179,9 +4069,9 @@ export const beritaAcaraList: BeritaAcara[] = [
     asetId: "ast-034",
     tiketId: "ews-001",
     pengajuId: "1111111111111111",
-    pengajuNama: "Kauluddin",
+    pengajuNama: "Muhammad Makbul N",
     pengajuJabatan: "Pengelola BMN",
-    pelapor: "Kauluddin",
+    pelapor: "Muhammad Makbul N",
     pelaporJabatan: "Pengelola BMN",
     tanggalBuat: "2026-09-25",
     tanggalUpdate: "2026-09-26",
@@ -4216,9 +4106,9 @@ export const beritaAcaraList: BeritaAcara[] = [
     asetId: "ast-029",
     tiketId: "ews-006",
     pengajuId: "199810212022032001",
-    pengajuNama: "Medlyn R. Pagali",
+    pengajuNama: "Medline",
     pengajuJabatan: "Pengelola BMN",
-    pelapor: "Medlyn R. Pagali",
+    pelapor: "Medline",
     pelaporJabatan: "Pengelola BMN",
     tanggalBuat: "2026-09-26",
     tanggalUpdate: "2026-09-26",

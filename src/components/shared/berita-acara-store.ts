@@ -120,16 +120,20 @@ function toSupabaseRow(b: BeritaAcara) {
     nama_aset: b.namaAset,
     kode_aset: b.kodeAset,
     nomor: b.nomor,
-    aset_id: b.asetId ?? "",
-    checklist_id: b.checklistId ?? "",
-    tiket_id: b.tiketId ?? "",
-    pengaju_id: b.pengajuId ?? "",
+    // Kolom FK (asets/ews_tickets/users) nullable — string kosong BUKAN
+    // nilai FK valid dan memicu foreign_key_violation (HTTP 409) pada
+    // INSERT, sehingga BA draf operator tidak pernah masuk database dan
+    // Pengelola BMN tidak pernah melihatnya. Kosong → null.
+    aset_id: b.asetId || null,
+    checklist_id: b.checklistId || null,
+    tiket_id: b.tiketId || null,
+    pengaju_id: b.pengajuId || null,
     pelapor: b.pelapor,
     pelapor_jabatan: b.pelaporJabatan,
     pengaju_nama: b.pengajuNama ?? "",
     pengaju_jabatan: b.pengajuJabatan ?? "",
-    tanggal_buat: b.tanggalBuat ?? "",
-    tanggal_update: b.tanggalUpdate ?? "",
+    tanggal_buat: b.tanggalBuat || null,
+    tanggal_update: b.tanggalUpdate || null,
     status: b.status,
     kendala: b.kendala ?? null,
     foto_bukti: b.fotoBukti ?? null,
@@ -142,18 +146,52 @@ function toSupabaseRow(b: BeritaAcara) {
 async function persistInsert(b: BeritaAcara): Promise<void> {
   try {
     const supa = getSupabaseBrowserClient();
-    await supa.from("berita_acara").insert(toSupabaseRow(b));
-  } catch {
-    // Offline / Supabase belum dikonfigurasi — abaikan, data in-memory.
+    const res = await supa.from("berita_acara").insert(toSupabaseRow(b));
+    if (res.error) {
+      // Jangan sunyi: INSERT gagal (RLS/FK/konflik) wajib terlihat.
+      console.error(
+        "[berita-acara] INSERT draf gagal:",
+        res.error.message,
+        res.error.details ?? "",
+        res.error.hint ?? ""
+      );
+    }
+  } catch (e) {
+    console.error("[berita-acara] INSERT draf gagal (jaringan):", e);
+  }
+}
+
+/**
+ * Kirim patch ke Supabase; melempar Error bila ditolak — dipakai jalur
+ * yang HARUS memastikan tersimpan (serahkan BA). Pesan konsol ikut
+ * dilengkapi detail untuk diagnosis cepat.
+ */
+async function tulisPatchBeritaAcara(
+  id: string,
+  patch: Record<string, unknown>,
+  konteks: string
+): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const res = await supa
+    .from("berita_acara")
+    .update(patch as never)
+    .eq("id", id);
+  if (res.error) {
+    console.error(
+      `[berita-acara] ${konteks} gagal:`,
+      res.error.message,
+      res.error.details ?? "",
+      res.error.hint ?? ""
+    );
+    throw new Error(`${konteks} gagal disimpan: ${res.error.message}`);
   }
 }
 
 async function persistUpdate(id: string, patch: Record<string, unknown>): Promise<void> {
   try {
-    const supa = getSupabaseBrowserClient();
-    await supa.from("berita_acara").update(patch as never).eq("id", id);
+    await tulisPatchBeritaAcara(id, patch, "UPDATE");
   } catch {
-    // Offline / Supabase belum dikonfigurasi — abaikan.
+    // Jalur fire-and-forget (draf) — error sudah dicatat ke console.
   }
 }
 
@@ -222,8 +260,84 @@ export function ubahStatusBeritaAcaraSupabase(
     ...(extra.alasanPenolakan !== undefined ? { alasan_penolakan: extra.alasanPenolakan } : {}),
     ...(extra.keterangan !== undefined ? { keterangan: extra.keterangan } : {}),
     ...(extra.tiketId !== undefined ? { tiket_id: extra.tiketId } : {}),
+    // Pengaju ikut dipersist — diperlukan supaya RLS (pengaju = NIP sendiri)
+    // dan halaman BMN/pimpinan ("Diserahkan oleh") melihat identitas PJ.
+    ...(extra.pengajuId !== undefined ? { pengaju_id: extra.pengajuId } : {}),
+    ...(extra.pengajuNama !== undefined ? { pengaju_nama: extra.pengajuNama } : {}),
+    ...(extra.pengajuJabatan !== undefined ? { pengaju_jabatan: extra.pengajuJabatan } : {}),
   });
   return ba;
+}
+
+/**
+ * Simpan isi berita acara — versi async yang di-`await` form: melempar
+ * Error bila database menolak, sehingga operator melihat kegagalan
+ * (bukan pesan sukses palsu).
+ */
+export async function simpanIsiBeritaAcaraSupabase(
+  id: string,
+  isi: Partial<
+    Pick<
+      BeritaAcara,
+      "nomor" | "uraian" | "kendala" | "fotoBukti" | "namaAset" | "kodeAset"
+    >
+  >
+): Promise<void> {
+  const ba = ubahIsiBeritaAcaraSupabase(id, isi);
+  if (!ba) throw new Error("Berita acara belum dibuat — buka ulang halaman.");
+  await tulisPatchBeritaAcara(id, {
+    ...(isi.nomor !== undefined ? { nomor: isi.nomor } : {}),
+    ...(isi.uraian !== undefined ? { uraian: isi.uraian } : {}),
+    ...(isi.kendala !== undefined ? { kendala: isi.kendala } : {}),
+    ...(isi.fotoBukti !== undefined ? { foto_bukti: isi.fotoBukti } : {}),
+    ...(isi.namaAset !== undefined ? { nama_aset: isi.namaAset } : {}),
+    ...(isi.kodeAset !== undefined ? { kode_aset: isi.kodeAset } : {}),
+    tanggal_update: ba.tanggalUpdate,
+  }, "simpan isi");
+}
+
+/**
+ * Serahkan berita acara ke Pengelola BMN — versi async yang di-`await`:
+ * set status "Diserahkan" + identitas pengaju, lalu tulis ke database.
+ * Melempar Error bila ditolak supaya form menampilkan kegagalannya.
+ */
+export async function serahkanBeritaAcaraSupabase(
+  id: string,
+  extra: Partial<
+    Pick<
+      BeritaAcara,
+      "keterangan" | "pengajuId" | "pengajuNama" | "pengajuJabatan"
+    >
+  > = {}
+): Promise<void> {
+  const ba = ubahStatusBeritaAcaraSupabase(id, "Diserahkan", extra);
+  if (!ba) throw new Error("Berita acara belum dibuat — buka ulang halaman.");
+  await tulisPatchBeritaAcara(
+    id,
+    {
+      status: "Diserahkan",
+      tanggal_update: ba.tanggalUpdate,
+      ...(extra.keterangan !== undefined ? { keterangan: extra.keterangan } : {}),
+      ...(extra.pengajuId !== undefined ? { pengaju_id: extra.pengajuId } : {}),
+      ...(extra.pengajuNama !== undefined ? { pengaju_nama: extra.pengajuNama } : {}),
+      ...(extra.pengajuJabatan !== undefined ? { pengaju_jabatan: extra.pengajuJabatan } : {}),
+    },
+    "serahkan BA"
+  );
+}
+
+/**
+ * Terapkan patch ke salinan in-memory TANPA menulis ke Supabase — dipakai
+ * halaman BMN/pimpinan SETELAH tulis database berhasil lewat `db-writes`
+ * (agar UI & fungs-fungsi pembaca store langsung melihat state terbaru).
+ */
+export function terapkanPatchBeritaAcara(
+  id: string,
+  patch: Partial<BeritaAcara>
+): void {
+  const ba = getBeritaAcaraById(id);
+  if (!ba) return;
+  Object.assign(ba, patch);
 }
 
 /**

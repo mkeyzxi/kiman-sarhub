@@ -14,11 +14,9 @@ import type {
   AsetInsert,
   AsetUpdate,
   ChecklistHarianRow,
-  ApprovalRow,
   BeritaAcaraRow,
 } from "@/types/supabase";
 import type {
-  StatusApproval,
   StatusAset,
   StatusBeritaAcara,
   KondisiAset,
@@ -217,75 +215,6 @@ export async function updateChecklistItem(
   if (error) throw new Error(pesan(error.message));
 }
 
-// ─── APPROVALS ───────────────────────────────────────────────────────────────
-
-/**
- * Simpan keputusan pimpinan atas satu pengajuan:
- * UPDATE `approvals` (status + alasan/catatan).
- */
-export async function saveApprovalKeputusan(
-  id: string,
-  status: StatusApproval,
-  catatan: string
-): Promise<void> {
-  const supa = getSupabaseBrowserClient();
-  const patch: Partial<Pick<ApprovalRow, "status" | "alasan">> = {
-    status,
-    alasan: catatan,
-  };
-  const { error } = await supa.from("approvals").update(patch).eq("id", id);
-  if (error) throw new Error(pesan(error.message));
-}
-
-/**
- * Buat usulan baru untuk pimpinan (status "Menunggu") dari alur kerusakan —
- * dipakai saat BMN menyetujui berita acara & saat membuat tiket aset rusak.
- * Id deterministik (apr-<baId/tiketId>) bila sudah ada di database akan
- * dilewati ("sudahAda").
- */
-export async function buatUsulanApproval(input: {
-  id: string;
-  kode: string;
-  namaAset: string;
-  kategori: string;
-  pengajuanOleh: string;
-  alasan: string;
-  rincian: { label: string; value: string }[];
-}): Promise<"dibuat" | "sudahAda"> {
-  const supa = getSupabaseBrowserClient();
-  // Anti-duplikat ganda: (1) id sama pernah dibuat, (2) ada usulan "Menunggu"
-  // dengan kode sama (aset yang sama) — usulan baru dilewati.
-  const { data: adaId } = await supa
-    .from("approvals")
-    .select("id")
-    .eq("id", input.id)
-    .maybeSingle();
-  if (adaId) return "sudahAda";
-
-  const { data: adaKode } = await supa
-    .from("approvals")
-    .select("id")
-    .eq("kode", input.kode)
-    .eq("status", "Menunggu")
-    .limit(1);
-  if (adaKode && adaKode.length > 0) return "sudahAda";
-
-  const row: Omit<ApprovalRow, "created_at"> = {
-    id: input.id,
-    kode: input.kode,
-    nama_aset: input.namaAset,
-    kategori: input.kategori,
-    pengajuan_oleh: input.pengajuanOleh,
-    tanggal: hariIni(),
-    status: "Menunggu",
-    alasan: input.alasan,
-    rincian: input.rincian,
-  };
-  const { error } = await supa.from("approvals").insert(row);
-  if (error) throw new Error(pesan(error.message));
-  return "dibuat";
-}
-
 // ─── BERITA ACARA ────────────────────────────────────────────────────────────
 
 /** INSERT berita acara baru (status Draf) dari alur checklist. */
@@ -384,5 +313,25 @@ export async function updateBeritaAcaraIsi(
   if (isi.kodeAset !== undefined) patch.kode_aset = isi.kodeAset;
 
   const { error } = await supa.from("berita_acara").update(patch).eq("id", id);
+  if (error) throw new Error(pesan(error.message));
+}
+
+/**
+ * KAKANSAR memutus berita acara (acc / tolak) lewat RPC SECURITY DEFINER —
+ * role KAKANSAR tidak punya izin UPDATE berita acara maupun aset langsung.
+ * Setujui → BA "Disetujui" + aset "Dipindahkan"; Tolak → BA "Ditolak"
+ * (alasan wajib). Pemanggil menunggu hasil; kesalahan dilempar ke form.
+ */
+export async function putuskanBeritaAcara(
+  baId: string,
+  setujui: boolean,
+  alasan: string
+): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const { error } = await supa.rpc("putuskan_berita_acara", {
+    p_ba_id: baId,
+    p_setujui: setujui,
+    p_alasan: alasan,
+  });
   if (error) throw new Error(pesan(error.message));
 }

@@ -18,13 +18,12 @@ import type {
   NotificationRow,
   ActivityLogRow,
   RiwayatOperasiRow,
-  ApprovalRow,
   BeritaAcaraRow,
   AntreanVerifikasiRow,
   ChecklistTemplateRow,
   ChecklistItemRow,
 } from "@/types/supabase";
-import type { StatusApproval } from "@/components/shared/mock-data";
+import type { BarisKendala } from "@/components/shared/mock-data";
 
 // ─── ASET ───────────────────────────────────────────────────────────────────
 // Bentuk Aset mock yang diharapkan halaman (subset yang dipakai UI).
@@ -306,33 +305,6 @@ export function mapRiwayatOperasi(rows: RiwayatOperasiRow[]): RiwayatOperasiMapp
   }));
 }
 
-// ─── APPROVAL ────────────────────────────────────────────────────────────────
-export interface ApprovalMapped {
-  id: string;
-  kode: string;
-  namaAset: string;
-  kategori: string;
-  pengajuanOleh?: string;
-  tanggal: string;
-  status: StatusApproval;
-  alasan: string;
-  rincian: { label: string; value: string }[];
-}
-
-export function mapApprovals(rows: ApprovalRow[]): ApprovalMapped[] {
-  return rows.map((r) => ({
-    id: r.id,
-    kode: r.kode,
-    namaAset: r.nama_aset,
-    kategori: r.kategori,
-    pengajuanOleh: r.pengajuan_oleh ?? undefined,
-    tanggal: r.tanggal,
-    status: r.status as StatusApproval,
-    alasan: r.alasan,
-    rincian: (r.rincian ?? []) as { label: string; value: string }[],
-  }));
-}
-
 // ─── BERITA ACARA ────────────────────────────────────────────────────────────
 export interface BeritaAcaraMapped {
   id: string;
@@ -351,8 +323,8 @@ export interface BeritaAcaraMapped {
   tanggalBuat?: string;
   tanggalUpdate?: string;
   status: string;
-  kendala: unknown;
-  fotoBukti: unknown;
+  kendala: BarisKendala[];
+  fotoBukti: string[];
   uraian: string;
   alasanPenolakan?: string;
   keterangan: string;
@@ -362,25 +334,27 @@ export function mapBeritaAcara(rows: BeritaAcaraRow[]): BeritaAcaraMapped[] {
   return rows.map((r) => ({
     id: r.id,
     tanggal: r.tanggal,
-    namaAset: r.nama_aset,
-    kodeAset: r.kode_aset,
-    nomor: r.nomor,
+    // Kolom teks di DB nullable (seed memasukkan NULL) — null-guard supaya
+    // tidak ada `null` mengalir ke <Input value> / template string.
+    namaAset: r.nama_aset ?? "",
+    kodeAset: r.kode_aset ?? "",
+    nomor: r.nomor ?? "",
     asetId: r.aset_id ?? undefined,
     checklistId: r.checklist_id || undefined,
     tiketId: r.tiket_id ?? undefined,
     pengajuId: r.pengaju_id ?? undefined,
-    pelapor: r.pelapor,
-    pelaporJabatan: r.pelapor_jabatan,
+    pelapor: r.pelapor ?? "",
+    pelaporJabatan: r.pelapor_jabatan ?? "",
     pengajuNama: r.pengaju_nama || undefined,
     pengajuJabatan: r.pengaju_jabatan || undefined,
     tanggalBuat: r.tanggal_buat ?? undefined,
     tanggalUpdate: r.tanggal_update ?? undefined,
     status: r.status,
-    kendala: r.kendala,
-    fotoBukti: r.foto_bukti,
-    uraian: r.uraian,
+    kendala: Array.isArray(r.kendala) ? (r.kendala as BarisKendala[]) : [],
+    fotoBukti: Array.isArray(r.foto_bukti) ? (r.foto_bukti as string[]) : [],
+    uraian: r.uraian ?? "",
     alasanPenolakan: r.alasan_penolakan || undefined,
-    keterangan: r.keterangan,
+    keterangan: r.keterangan ?? "",
   }));
 }
 

@@ -187,13 +187,15 @@ create policy tickets_update_bmn on public.ews_tickets
   with check (public.boleh_tulis_aset() or assigned_to = public.nip_jwt());
 
 -- ─── 9. berita_acara ───────────────────────────────────────────────────────--
+-- Alur: operator isi BA (Draf, pengaju_id masih kosong) → serahkan sehingga
+-- pengaju_id = NIP operator → BMN isi nomor (Diproses) → KAKANSAR putuskan
+-- (Disetujui/Ditolak, lewat RPC putuskan_berita_acara).
 drop policy if exists ba_select on public.berita_acara;
 create policy ba_select on public.berita_acara
   for select to authenticated
   using (
     public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'KAKANSAR')
-    or pengaju_id = public.nip_jwt()
-    or pengaju_id is null
+    or coalesce(pengaju_id, '') in ('', public.nip_jwt())
   );
 
 drop policy if exists ba_insert on public.berita_acara;
@@ -201,8 +203,7 @@ create policy ba_insert on public.berita_acara
   for insert to authenticated
   with check (
     public.boleh_tulis_aset()
-    or pengaju_id = public.nip_jwt()
-    or pengaju_id is null
+    or coalesce(pengaju_id, '') in ('', public.nip_jwt())
   );
 
 drop policy if exists ba_update on public.berita_acara;
@@ -210,11 +211,11 @@ create policy ba_update on public.berita_acara
   for update to authenticated
   using (
     public.boleh_tulis_aset()
-    or pengaju_id = public.nip_jwt()
+    or coalesce(pengaju_id, '') in ('', public.nip_jwt())
   )
   with check (
     public.boleh_tulis_aset()
-    or pengaju_id = public.nip_jwt()
+    or coalesce(pengaju_id, '') in ('', public.nip_jwt())
   );
 
 -- ─── 10. approvals ─────────────────────────────────────────────────────────--
@@ -330,6 +331,79 @@ end;
 $$;
 
 grant execute on function public.serahkan_kerusakan_aset(text, text, text)
+  to authenticated;
+
+-- ─── 16b. RPC keputusan berita acara (KAKANSAR) ────────────────────────────--
+-- Alur: operator isi BA & serahkan (Diserahkan) → Pengelola BMN isi nomor
+-- surat & teruskan (Diproses) → KAKANSAR meng-acc / menolak lewat fungsi ini.
+-- SECURITY DEFINER karena KAKANSAR tidak punya izin UPDATE berita_acara
+-- maupun aset langsung. Setujui → BA "Disetujui" + aset "Dipindahkan"
+-- (dikirim ke unit service). Tolak → BA "Ditolak" + alasan wajib diisi;
+-- status aset tidak diubah (tetap rusak, menunggu perbaikan).
+create or replace function public.putuskan_berita_acara(
+  p_ba_id   text,
+  p_setujui boolean,
+  p_alasan  text default ''
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_role    text := public.role_jwt();
+  v_nip     text := public.nip_jwt();
+  v_aset_id text;
+begin
+  if v_role is distinct from 'KAKANSAR' then
+    raise exception 'Hanya Kepala Kantor SAR yang memutus berita acara.';
+  end if;
+
+  select aset_id into v_aset_id
+    from public.berita_acara
+   where id = p_ba_id;
+  if not found then
+    raise exception 'Berita acara "%" tidak ditemukan.', p_ba_id;
+  end if;
+
+  -- Hanya BA yang sudah diproses BMN (nomor surat terisi) yang boleh diputus.
+  if not exists (
+    select 1 from public.berita_acara
+     where id = p_ba_id and status = 'Diproses'
+  ) then
+    raise exception 'Berita acara hanya diputus saat status "Diproses" (nomor surat sudah diisi BMN).';
+  end if;
+
+  if not p_setujui and coalesce(p_alasan, '') = '' then
+    raise exception 'Alasan penolakan wajib diisi.';
+  end if;
+
+  update public.berita_acara
+     set status = case when p_setujui then 'Disetujui' else 'Ditolak' end,
+         alasan_penolakan = case when p_setujui then '' else coalesce(p_alasan, '') end,
+         tanggal_update = current_date
+   where id = p_ba_id;
+
+  -- Aset terkait hanya berlaku bila BA tersambung ke aset.
+  if v_aset_id is not null and v_aset_id <> '' then
+    if p_setujui then
+      update public.asets set status = 'Dipindahkan' where id = v_aset_id;
+      insert into public.riwayat_aset (aset_id, tanggal, aksi, keterangan, user_id)
+        values (
+          v_aset_id, current_date, 'Berita Acara Disetujui',
+          case when coalesce(p_alasan, '') = ''
+               then 'Berita acara disetujui KAKANSAR — aset dikirim ke unit service.'
+               else p_alasan end,
+          v_nip
+        );
+    else
+      insert into public.riwayat_aset (aset_id, tanggal, aksi, keterangan, user_id)
+        values (v_aset_id, current_date, 'Berita Acara Ditolak', p_alasan, v_nip);
+    end if;
+  end if;
+end;
+$$;
+
+grant execute on function public.putuskan_berita_acara(text, boolean, text)
   to authenticated;
 
 -- ─── 17. VERIFIKASI (tampil di panel "Results" SQL Editor) ─────────────────

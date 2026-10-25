@@ -272,7 +272,7 @@ export type BeritaAcaraRow = {
   kode_aset: string;
   nomor: string;
   aset_id: string | null;
-  checklist_id: string;
+  checklist_id: string | null;
   tiket_id: string | null;
   /** NIP pengaju (FK → public.users.nip). */
   pengaju_id: string | null;
@@ -409,6 +409,15 @@ export type Database = {
           p_aset_id: string;
           p_kondisi: string;
           p_keterangan: string;
+        };
+        Returns: undefined;
+      };
+      /** KAKANSAR memutus berita acara (acc/tolak) + status aset + riwayat. */
+      putuskan_berita_acara: {
+        Args: {
+          p_ba_id: string;
+          p_setujui: boolean;
+          p_alasan?: string;
         };
         Returns: undefined;
       };

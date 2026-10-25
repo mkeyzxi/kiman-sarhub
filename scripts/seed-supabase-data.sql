@@ -172,23 +172,7 @@ CREATE TABLE IF NOT EXISTS public.riwayat_operasi (
 );
 
 -- ==========================================================
--- 9. APPROVAL (approvals)
--- ==========================================================
-CREATE TABLE IF NOT EXISTS public.approvals (
-  id              text PRIMARY KEY,
-  kode            text,
-  nama_aset       text,
-  kategori        text,
-  pengajuan_oleh  text REFERENCES public.users(nip) ON DELETE SET NULL,
-  tanggal         date,
-  status          text,
-  alasan          text,
-  rincian         jsonb,
-  created_at      timestamptz DEFAULT now()
-);
-
--- ==========================================================
--- 10. LOGBOOK PERJALANAN (logbook_perjalanan)
+-- 9. LOGBOOK PERJALANAN (logbook_perjalanan)
 -- ==========================================================
 CREATE TABLE IF NOT EXISTS public.logbook_perjalanan (
   id                text PRIMARY KEY,
@@ -215,7 +199,7 @@ CREATE TABLE IF NOT EXISTS public.logbook_perjalanan (
 );
 
 -- ==========================================================
--- 11. CHECKLIST HARIAN (checklist_harian)
+-- 10. CHECKLIST HARIAN (checklist_harian)
 -- ==========================================================
 CREATE TABLE IF NOT EXISTS public.checklist_harian (
   id              text PRIMARY KEY,
@@ -235,7 +219,7 @@ CREATE TABLE IF NOT EXISTS public.checklist_harian (
 );
 
 -- ==========================================================
--- 12. BERITA ACARA (berita_acara)
+-- 10. BERITA ACARA (berita_acara)
 -- ==========================================================
 CREATE TABLE IF NOT EXISTS public.berita_acara (
   id                  text PRIMARY KEY,
@@ -274,7 +258,6 @@ DELETE FROM public.checklist_templates;
 DELETE FROM public.notifications;
 DELETE FROM public.activity_log;
 DELETE FROM public.riwayat_operasi;
-DELETE FROM public.approvals;
 DELETE FROM public.logbook_perjalanan;
 DELETE FROM public.checklist_harian;
 DELETE FROM public.berita_acara;
@@ -556,34 +539,26 @@ INSERT INTO public.riwayat_operasi (id, tanggal, jenis, lokasi, durasi, personel
   ('op-001', '2026-10-02', 'Evakuasi Korban Tenggelam', 'Desa Binanga, Mamuju', '4 jam', 6, 'Berhasil', '1 korban dievakuasi selamat. Tim menggunakan RIB 12M dan peralatan selam.'),
   ('op-002', '2026-09-15', 'Pencarian Korban Hilang', 'Pantai Karampuang, Mamuju', '2 jam', 3, 'Berhasil', 'Korban ditemukan di area pantai selatan. Koordinasi dengan nelayan lokal.');
 
--- 9. APPROVAL (5 baris)
-INSERT INTO public.approvals (id, kode, nama_aset, kategori, pengajuan_oleh, tanggal, status, alasan, rincian) VALUES
-  ('apr-001', 'BMN-SAR-005', 'Chain Stihl MS 261', 'Peralatan SAR', '199810212022032001', '2026-09-26', 'Menunggu', 'Menggantikan chainsaw lama yang sudah tidak berfungsi optimal karena mata rantai aus.', '[{"label":"Kondisi Aset Lama","value":"Rusak Berat"},{"label":"Usia Pakai","value":"6 tahun"},{"label":"Estimasi Biaya","value":"Rp 4.500.000"},{"label":"Sumber Dana","value":"DIPA 2026"}]'::jsonb),
-  ('apr-002', 'BMN-KOM-003', 'Thermal Imaging Camera FLIR', 'Komunikasi', '199810212022032001', '2026-09-21', 'Ditolak', 'Usulan tidak sesuai prioritas kebutuhan. Anggaran tahun ini sudah terpakai untuk kebutuhan komunikasi VHF.', '[{"label":"Kondisi Aset Lama","value":"Baik"},{"label":"Usia Pakai","value":"1 tahun"},{"label":"Estimasi Biaya","value":"Rp 38.000.000"},{"label":"Sumber Dana","value":"DIPA 2026"}]'::jsonb),
-  ('apr-003', 'BMN-MED-003', 'Tabung Oksigen 10L', 'Medis', '1111111111111111', '2026-09-24', 'Disetujui', 'Menambah stok oksigen untuk tim medis lapangan agar siap pada setiap operasi evakuasi.', '[{"label":"Kondisi Aset Lama","value":"Habis Terpakai"},{"label":"Usia Pakai","value":"3 tahun"},{"label":"Estimasi Biaya","value":"Rp 1.750.000"},{"label":"Sumber Dana","value":"DIPA 2026"}]'::jsonb),
-  ('apr-004', 'BMN-DOK-003', 'Laptop Field Rugged Panasonic', 'Dokumentasi', '198208042009121003', '2026-09-18', 'Menunggu', 'Laptop lama sering gagal menyala di lapangan karena kompresinya sudah tidak stabil.', '[{"label":"Kondisi Aset Lama","value":"Rusak Ringan"},{"label":"Usia Pakai","value":"5 tahun"},{"label":"Estimasi Biaya","value":"Rp 12.000.000"},{"label":"Sumber Dana","value":"DIPA 2026"}]'::jsonb),
-  ('apr-005', 'BMN-KND-003', 'Motor Honda CRF250R', 'Motor', '199810212022032001', '2026-09-20', 'Menunggu', 'Menambah armada motor trail untuk memperbesar daya jangkau di wilayah pedalaman yang sulit dijangkau kendaraan roda empat.', '[{"label":"Kondisi Aset Lama","value":"Tidak Ada (Usulan Baru)"},{"label":"Usia Pakai","value":"-"},{"label":"Estimasi Biaya","value":"Rp 58.000.000"},{"label":"Sumber Dana","value":"DIPA 2026"}]'::jsonb);
-
--- 10. LOGBOOK PERJALANAN (16 baris)
+-- 9. LOGBOOK PERJALANAN (16 baris)
 INSERT INTO public.logbook_perjalanan (id, tanggal, jam_berangkat, jam_kembali, rute, tujuan, kategori_unit, jenis_unit, nahkoda, jumlah_personel, bbm_sebelum, bbm_sesudah, endurance_awal, endurance_akhir, km_sebelum, km_sesudah, status, catatan, tanggal_simpan, tanggal_lengkap) VALUES
   ('lp-01', '2026-10-08', '08:00', '10:30', 'Dermaga Mamuju - Perairan Mamuju', 'Patroli rutin', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Fajar Farial', 4, '90%', '75%', '76:30', '63:45', NULL, NULL, 'Selesai', 'Kondisi laut normal, tidak ada insiden', '2026-10-08T08:00:00', '2026-10-08T10:30:00'),
   ('lp-02', '2026-10-08', '11:00', '13:00', 'Perairan Mamuju - Pantai Karampuang', 'Sosialisasi SAR', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Sea First', 'Hasril', 5, '85%', '65%', '63:45', '55:15', NULL, NULL, 'Selesai', 'Sosialisasi keselamatan pantai kepada nelayan', '2026-10-08T11:00:00', '2026-10-08T13:00:00'),
   ('lp-03', '2026-10-07', '09:00', '12:00', 'Dermaga Mamuju - Perairan Binanga', 'Operasi evakuasi', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Ahmad Aidid', 6, '95%', '60%', '82:00', '58:30', NULL, NULL, 'Selesai', 'Evakuasi korban tenggelam, 2 orang selamat', '2026-10-07T09:00:00', '2026-10-07T12:00:00'),
   ('lp-04', '2026-10-07', '14:00', '16:00', 'Perairan Mamuju - Pos Pantai', 'Patroli pantai', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Sea First', 'Ardiansyah', 3, '80%', '70%', '70:15', '66:45', NULL, NULL, 'Selesai', 'Pantai ramai pengunjung, kondisi aman', '2026-10-07T14:00:00', '2026-10-07T16:00:00'),
-  ('lp-05', '2026-10-06', '08:30', '11:30', 'Dermaga Mamuju - Perairan Mamuju', 'Latihan SAR', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Medlyn R. Pagali', 8, '100%', '70%', '90:00', '72:30', NULL, NULL, 'Selesai', 'Latihan teknik penyelamatan korban di air', '2026-10-06T08:30:00', '2026-10-06T11:30:00'),
-  ('lp-06', '2026-10-09', '08:00', NULL, 'Dermaga Mamuju - Perairan Mamuju', 'Patroli rutin', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Sea First', 'Kauluddin', 4, '88%', NULL, '78:15', NULL, NULL, NULL, 'Sedang Digunakan', 'Sedang dalam perjalanan', '2026-10-09T08:00:00', NULL),
-  ('lp-07', '2026-10-09', '14:00', NULL, 'Perairan Mamuju - Pos Pantai', 'Patroli sore', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Rizky Pratama', 3, '85%', NULL, '80:00', NULL, NULL, NULL, 'Sedang Digunakan', 'Dijadwalkan untuk shift sore', '2026-10-09T14:00:00', NULL),
-  ('lp-11', '2026-10-10', '08:00', '10:30', 'Dermaga Mamuju - Perairan Mamuju - Pantai Karampuang', 'Patroli laut dan pengamatan korban', 'Kapal', 'Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)', 'Ansaruddin', 6, '88%', '74%', '80:00', '70:15', NULL, NULL, 'Selesai', 'Pantai Karampuang, tinggi gelombang 1,5 meter. Kapal beroperasi normal.', '2026-10-10T08:00:00', '2026-10-10T10:30:00'),
-  ('lp-12', '2026-10-09', '14:00', '16:45', 'Dermaga Mamuju - Perairan Teluk Mamuju', 'Sosialisasi kesiapsiagaan SAR', 'Kapal', 'Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)', 'Kauluddin', 5, '82%', '71%', '74:30', '66:00', NULL, NULL, 'Selesai', 'Sosialisasi kepada manager desa dan BM bersudara.', '2026-10-09T14:00:00', '2026-10-09T16:45:00'),
+  ('lp-05', '2026-10-06', '08:30', '11:30', 'Dermaga Mamuju - Perairan Mamuju', 'Latihan SAR', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Medline', 8, '100%', '70%', '90:00', '72:30', NULL, NULL, 'Selesai', 'Latihan teknik penyelamatan korban di air', '2026-10-06T08:30:00', '2026-10-06T11:30:00'),
+  ('lp-06', '2026-10-09', '08:00', NULL, 'Dermaga Mamuju - Perairan Mamuju', 'Patroli rutin', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Sea First', 'Muhammad Makbul N', 4, '88%', NULL, '78:15', NULL, NULL, NULL, 'Sedang Digunakan', 'Sedang dalam perjalanan', '2026-10-09T08:00:00', NULL),
+  ('lp-07', '2026-10-09', '14:00', NULL, 'Perairan Mamuju - Pos Pantai', 'Patroli sore', 'RIB', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Oky Juneva Marsel', 3, '85%', NULL, '80:00', NULL, NULL, NULL, 'Sedang Digunakan', 'Dijadwalkan untuk shift sore', '2026-10-09T14:00:00', NULL),
+  ('lp-11', '2026-10-10', '08:00', '10:30', 'Dermaga Mamuju - Perairan Mamuju - Pantai Karampuang', 'Patroli laut dan pengamatan korban', 'Kapal', 'Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)', 'Mahmud Afandi', 6, '88%', '74%', '80:00', '70:15', NULL, NULL, 'Selesai', 'Pantai Karampuang, tinggi gelombang 1,5 meter. Kapal beroperasi normal.', '2026-10-10T08:00:00', '2026-10-10T10:30:00'),
+  ('lp-12', '2026-10-09', '14:00', '16:45', 'Dermaga Mamuju - Perairan Teluk Mamuju', 'Sosialisasi kesiapsiagaan SAR', 'Kapal', 'Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)', 'Muhammad Makbul N', 5, '82%', '71%', '74:30', '66:00', NULL, NULL, 'Selesai', 'Sosialisasi kepada manager desa dan BM bersudara.', '2026-10-09T14:00:00', '2026-10-09T16:45:00'),
   ('lp-13', '2026-10-11', NULL, NULL, 'Dermaga Mamuju - Perairan Mamuju', 'Patroli rutin', 'Kapal', 'Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)', 'Fajar Farial', 6, '90%', NULL, '86:15', NULL, NULL, NULL, 'Menunggu Penggunaan', 'Shift pagi, menunggu konfirmasi cuaca.', '2026-10-11T07:00:00', NULL),
   ('lp-14', '2026-10-10', '09:00', '11:15', 'Dermaga Mamuju - Perairan Mamuju', 'Evakuasi korban tenggelam', 'RIB', 'RBB 309 MAMUJU', 'Ahmad Aidid', 4, '95%', '68%', '84:00', '61:45', NULL, NULL, 'Selesai', 'Satu korban tenggelam berhasil dievakuasi ke klinik terdekat.', '2026-10-10T09:00:00', '2026-10-10T11:15:00'),
   ('lp-15', '2026-10-09', '15:30', '17:00', 'Perairan Mamuju - Pulau Kecil', 'Patroli pulau', 'RIB', 'RBB 309 MAMUJU', 'Ardiansyah', 3, '78%', '72%', '70:00', '65:30', NULL, NULL, 'Selesai', 'Patroli normal, tidak ada kelainan.', '2026-10-09T15:30:00', '2026-10-09T17:00:00'),
   ('lp-16', '2026-10-11', '08:30', NULL, 'Dermaga Mamuju - Perairan Mamuju', 'Pemeriksaan RBB', 'RIB', 'RBB 309 MAMUJU', 'Agustang', 3, '88%', NULL, '78:30', NULL, NULL, NULL, 'Sedang Digunakan', 'Pemeriksaan RBB sebelum operasi hari ini', '2026-10-11T08:30:00', NULL),
   ('lp-08', '2026-10-08', '07:30', '11:00', 'Kantor SAR Mamuju - Desa Binanga', 'Distribusi logistik bantuan', 'Mobil', 'Rescue Truck ISUZU (DC 8982)', 'Hasril', 3, '90%', '55%', NULL, NULL, '45230', '45312', 'Selesai', 'Jalan menuju Desa Binanga berlubang, perlu hati-hati pada KM 67-69', '2026-10-08T07:30:00', '2026-10-08T11:00:00'),
   ('lp-09', '2026-10-07', '09:00', '12:30', 'Kantor SAR Mamuju - Pantai Karampuang', 'Survey lokasi sosialisasi', 'Motor', 'Sepeda Motor KAWASAKI KLX 230 (B 3184 PKQ)', 'Ardiansyah', 1, '80%', '50%', NULL, NULL, '12450', '12520', 'Selesai', 'Akses jalan ke pantai cukup baik, kondisi motor normal', '2026-10-07T09:00:00', '2026-10-07T12:30:00'),
-  ('lp-10', '2026-10-09', '13:00', NULL, 'Kantor SAR Mamuju - Kecamatan Kalukku', 'Evakuasi korban banjir', 'Mobil', 'Rescue Truck ISUZU (DC 8982)', 'Medlyn R. Pagali', 5, '100%', NULL, NULL, NULL, '45312', NULL, 'Sedang Digunakan', 'Operasi evakuasi pasca banjir di Kalukku', '2026-10-09T13:00:00', NULL);
+  ('lp-10', '2026-10-09', '13:00', NULL, 'Kantor SAR Mamuju - Kecamatan Kalukku', 'Evakuasi korban banjir', 'Mobil', 'Rescue Truck ISUZU (DC 8982)', 'Medline', 5, '100%', NULL, NULL, NULL, '45312', NULL, 'Sedang Digunakan', 'Operasi evakuasi pasca banjir di Kalukku', '2026-10-09T13:00:00', NULL);
 
--- 11. CHECKLIST HARIAN (6 baris)
+-- 10. CHECKLIST HARIAN (6 baris)
 INSERT INTO public.checklist_harian (id, tanggal, unit, jenis_unit, template_id, pemeriksa, pemeriksa_id, aset_id, status, item_checked, item_total, items, catatan) VALUES
   ('manual-001', '2026-10-09', 'Out Boat Motor Yamaha E40 JMHL', 'Perahu', NULL, 'Hasril', NULL, NULL, 'Lengkap', 3, 3, '[{"label":"Mesin tempel dan baling-baling","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Sistem bahan bakar tidak bocor","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Tali pengaman mesin terpasang","wajib":true,"kondisi":"Baik","keterangan":""}]'::jsonb, 'Mesin tempel siap dipakai'),
   ('manual-002', '2026-10-08', 'Out Boat Motor YAMAHA 40 PK ENDURO', 'Perahu', NULL, 'Ahmad Aidid', NULL, NULL, 'Belum Lengkap', 2, 3, '[{"label":"Busi dan kabel pengapian","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Pompa air pendingin","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Kondisi tangki bahan bakar","wajib":true,"kondisi":"Belum Diperiksa","keterangan":""}]'::jsonb, 'Kondisi tangki bahan bakar perlu dicek sebelum operasi'),
@@ -592,10 +567,10 @@ INSERT INTO public.checklist_harian (id, tanggal, unit, jenis_unit, template_id,
   ('arm-003', '2026-10-09', 'Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)', 'Kapal', 'arm-kapalar-harian', 'Ahmad Aidid', NULL, NULL, 'Lengkap', 5, 5, '[{"label":"Alat Navigasi","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Alat Komunikasi","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Persentase BBM","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Endurance","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Kecepatan Rata","wajib":true,"kondisi":"Baik","keterangan":""}]'::jsonb, 'Semua 5 item utama dalam kondisi baik, kapal siap beroperasi'),
   ('arm-004', '2026-10-09', 'Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100', 'Perahu', 'arm-rib-pemeliharaan', 'Ardiansyah', NULL, NULL, 'Belum Lengkap', 23, 24, '[{"label":"Pemanasan Mesin Rutin / Pra-Jalan","wajib":true,"kondisi":"Baik","keterangan":"15 menit, 100% - mesin hangat optimal"},{"label":"Indikator Mesin Aman Setelah Pemanasan","wajib":true,"kondisi":"Baik","keterangan":"Mesin beroperasi normal, indikator aman"},{"label":"Jam Berangkat (WITA)","wajib":true,"kondisi":"Baik","keterangan":"07:00 WITA"},{"label":"Jam Kembali (WITA)","wajib":true,"kondisi":"Baik","keterangan":"10:15 WITA - Patroli Alut / Misi SAR"},{"label":"Sisa BBM Kemarin (Liter / % / Status)","wajib":true,"kondisi":"Baik","keterangan":"50 L / 40% - Cukup"},{"label":"Penambahan BBM (Liter / % / No. Struk)","wajib":true,"kondisi":"Baik","keterangan":"60 L / 50% - No. Struk 0451/PU/2026"},{"label":"Saldo Akhir BBM (Total Liter / % / Kondisi Tanki)","wajib":true,"kondisi":"Baik","keterangan":"96 L / 80% - Cukup"},{"label":"Tali Tros","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Lunas","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Ban Pelampung","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Deck","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Transom (Stand Mesin)","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Starting Engine","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Kap Mesin Kanan","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Kap Mesin Kiri","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Karbulator","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Selang BBM","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Busi","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Dinamo Stater","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Dinamo Strom","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Hydraulic Mesin","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"Aki / Baterai","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"GPS Furuno","wajib":true,"kondisi":"Baik","keterangan":""},{"label":"GPS Stracking","wajib":true,"kondisi":"Belum Diperiksa","keterangan":""}]'::jsonb, 'Pemanasan mesin, pengoperasian, dan checklist BBM terisi lengkap. GPS Stracking belum diperiksa, perlu cek kelengkapan perangkat.');
 
--- 12. BERITA ACARA (2 baris)
+-- 11. BERITA ACARA (2 baris)
 INSERT INTO public.berita_acara (id, tanggal, nama_aset, kode_aset, nomor, aset_id, checklist_id, tiket_id, pengaju_id, pelapor, pelapor_jabatan, pengaju_nama, pengaju_jabatan, tanggal_buat, tanggal_update, status, kendala, foto_bukti, uraian, alasan_penolakan, keterangan) VALUES
-  ('ba-001', '2026-09-25', 'Rigid Inflatable Boat (RIB) Kelas I RBB SAR Rescue Boat', '3020303040-000007', NULL, 'ast-034', NULL, 'ews-001', '1111111111111111', 'Kauluddin', 'Pengelola BMN', 'Kauluddin', 'Pengelola BMN', '2026-09-25', '2026-09-26', 'Diserahkan', '[{"label":"Lambung RIB","merk":"RBB SAR Rescue Boat","jumlah":"1 titik","keterangan":"Bocor halus pada sambungan, perlu ditambal permanen","sifat":"Ringan"},{"label":"Katup Inflasi","merk":"Standar","jumlah":"1 pcs","keterangan":"Karet katup mulai getas, perlu diganti","sifat":"Ringan"}]'::jsonb, '[]'::jsonb, 'Ditemukan kebocoran halus pada sambungan lambung RIB setelah operasi terakhir. Sudah dilakukan penambalan sementara; diusulkan ke tempat service untuk perbaikan permanen dan penggantian katup inflasi.', NULL, 'Dikirim ke tempat service untuk perbaikan'),
-  ('ba-002', '2026-09-26', 'Out Boat Motor Yamaha F300 DET', '3020303004-000012', NULL, 'ast-029', NULL, 'ews-006', '199810212022032001', 'Medlyn R. Pagali', 'Pengelola BMN', 'Medlyn R. Pagali', 'Pengelola BMN', '2026-09-26', '2026-09-26', 'Diserahkan', '[{"label":"Tekanan Oli Mesin","merk":"Yamaha F300 DET","jumlah":"1 unit","keterangan":"Tidak stabil pada putaran tinggi, perlu pemeriksaan","sifat":"Berat"}]'::jsonb, '[]'::jsonb, 'Tekanan oli tidak stabil saat mesin diuji pada putaran tinggi. Mesin tidak boleh dioperasikan sebelum sistem pelumasan diperiksa dan dinyatakan layak oleh teknisi.', NULL, 'Dikirim ke tempat service untuk perbaikan');
+  ('ba-001', '2026-09-25', 'Rigid Inflatable Boat (RIB) Kelas I RBB SAR Rescue Boat', '3020303040-000007', NULL, 'ast-034', NULL, 'ews-001', '1111111111111111', 'Muhammad Makbul N', 'Pengelola BMN', 'Muhammad Makbul N', 'Pengelola BMN', '2026-09-25', '2026-09-26', 'Diserahkan', '[{"label":"Lambung RIB","merk":"RBB SAR Rescue Boat","jumlah":"1 titik","keterangan":"Bocor halus pada sambungan, perlu ditambal permanen","sifat":"Ringan"},{"label":"Katup Inflasi","merk":"Standar","jumlah":"1 pcs","keterangan":"Karet katup mulai getas, perlu diganti","sifat":"Ringan"}]'::jsonb, '[]'::jsonb, 'Ditemukan kebocoran halus pada sambungan lambung RIB setelah operasi terakhir. Sudah dilakukan penambalan sementara; diusulkan ke tempat service untuk perbaikan permanen dan penggantian katup inflasi.', NULL, 'Dikirim ke tempat service untuk perbaikan'),
+  ('ba-002', '2026-09-26', 'Out Boat Motor Yamaha F300 DET', '3020303004-000012', NULL, 'ast-029', NULL, 'ews-006', '199810212022032001', 'Medline', 'Pengelola BMN', 'Medline', 'Pengelola BMN', '2026-09-26', '2026-09-26', 'Diserahkan', '[{"label":"Tekanan Oli Mesin","merk":"Yamaha F300 DET","jumlah":"1 unit","keterangan":"Tidak stabil pada putaran tinggi, perlu pemeriksaan","sifat":"Berat"}]'::jsonb, '[]'::jsonb, 'Tekanan oli tidak stabil saat mesin diuji pada putaran tinggi. Mesin tidak boleh dioperasikan sebelum sistem pelumasan diperiksa dan dinyatakan layak oleh teknisi.', NULL, 'Dikirim ke tempat service untuk perbaikan');
 
 -- ==========================================================
 -- COMMIT
@@ -614,7 +589,6 @@ UNION ALL SELECT 'checklist_items', count(*) FROM public.checklist_items
 UNION ALL SELECT 'notifications', count(*) FROM public.notifications
 UNION ALL SELECT 'activity_log', count(*) FROM public.activity_log
 UNION ALL SELECT 'riwayat_operasi', count(*) FROM public.riwayat_operasi
-UNION ALL SELECT 'approvals', count(*) FROM public.approvals
 UNION ALL SELECT 'logbook_perjalanan', count(*) FROM public.logbook_perjalanan
 UNION ALL SELECT 'checklist_harian', count(*) FROM public.checklist_harian
 UNION ALL SELECT 'berita_acara', count(*) FROM public.berita_acara

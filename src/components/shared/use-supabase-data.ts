@@ -21,7 +21,6 @@ import type {
   NotificationRow,
   ActivityLogRow,
   RiwayatOperasiRow,
-  ApprovalRow,
   BeritaAcaraRow,
   AntreanVerifikasiRow,
   ChecklistTemplateRow,
@@ -36,7 +35,6 @@ import {
   mapNotifications,
   mapActivityLog,
   mapRiwayatOperasi,
-  mapApprovals,
   mapBeritaAcara,
   mapAntreanVerifikasi,
   mapChecklistTemplates,
@@ -47,7 +45,6 @@ import {
   type NotifikasiMapped,
   type LogAktivitasMapped,
   type RiwayatOperasiMapped,
-  type ApprovalMapped,
   type BeritaAcaraMapped,
   type AntreanVerifikasiMapped,
   type ChecklistTemplateMapped,
@@ -390,15 +387,6 @@ export function useRiwayatOperasi(): SupabaseQueryResult<RiwayatOperasiMapped> {
   );
 }
 
-export function useApprovals(): SupabaseQueryResult<ApprovalMapped> {
-  return useSupabaseTable<ApprovalRow, ApprovalMapped>(
-    "approvals",
-    "*",
-    mapApprovals,
-    { col: "tanggal", ascending: false }
-  );
-}
-
 export function useBeritaAcara(): SupabaseQueryResult<BeritaAcaraMapped> {
   return useSupabaseTable<BeritaAcaraRow, BeritaAcaraMapped>(
     "berita_acara",
@@ -426,4 +414,190 @@ export function useSupabaseUsers(): SupabaseQueryResult<UserInfo> {
     (rows) =>
       [...rows].map(mapUser).sort((a, b) => a.nama.localeCompare(b.nama))
   );
+}
+
+// ─── KARTU PENANGGUNG JAWAB (monitor alur kerusakan → perbaikan) ───────────
+
+export interface KartuPJ {
+  /** NIP penanggung jawab (kunci unik kartu). */
+  nip: string;
+  /** Nama operator — dari DB users; fallback mock bila belum ada di DB. */
+  nama: string;
+  /** Aset yang sedang dimonitor (yang punya BA atau tiket EWS). */
+  aset: {
+    id: string;
+    kode: string;
+    nama: string;
+    status: string;
+  };
+  /** Tahap alur saat ini: 0–4 (lihat `labelTahap`). */
+  tahap: number;
+  /** Label ramah tahap untuk kartu. */
+  labelTahap: string;
+  /** Warna badge tahap. */
+  warnaTahap: "slate" | "blue" | "amber" | "emerald";
+  /** Tiket EWS yang sedang / sudah dikerjakan (undefined bila belum ada). */
+  tiket?: {
+    id: string;
+    judul: string;
+    status: "Menunggu" | "Diproses" | "Selesai";
+  };
+  /** Perbaikan sudah selesai (EWS tiket status "Selesai"). */
+  perbaikanSelesai: boolean;
+}
+
+export const labelTahap: Record<number, string> = {
+  0: "Menunggu laporan",
+  1: "Menunggu nomor surat BMN",
+  2: "Menunggu keputusan KAKANSAR",
+  3: "Perbaikan dikerjakan",
+  4: "Perbaikan selesai",
+};
+
+/**
+ * Kartu per penanggung jawab kendaraan: merangkai `users`, `asets`,
+ * `berita_acara`, `ews_tickets` per NIP penanggung jawab, lalu menghitung
+ * tahap alur kerusakan + apakah perbaikan sudah selesai.
+ *
+ * Hanya menampilkan PJ yang **punya alur** (BA terkait asetnya, atau tiket
+ * EWS yang diarahkan ke asetnya) — aset sehat tanpa laporan tidak
+ * membuat kartu.
+ */
+export function useKartuPenanggungJawab(): SupabaseQueryResult<KartuPJ> {
+  const usersQ = useSupabaseTable<UserRow, UserInfo>(
+    "users",
+    "*",
+    (rows) => rows.map(mapUser)
+  );
+  const asetsQ = useAsets();
+  const baQ = useSupabaseTable<BeritaAcaraRow, BeritaAcaraMapped>(
+    "berita_acara",
+    "*",
+    mapBeritaAcara,
+    { col: "tanggal_buat", ascending: false }
+  );
+  const ewQ = useSupabaseTable<EwsTicketRow, EwsTicketMapped>(
+    "ews_tickets",
+    "*",
+    mapEwsTickets,
+    { col: "tanggal_buat", ascending: false }
+  );
+
+  const loading = usersQ.loading || asetsQ.loading || baQ.loading || ewQ.loading;
+  const error = usersQ.error ?? asetsQ.error ?? baQ.error ?? ewQ.error;
+
+  const cards = useMemo<KartuPJ[]>(() => {
+    if (loading) return [];
+    const usersData = usersQ.data;
+    const asetsData = asetsQ.data;
+    const baData = baQ.data;
+    const ewData = ewQ.data;
+
+    // Aset punya BA atau tiket EWS — hanya aset inilah yang "punya alur".
+    const asetDenganAlur = asetsData.filter((a) => {
+      const adaBA = baData.some((b) => b.asetId === a.id);
+      const adaTiket = ewData.some(
+        (t) => t.asetId === a.id && t.assignedTo === a.penanggungJawab
+      );
+      return adaBA || adaTiket;
+    });
+
+    // Satu kartu per penanggung jawab; aset yang dimonitor = aset alurnya
+    // yang paling "baru" (urut tanggalBA/terbaru tiket).
+    const pjMap = new Map<string, { aset: (typeof asetsData)[0]; tahap: number }>();
+    for (const aset of asetDenganAlur) {
+      const pj = aset.penanggungJawab;
+      if (!pj) continue;
+
+      // Cari BA terkait aset ini — tahap BA: Diserahkan→1, Diproses→2,
+      // Disetujui/Ditolak→3 (diteruskan ke tiket).
+      let tahapBA = 0;
+      const baAset = baData
+        .filter((b) => b.asetId === aset.id)
+        .sort((a, b) => (b.tanggalBuat ?? "").localeCompare(a.tanggalBuat ?? ""))[0];
+      if (baAset) {
+        switch (baAset.status) {
+          case "Draf":
+            tahapBA = 0;
+            break;
+          case "Diserahkan":
+            tahapBA = 1;
+            break;
+          case "Diproses":
+            tahapBA = 2;
+            break;
+          case "Disetujui":
+          case "Ditolak":
+            tahapBA = 3;
+            break;
+        }
+      }
+
+      // Tiket EWS diarahkan ke PJ ini (aset sama) — tahap: ada tiket = 3,
+      // tiket "Selesai" = 4.
+      let tahapTiket = 0;
+      const tiketPJ = ewData.find(
+        (t) => t.asetId === aset.id && t.assignedTo === pj
+      );
+      if (tiketPJ) tahapTiket = 3;
+      if (tiketPJ?.status === "Selesai") tahapTiket = 4;
+
+      // Tahap kartu = max(BA, Tiket) — alur maju ke arah perbaikan.
+      const tahap = Math.max(tahapBA, tahapTiket);
+
+      const prev = pjMap.get(pj);
+      if (!prev || tahap > prev.tahap) {
+        pjMap.set(pj, { aset, tahap });
+      }
+    }
+
+    // Rangkai nama dari DB users; fallback NIP polos bila NIP tidak ada di
+    // tabel users (mis. belum di-seed).
+    const cariNama = (nip: string): string => {
+      const u = usersData.find((x) => x.nip === nip);
+      if (u?.nama) return u.nama;
+      return `NIP ${nip}`;
+    };
+
+    const kartu: KartuPJ[] = [];
+    for (const [nip, { aset, tahap }] of pjMap) {
+      const tiketPJ = ewData.find((t) => t.asetId === aset.id && t.assignedTo === nip);
+      const warna =
+        tahap === 0 ? "slate" : tahap === 4 ? "emerald" : tahap === 3 ? "amber" : "blue";
+      kartu.push({
+        nip,
+        nama: cariNama(nip),
+        aset: {
+          id: aset.id,
+          kode: aset.kode,
+          nama: aset.nama,
+          status: aset.status,
+        },
+        tahap,
+        labelTahap: labelTahap[tahap] ?? "—",
+        warnaTahap: warna,
+        tiket: tiketPJ
+          ? {
+              id: tiketPJ.id,
+              judul: tiketPJ.judul,
+              status: tiketPJ.status as "Menunggu" | "Diproses" | "Selesai",
+            }
+          : undefined,
+        perbaikanSelesai: tiketPJ?.status === "Selesai" ? true : false,
+      });
+    }
+
+    // Urutan: tahap terbesar dulu (yang paling butuh perhatian di bawah),
+    // lalu nama PJ naik.
+    return kartu.sort((a, b) => b.tahap - a.tahap || a.nama.localeCompare(b.nama));
+  }, [usersQ.data, asetsQ.data, baQ.data, ewQ.data, loading]);
+
+  const refetch = useCallback(() => {
+    usersQ.refetch();
+    asetsQ.refetch();
+    baQ.refetch();
+    ewQ.refetch();
+  }, [usersQ, asetsQ, baQ, ewQ]);
+
+  return { data: cards, loading, error, refetch };
 }
