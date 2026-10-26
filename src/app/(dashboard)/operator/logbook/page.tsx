@@ -28,7 +28,9 @@ import {
   type LogbookPerjalanan,
   type StatusPenggunaan,
 } from "@/components/shared/mock-data";
-import { useLogbook } from "@/components/shared/logbook-store";
+import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
+import { useLogbooks } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
@@ -82,7 +84,30 @@ export default function LogbookPerjalananPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
 
-  const logbookPerjalananList = useLogbook();
+  // Data logbook dari Supabase.
+  const {
+    data: supabaseLogbooks,
+    loading,
+    error,
+    refetch,
+  } = useLogbooks();
+  // Gabungkan logbook in-memory (baru disimpan sesi ini) + Supabase.
+  const logbookPerjalananList = mergeLogbooksWithSupabase(
+    supabaseLogbooks as unknown as LogbookPerjalanan[]
+  );
+
+  if (loading) {
+    return <DataLoading label="Memuat logbook perjalanan…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat logbook dari database"
+      />
+    );
+  }
 
   const filteredLogbook = logbookPerjalananList.filter((log) => {
     const matchSearch =

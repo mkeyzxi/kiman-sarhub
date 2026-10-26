@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -15,25 +14,24 @@ import {
   XCircle,
   ExternalLink,
   FileText,
-  Send,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Textarea, Label } from "@/components/ui/input";
 import {
-  getAsetById,
   getUserById,
   formatTanggal,
-  ubahStatusBeritaAcara,
-  ubahStatusAset,
-  KETERANGAN_SERVICE_DEFAULT,
   type TingkatKeparahan,
   type StatusTicket,
   type StatusBeritaAcara,
 } from "@/components/shared/mock-data";
-import { beritaAcaraByTiket } from "@/components/shared/berita-acara-store";
-import { useTickets, updateTicketStatus } from "@/components/shared/ticket-store";
+import {
+  beritaAcaraByTiket,
+  useBeritaAcara,
+} from "@/components/shared/berita-acara-store";
+import { useTicketsCombined, updateTicketStatus } from "@/components/shared/ticket-store";
+import { useAsetById } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { useSesiUser } from "@/components/shared/use-session";
 import { cn } from "@/lib/utils";
 
@@ -69,13 +67,33 @@ const statusBAVariant: Record<
 
 export default function DetailTiketPage() {
   const params = useParams<{ id: string }>();
-  const tickets = useTickets();
   const ses = useSesiUser();
-  const [alasanPenolakan, setAlasanPenolakan] = useState("");
-  const [pesan, setPesan] = useState<string | null>(null);
+  const { data: tickets, loading, error, refetch } = useTicketsCombined();
+  // Pasang hidrasi berita acara dari Supabase sekali (sekaligus memicu
+  // render ulang setelah baris DB masuk ke daftar store).
+  useBeritaAcara();
 
   const ticket = tickets.find((t) => t.id === params.id);
   const beritaAcara = ticket ? beritaAcaraByTiket(ticket.id) : undefined;
+  // Penanggung jawab (operator) adalah pelaksana perbaikan: ia ikut punya
+  // hak ubah status tiket yang diarahkan ke NIP-nya (RLS sudah mengizinkan
+  // update bila `assigned_to = nip_jwt`).
+  const sayaPenanggungJawab =
+    !!ticket && !!ses?.nip && ticket.assignedTo === ses.nip;
+
+  // Aset dari database Supabase (bukan mock). Hook dipanggil selalu — id
+  // undefined saat tiket belum ketemu → tidak fetch.
+  const { data: aset } = useAsetById(ticket?.asetId || undefined);
+  const petugas = ticket ? getUserById(ticket.assignedTo) : undefined;
+
+  if (loading) {
+    return <DataLoading label="Memuat detail tiket…" />;
+  }
+  if (error) {
+    return (
+      <DataError error={error} onRetry={refetch} label="Gagal memuat tiket" />
+    );
+  }
 
   if (!ticket) {
     return (
@@ -92,51 +110,7 @@ export default function DetailTiketPage() {
     );
   }
 
-  const aset = getAsetById(ticket.asetId);
-  const petugas = getUserById(ticket.assignedTo);
   const StatusIcon = statusIcon[ticket.status];
-
-  /** Setujui berita acara → aset dikirim ke service. */
-  const handleSetujui = () => {
-    if (!beritaAcara) return;
-    ubahStatusBeritaAcara(beritaAcara.id, "Disetujui", {
-      keterangan: KETERANGAN_SERVICE_DEFAULT,
-    });
-    if (beritaAcara.asetId) {
-      ubahStatusAset(
-        beritaAcara.asetId,
-        "Dipindahkan",
-        ses.id,
-        KETERANGAN_SERVICE_DEFAULT,
-        "Berita Acara Disetujui"
-      );
-    }
-    updateTicketStatus(ticket.id, "Selesai");
-    setPesan(
-      "Berita acara disetujui — aset dikirim ke tempat service (status: Dipindahkan)."
-    );
-  };
-
-  /** Tolak berita acara → aset tetap bermasalah, perlu pemeriksaan ulang. */
-  const handleTolak = () => {
-    if (!beritaAcara) return;
-    ubahStatusBeritaAcara(beritaAcara.id, "Ditolak", {
-      alasanPenolakan: alasanPenolakan.trim() || "Tidak memenuhi syarat verifikasi",
-    });
-    // Kembalikan status aset sesuai tingkat kerusakan pada berita acara.
-    if (beritaAcara.asetId) {
-      const adaBerat = beritaAcara.kendala.some((k) => k.sifat === "Berat");
-      ubahStatusAset(
-        beritaAcara.asetId,
-        adaBerat ? "Rusak Berat" : "Rusak Ringan",
-        ses.id,
-        `Berita acara ditolak: ${alasanPenolakan.trim() || "tidak memenuhi syarat"}`,
-        "Berita Acara Ditolak"
-      );
-    }
-    updateTicketStatus(ticket.id, "Selesai");
-    setPesan("Berita acara ditolak — kembalikan ke PJ untuk perbaikan.");
-  };
 
   const alur = [
     { label: "Dilaporkan", value: ticket.tanggalBuat },
@@ -182,7 +156,7 @@ export default function DetailTiketPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-slate-500">
                     Nama Aset
@@ -197,6 +171,14 @@ export default function DetailTiketPage() {
                   </p>
                   <p className="font-mono text-sm font-medium text-slate-800">
                     {aset.kode}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-slate-500">
+                    Kondisi &amp; Status
+                  </p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {aset.kondisi} · {aset.status}
                   </p>
                 </div>
                 <div>
@@ -231,7 +213,7 @@ export default function DetailTiketPage() {
         </CardContent>
       </Card>
 
-      {/* Berita Acara — diisi oleh PJ (pemeriksa), menunggu keputusan BMN */}
+      {/* Berita Acara — diisi PJ (pemeriksa); nomor BMN; acc oleh KAKANSAR */}
       {beritaAcara && (
         <Card>
           <CardHeader>
@@ -371,48 +353,31 @@ export default function DetailTiketPage() {
               </div>
             )}
 
-            {/* Aksi persetujuan / penolakan BMN */}
-            {(beritaAcara.status === "Diserahkan" ||
-              beritaAcara.status === "Diproses") && (
-              <div className="space-y-3 border-t border-slate-200 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="alasan">
-                    Alasan Penolakan (bila menolak)
-                  </Label>
-                  <Textarea
-                    id="alasan"
-                    rows={2}
-                    value={alasanPenolakan}
-                    onChange={(e) => setAlasanPenolakan(e.target.value)}
-                    placeholder="Contoh: foto bukti tidak jelas, mohon diulang..."
-                  />
-                </div>
-                <div className="flex flex-wrap justify-end gap-3">
-                  <Button
-                    variant="outline"
-                    className="gap-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                    onClick={handleTolak}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Tolak Berita Acara
-                  </Button>
-                  <Button
-                    className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                    onClick={handleSetujui}
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Setujui &amp; Kirim ke Service
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Info alur BA — keputusan acc/tolak dilakukan KAKANSAR di
+                halaman pimpinan; BMN mengisi nomor di menu Berita Acara. */}
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-600">
+                {beritaAcara.status === "Diserahkan" &&
+                  "Menunggu Pengelola BMN mengisi nomor surat — kelola di menu \u201CBerita Acara\u201D."}
+                {beritaAcara.status === "Diproses" &&
+                  "Menunggu persetujuan Kepala Kantor SAR (KAKANSAR)."}
+                {beritaAcara.status === "Disetujui" &&
+                  "Disetujui KAKANSAR — aset dikirim ke unit service (Dipindahkan)."}
+                {beritaAcara.status === "Draf" &&
+                  "Belum diserahkan oleh PJ."}
+                {beritaAcara.status === "Ditolak" &&
+                  "Ditolak KAKANSAR — dokumen dikembalikan untuk perbaikan."}
+              </p>
+            </div>
 
-            {pesan && (
-              <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <Send className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                <p className="text-xs text-emerald-800">{pesan}</p>
-              </div>
-            )}
+            <div className="flex justify-end">
+              <Link href={`/bmn/berita-acara/${beritaAcara.id}`}>
+                <Button variant="outline" size="sm">
+                  Kelola Berita Acara
+                  <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -503,13 +468,19 @@ export default function DetailTiketPage() {
         </Card>
       </div>
 
-      {/* Aksi */}
+      {/* Aksi — Pengelola BMN/ADMIN, atau penanggung jawab (operator)
+          pelaksana perbaikan pada tiket yang diarahkan ke NIP-nya. */}
       {ticket.status !== "Selesai" && (
         <Card>
           <CardHeader>
             <CardTitle>Aksi</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <p className="text-xs text-slate-500 sm:mr-auto">
+              {sayaPenanggungJawab
+                ? "Anda penanggung jawab aset ini — tandai selesai setelah perbaikan dilakukan."
+                : "Tindak lanjut perbaikan aset."}
+            </p>
             <Button
               variant="outline"
               className="gap-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"

@@ -18,10 +18,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
-  readinessStats,
-  riwayatOperasi,
-  logbookPerjalananList,
+  hitungReadinessStats,
 } from "@/components/shared/mock-data";
+import {
+  useRiwayatOperasi,
+  useLogbooks,
+  useAsets,
+} from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
@@ -49,6 +53,26 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function LaporanPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
+  // Data master dari Supabase (fallback mock saat offline/gagal).
+  const { data: riwayatOperasi } = useRiwayatOperasi();
+  const { data: logbookPerjalananList, loading, error, refetch } = useLogbooks();
+  const { data: asetList } = useAsets();
+
+  // Readiness dihitung dari data aset Supabase (bukan mock statis).
+  const readinessStats = hitungReadinessStats(asetList);
+
+  if (loading) {
+    return <DataLoading label="Menyiapkan laporan…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat data dari database"
+      />
+    );
+  }
 
   // Rekap perjalanan diturunkan dari logbook agar angkanya selalu sinkron.
   const perjalananAir = logbookPerjalananList.filter(

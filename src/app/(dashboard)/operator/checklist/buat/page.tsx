@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   checklistTemplates,
   getKategoriTemplate,
-  asetList,
   cariAsetDmUnit,
   bolehIsiChecklist,
   getUserById,
@@ -21,6 +20,8 @@ import {
 } from "@/components/shared/mock-data";
 import { useSesiUser, jabatanUser } from "@/components/shared/use-session";
 import { tambahChecklist, ambilChecklist } from "@/components/shared/checklist-store";
+import { useAsets } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 const jenisArmadaOptions: { value: JenisArmada; label: string; icon: React.ElementType }[] = [
@@ -59,12 +60,15 @@ function cocokJenisArmada(aset: Aset, jenisArmada: JenisArmada): boolean {
  * Daftar unit yang boleh diperiksa: hanya aset yang menjadi tanggung jawab
  * user. Unit statis lama (RIB 9 M, KN SAR MAMUJU 01) tidak dipakai lagi karena
  * tidak ada di register BMN.
+ *
+ * @param asets Daftar aset (dari Supabase, fallback mock)
  */
 function getUnitOptionsForArmada(
   jenisArmada: JenisArmada,
-  userId: string
+  userId: string,
+  asets: Aset[]
 ): { value: string; label: string }[] {
-  return asetList
+  return asets
     .filter(
       (a) => cocokJenisArmada(a, jenisArmada) && a.penanggungJawab === userId
     )
@@ -73,6 +77,8 @@ function getUnitOptionsForArmada(
 
 export default function BuatChecklistPage() {
   const ses = useSesiUser();
+  // Aset dari Supabase. Dipakai untuk filter unit PJ — NIP disandingkan NIP.
+  const { data: asetList, loading, error, refetch } = useAsets();
   const [tanggal, setTanggal] = useState("");
   const [unit, setUnit] = useState("");
   const [jenisUnit, setJenisUnit] = useState<JenisArmada>("Kapal");
@@ -124,8 +130,8 @@ export default function BuatChecklistPage() {
 
   // Unit options hanya aset yang menjadi tanggung jawab user yang login.
   const unitOptions = useMemo(
-    () => getUnitOptionsForArmada(jenisUnit, ses.id),
-    [jenisUnit, ses.id]
+    () => getUnitOptionsForArmada(jenisUnit, ses.id, asetList),
+    [jenisUnit, ses.id, asetList]
   );
 
   // Item dikelompokkan mengikuti bagian pada form fisik (mis. "Kamar Mesin").
@@ -133,6 +139,19 @@ export default function BuatChecklistPage() {
     () => (template ? getKategoriTemplate(template.id) : []),
     [template]
   );
+
+  if (loading) {
+    return <DataLoading label="Menyiapkan form checklist…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat aset dari database"
+      />
+    );
+  }
 
   const sudahDiperiksa = template
     ? template.items.filter((i) => hasil[i.label] && hasil[i.label] !== "Belum Diperiksa")
@@ -201,10 +220,10 @@ export default function BuatChecklistPage() {
     );
 
   /**
-   * Simpan checklist harian ke memori sesi (TODO: Supabase INSERT).
+   * Simpan checklist harian ke Supabase (fallback memori sesi).
    * Jika ada item Rusak Ringan/Berat → tampilkan tombol "Pengisian Berita Acara".
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Hanya operator lapangan yang menjadi PJ unit boleh menyimpan checklist.
@@ -231,8 +250,8 @@ export default function BuatChecklistPage() {
       (i) => i.kondisi !== "Belum Diperiksa"
     ).length;
 
-    // Simpan checklist
-    const result = tambahChecklist({
+    // Simpan checklist (Supabase + in-memory fallback)
+    const result = await tambahChecklist({
       tanggal,
       unit: asetTerkait?.nama ?? unit,
       jenisUnit: (jenisUnit === "RIB" || jenisUnit === "RBB")

@@ -1,17 +1,27 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import type { Database } from "@/types/supabase";
 
-// Server-side Supabase client dengan service_role key (bypass RLS)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+// Server-side Supabase client dengan service_role key (bypass RLS).
+// Dibuat lazily — modul harus aman dievaluasi oleh worker build (env tidak
+// selalu tersedia pada fase "collect page data").
+let adminRefKlien: SupabaseClient<Database> | null = null;
+
+function supaAdmin(): SupabaseClient<Database> {
+  if (!adminRefKlien) {
+    adminRefKlien = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
-);
+  return adminRefKlien;
+}
 
 /** Domain email internal untuk auth.users (sesuai data live existing). */
 const INTERNAL_EMAIL_DOMAIN = "basarnas.ac.id";
@@ -26,7 +36,7 @@ function generateInternalEmail(nip: string): string {
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supaAdmin()
       .from("users")
       .select("*")
       .order("created_at", { ascending: false });
@@ -79,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cek NIP sudah terdaftar?
-    const { data: existingByNip } = await supabaseAdmin
+    const { data: existingByNip } = await supaAdmin()
       .from("users")
       .select("id")
       .eq("nip", normalizeNip)
@@ -123,7 +133,7 @@ export async function POST(request: NextRequest) {
         : generateInternalEmail(normalizeNip);
 
     // Buat user di auth.users via Admin API (service_role)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await supaAdmin().auth.admin.createUser({
       email: internalEmail,
       password,
       email_confirm: true,
@@ -145,7 +155,7 @@ export async function POST(request: NextRequest) {
     const newUserId = authData.user.id;
 
     // Upsert ke public.users
-    const { error: insertError } = await supabaseAdmin
+    const { error: insertError } = await supaAdmin()
       .from("users")
       .upsert({
         id: newUserId,
@@ -161,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       // Rollback: hapus auth user jika insert gagal
-      await supabaseAdmin.auth.admin.deleteUser(newUserId);
+      await supaAdmin().auth.admin.deleteUser(newUserId);
       return Response.json(
         { error: insertError.message },
         { status: 500 }
@@ -169,7 +179,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Sync app_metadata ke auth.users (untuk performa login 0 RTT)
-    await supabaseAdmin.auth.admin.updateUserById(newUserId, {
+    await supaAdmin().auth.admin.updateUserById(newUserId, {
       app_metadata: {
         // Pertahankan provider info bawaan GoTrue
         provider: "email",

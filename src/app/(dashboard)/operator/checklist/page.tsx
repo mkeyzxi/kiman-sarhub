@@ -14,16 +14,159 @@ import {
   Car,
   Bike,
   PencilLine,
+  Wrench,
+  Loader2,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
-import { checklistTemplates, countItemKritis, getUserById } from "@/components/shared/mock-data";
+import {
+  checklistTemplates,
+  countItemKritis,
+  getUserById,
+} from "@/components/shared/mock-data";
 import { cn } from "@/lib/utils";
-import { checklistHarianList } from "@/components/shared/mock-data";
 import { useSesiUser } from "@/components/shared/use-session";
+import { useChecklistsCombined } from "@/components/shared/checklist-store";
+import { DataLoading, DataError } from "@/components/shared/data-state";
+import {
+  useKartuPenanggungJawab,
+  labelTahap,
+  type KartuPJ,
+} from "@/components/shared/use-supabase-data";
+
+// ─── Kartu Penanggung Jawab (monitor alur kerusakan) ─────────────────────────
+function KartuPJItem({ card }: { card: KartuPJ }) {
+  const warnaBadge: Record<string, string> = {
+    slate: "bg-slate-100 text-slate-600",
+    blue: "bg-blue-50 text-blue-700",
+    amber: "bg-amber-50 text-amber-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+  };
+  const inisial = card.nama
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase();
+
+  // Tahap alur: 0→4, 5 dot (0 = titik abu).
+  const totalTahap = 5;
+  const tercapai = card.tahap; // 0..4 — "tahap berjalan / selesai"
+  const tiketHref = card.tiket ? `/bmn/maintenance/${card.tiket.id}` : null;
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start gap-3">
+        <div className="relative">
+          <div className="h-12 w-12 rounded-full bg-primary-light text-primary font-semibold flex items-center justify-center text-sm">
+            {inisial || "?"}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 truncate">{card.nama}</p>
+          <p className="text-xs text-slate-500">NIP {card.nip}</p>
+        </div>
+        <span
+          className={cn(
+            "text-[10px] font-medium px-2 py-1 rounded-full whitespace-nowrap",
+            warnaBadge[card.warnaTahap]
+          )}
+        >
+          {card.labelTahap}
+        </span>
+      </div>
+
+      {/* Aset yang dimonitor */}
+      <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 p-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs text-slate-400 font-mono">{card.aset.kode}</span>
+          <span className="text-sm text-slate-700 truncate">{card.aset.nama}</span>
+        </div>
+        <Badge variant={card.aset.status === "Rusak Ringan" ? "warning" : card.aset.status === "Rusak Berat" ? "danger" : "outline"} className="text-[10px]">
+          {card.aset.status}
+        </Badge>
+      </div>
+
+      {/* Progress 5 step */}
+      <div className="mt-3 flex items-center gap-1.5">
+        {Array.from({ length: totalTahap }).map((_, i) => (
+          <div
+            key={i}
+            title={labelTahap[i]}
+            className={cn(
+              "h-1.5 flex-1 rounded-full",
+              i <= tercapai
+                ? card.warnaTahap === "emerald"
+                  ? "bg-emerald-500"
+                  : card.warnaTahap === "amber"
+                  ? "bg-amber-500"
+                  : "bg-blue-500"
+                : "bg-slate-200"
+            )}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex justify-between text-[10px] text-slate-400">
+        <span>Laporan</span>
+        <span>Perbaikan</span>
+      </div>
+
+      {/* Tiket terkait */}
+      {tiketHref && (
+        <Link href={tiketHref} className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 p-2.5 hover:border-primary/50 transition-colors">
+          <div className="flex items-center gap-2 min-w-0">
+            <Wrench className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-700 truncate">
+                {card.tiket?.judul}
+              </p>
+              <p className="text-[10px] text-slate-400">Tiket {card.tiket?.id}</p>
+            </div>
+          </div>
+          <Badge
+            variant={
+              card.tiket?.status === "Selesai"
+                ? "success"
+                : card.tiket?.status === "Diproses"
+                ? "warning"
+                : "outline"
+            }
+            className="text-[10px] shrink-0"
+          >
+            {card.tiket?.status}
+          </Badge>
+        </Link>
+      )}
+
+      {/* Status akhir */}
+      <div className="mt-3 flex items-center gap-2 text-xs">
+        {card.perbaikanSelesai ? (
+          <>
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span className="text-emerald-700">Perbaikan selesai — siap operasional</span>
+          </>
+        ) : card.tiket ? (
+          <>
+            <Loader2 className="h-4 w-4 text-amber-600" />
+            <span className="text-amber-700">
+              Perbaikan {card.tiket.status.toLowerCase()}
+            </span>
+          </>
+        ) : (
+          <>
+            <Clock className="h-4 w-4 text-slate-400" />
+            <span className="text-slate-500">Menunggu tindak lanjut alur</span>
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 // ─── Data Checklist Perawatan ────────────────────────────────────────────────
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -58,6 +201,25 @@ export default function ChecklistPerawatanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
+  // Data checklist: Supabase + tulisan sesi ini (in-memory), digabung.
+  const { data: checklistHarianList, loading, error, refetch } =
+    useChecklistsCombined();
+  // Kartu monitor alur kerusakan per penanggung jawab (independen dari gate
+  // loading checklist supaya tetap tampil saat data checklist sudah siap).
+  const carduPJ = useKartuPenanggungJawab();
+
+  if (loading) {
+    return <DataLoading label="Memuat daftar checklist harian…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat checklist dari database"
+      />
+    );
+  }
 
   const filteredChecklist = checklistHarianList.filter((item) => {
     const matchSearch =
@@ -120,6 +282,43 @@ export default function ChecklistPerawatanPage() {
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
         />
+      </div>
+
+      {/* Kartu monitor alur kerusakan per penanggung jawab */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-800">
+            Monitor Alur Kerusakan Kendaraan
+          </h2>
+          {carduPJ.data.length > 0 && (
+            <Badge variant="outline" className="text-xs">
+              {carduPJ.data.length} penanggung jawab terpantau
+            </Badge>
+          )}
+        </div>
+
+        {carduPJ.loading ? (
+          <DataLoading label="Memuat status penanggung jawab…" />
+        ) : carduPJ.error ? (
+          <DataError
+            error={carduPJ.error}
+            onRetry={carduPJ.refetch}
+            label="Gagal memuat status penanggung jawab dari database"
+          />
+        ) : carduPJ.data.length === 0 ? (
+          <Card className="p-4">
+            <p className="text-sm text-slate-500">
+              Belum ada alur kerusakan yang sedang berjalan — semua aset dalam
+              kondisi siap operasional.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {carduPJ.data.map((card) => (
+              <KartuPJItem key={card.nip} card={card} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Search + Filter */}

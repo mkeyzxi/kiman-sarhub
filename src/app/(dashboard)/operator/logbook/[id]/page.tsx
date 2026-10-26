@@ -29,8 +29,11 @@ import {
   selisihKm,
   tahapYangTertunda,
   type StatusPenggunaan,
+  type LogbookPerjalanan,
 } from "@/components/shared/mock-data";
-import { useLogbook } from "@/components/shared/logbook-store";
+import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
+import { useLogbooks } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 /** Warna badge per status penggunaan — beda dari status kesiapsiagaan armada. */
@@ -51,8 +54,30 @@ const labelStatus: Record<StatusPenggunaan, string> = {
 
 export default function DetailLogbookPage() {
   const params = useParams<{ id: string }>();
-  const logbooks = useLogbook();
+  // Data logbook dari Supabase.
+  const {
+    data: supabaseLogbooks,
+    loading,
+    error,
+    refetch,
+  } = useLogbooks();
+  const logbooks = mergeLogbooksWithSupabase(
+    supabaseLogbooks as unknown as LogbookPerjalanan[]
+  );
   const log = logbooks.find((l) => l.id === params.id);
+
+  if (loading) {
+    return <DataLoading label="Memuat detail logbook…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat logbook dari database"
+      />
+    );
+  }
 
   if (!log) {
     return (

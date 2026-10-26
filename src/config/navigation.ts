@@ -13,7 +13,7 @@ import {
   Settings,
   BarChart3,
   Users,
-  CheckCircle2,
+  FileSignature,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/components/shared/mock-data";
@@ -68,6 +68,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/bmn", label: "Master Data BMN", icon: Package },
         { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: AlertTriangle, badge: 3 },
+        { href: "/bmn/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },
     {
@@ -76,7 +77,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
         { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
-        { href: "/pimpinan/approval", label: "Persetujuan", icon: CheckCircle2 },
+        { href: "/pimpinan/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },
     {
@@ -94,6 +95,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/bmn", label: "Master Data BMN", icon: Package },
         { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: AlertTriangle, badge: 3 },
+        { href: "/bmn/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },
     {
@@ -102,7 +104,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
         { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
-        { href: "/pimpinan/approval", label: "Persetujuan", icon: CheckCircle2 },
+        { href: "/pimpinan/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },
   ],
@@ -111,9 +113,9 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       title: "Monitoring",
       items: [
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
+        { href: "/pimpinan/berita-acara", label: "Berita Acara", icon: FileSignature },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
         { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
-        { href: "/pimpinan/approval", label: "Persetujuan", icon: CheckCircle2 },
       ],
     },
   ],
@@ -149,6 +151,23 @@ export function canAccessPath(role: UserRole, pathname: string): boolean {
     return true;
   }
   const accessibleHrefs = getAccessibleHrefs(role);
+  // Operator lapangan adalah penanggung jawab kendaraan: mereka perlu
+  // membuka detail tiket maintenance yang diarahkan ke mereka (dan RLS
+  // menjamin hanya update tiket milik sendiri). Guard per-role di atas
+  // tidak mengenal relasi user↔aset, jadi beri akses terbatas ini.
+  if (role === "OPERATOR_LAPANGAN") {
+    if (
+      pathname.startsWith("/bmn/maintenance") &&
+      pathname !== "/bmn/maintenance/buat"
+    ) {
+      return true;
+    }
+    // Baca kartu BA milik operator (pengaju) — halaman BA tidak boleh
+    // dikelola, hanya dilihat.
+    if (pathname.startsWith("/operator/checklist/")) {
+      return true;
+    }
+  }
   return accessibleHrefs.some(
     (href) => pathname === href || pathname.startsWith(href + "/")
   );

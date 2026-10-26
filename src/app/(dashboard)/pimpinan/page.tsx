@@ -19,18 +19,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
-  readinessStats,
-  asetList,
   complianceRanking,
-  notifikasiList,
   formatTanggal,
+  hitungReadinessStats,
   getUserById,
-  logAktivitas,
-  riwayatOperasi,
   STATUS_ASET_VARIANT,
   STATUS_ASET_STANDBY,
   type StatusAset,
 } from "@/components/shared/mock-data";
+import {
+  useAsets,
+  useNotifications,
+  useActivityLog,
+  useRiwayatOperasi,
+} from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -59,7 +62,14 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PimpinanPage() {
   const [asetFilter, setAsetFilter] = useState<"Semua" | "Standby" | "Belum Lengkap">("Semua");
+  // Data master dari Supabase.
+  const { data: asetList, loading, error, refetch } = useAsets();
+  const { data: notifikasiList } = useNotifications();
+  const { data: logAktivitas } = useActivityLog();
+  const { data: riwayatOperasi } = useRiwayatOperasi();
 
+  // Readiness dihitung dari data aset Supabase (bukan mock statis).
+  const readinessStats = hitungReadinessStats(asetList);
   const asetStandby = readinessStats.standby;
   const totalAset = readinessStats.totalAset;
   const readinessIndex = readinessStats.readinessIndex;
@@ -76,6 +86,19 @@ export default function PimpinanPage() {
   const ranking = [...complianceRanking]
     .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
     .map((item, i) => ({ ...item, rank: i + 1 }));
+
+  if (loading) {
+    return <DataLoading label="Memuat dashboard pimpinan…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat data dari database"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -485,7 +508,7 @@ export default function PimpinanPage() {
         <CardContent>
           <div className="space-y-3">
             {logAktivitas.slice(0, 8).map((log) => {
-              const user = getUserById(log.userId);
+              const user = log.userId ? getUserById(log.userId) : undefined;
               return (
                 <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
                   <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center shrink-0">

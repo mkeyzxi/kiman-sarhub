@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Ship,
@@ -20,11 +20,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   users,
-  asetList,
   cariAsetDmUnit,
   type FormLogbook,
+  type Aset,
 } from "@/components/shared/mock-data";
 import { simpanTahapAwal } from "@/components/shared/logbook-store";
+import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
+import { useSesiUser } from "@/components/shared/use-session";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 /**
@@ -62,11 +65,14 @@ function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
 }
 
 /** Daftar unit berdasarkan kategori, diambil dari master aset real. */
-function getUnitOptions(kategori: FormLogbook["kategoriUnit"]): {
+function getUnitOptions(
+  kategori: FormLogbook["kategoriUnit"],
+  asets: Aset[]
+): {
   value: string;
   label: string;
 }[] {
-  return asetList
+  return asets
     .filter((a) => {
       if (kategori === "Mobil") return a.kategori === "Mobil";
       if (kategori === "Motor") return a.kategori === "Motor";
@@ -105,7 +111,8 @@ const FORM_KOSONG: FormLogbook = {
   rute: "",
   tujuan: "",
   kategoriUnit: "RIB",
-  jenisUnit: getUnitOptions("RIB")[0]?.value ?? "",
+  // jenisUnit diisi di runtime oleh komponen (asset belum tersedia saat modul load).
+  jenisUnit: "",
   nahkoda: "",
   jumlahPersonel: "1",
   bbmSebelum: "",
@@ -119,18 +126,78 @@ const FORM_KOSONG: FormLogbook = {
 
 export default function TambahLogbookPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const ses = useSesiUser();
+  // Aset dari Supabase — dipakai untuk daftar unit.
+  const { data: asetList, loading, error, refetch } = useAsets();
+  // Logbook dari Supabase — untuk mengambil kondisi BBM terakhir per unit.
+  const { data: logbooks } = useLogbooks();
   const [formData, setFormData] = useState<FormLogbook>(FORM_KOSONG);
   const [errors, setErrors] = useState<Partial<Record<keyof FormLogbook, string>>>(
     {}
   );
   const [errorUmum, setErrorUmum] = useState<string | null>(null);
 
+  // ─── AUTO-FILL DARI QR CODE SCAN ──────────────────────────────────────────
+  const paramUnit = searchParams.get("unit");
+
+  useEffect(() => {
+    if (!paramUnit || loading) return;
+    // Cari aset berdasarkan kode dari query parameter
+    const asetScan = asetList.find(
+      (a) => a.kode === paramUnit || a.nama === paramUnit
+    );
+    if (!asetScan) return;
+
+    // Tentukan kategori berdasarkan nama aset
+    let kategori: FormLogbook["kategoriUnit"] = "Mobil";
+    if (/RIB|perahu/i.test(asetScan.nama) && !/RBB/i.test(asetScan.nama)) {
+      kategori = "RIB";
+    } else if (/RBB/i.test(asetScan.nama)) {
+      kategori = "RBB";
+    } else if (/kapal/i.test(asetScan.nama)) {
+      kategori = "Kapal";
+    } else if (/motor/i.test(asetScan.nama)) {
+      kategori = "Motor";
+    } else {
+      kategori = "Mobil";
+    }
+
+    // Ambil logbook terakhir untuk unit ini — BBMe terakhir sebagai default
+    const logbookUnit = logbooks.find((l) =>
+      l.jenisUnit.includes(asetScan.nama.split("(")[0].trim()) ||
+      (l.jenisUnit.includes(asetScan.kode?.split("-")[0] ?? "zzz"))
+    );
+    const bbmDefault = logbookUnit?.bbmSesudah || "100";
+
+    setFormData((prev) => ({
+      ...prev,
+      kategoriUnit: kategori,
+      jenisUnit: asetScan.kode,
+      nahkoda: ses.nama,
+      bbmSebelum: bbmDefault,
+    }));
+  }, [paramUnit, loading, asetList, logbooks, ses.nama]);
+
   const unitOptions = useMemo(
-    () => getUnitOptions(formData.kategoriUnit),
-    [formData.kategoriUnit]
+    () => getUnitOptions(formData.kategoriUnit, asetList),
+    [formData.kategoriUnit, asetList]
   );
 
   const laut = isArmadaLaut(formData.kategoriUnit);
+
+  if (loading) {
+    return <DataLoading label="Menyiapkan form logbook…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat aset dari database"
+      />
+    );
+  }
 
   /** Perbarui satu field dan bersihkan errorassociated-nya. */
   const setField = <K extends keyof FormLogbook>(
@@ -143,7 +210,7 @@ export default function TambahLogbookPage() {
   };
 
   const handleKategoriChange = (kategori: FormLogbook["kategoriUnit"]) => {
-    const units = getUnitOptions(kategori);
+    const units = getUnitOptions(kategori, asetList);
     const keDarat = kategori === "Mobil" || kategori === "Motor";
     setFormData((prev) => ({
       ...prev,

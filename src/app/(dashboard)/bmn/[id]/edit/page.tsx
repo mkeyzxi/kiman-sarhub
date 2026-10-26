@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Package } from "lucide-react";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
-  getAsetById,
   users,
   STATUS_ASET,
   normalizeNup,
@@ -17,13 +16,15 @@ import {
   isValidISODate,
   isKodeAsetTerpakai,
   isNupAsetTerpakai,
-  updateAset,
   formatTanggal,
   type RiwayatAset,
   type KategoriAset,
   type KondisiAset,
   type StatusAset,
 } from "@/components/shared/mock-data";
+import { updateAsetRow } from "@/components/shared/db-writes";
+import { useAsetById } from "@/components/shared/use-supabase-data";
+import { useSesiUser } from "@/components/shared/use-session";
 
 /** Field yang punya pesan error; key tidak ada berarti valid. */
 type FormErrors = Partial<
@@ -33,21 +34,54 @@ type FormErrors = Partial<
 export default function EditAsetPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const aset = getAsetById(params.id);
+  const ses = useSesiUser();
+  // Aset dari Supabase.
+  const { data: aset, loading: asetLoading } = useAsetById(params.id);
 
   const [formData, setFormData] = useState({
-    nama: aset?.nama ?? "",
-    kode: aset?.kode ?? "",
-    nup: aset?.nup ?? "",
-    kategori: aset?.kategori ?? "",
-    lokasi: aset?.lokasi ?? "",
-    kondisi: aset?.kondisi ?? "",
-    tanggalPenetapan: aset?.tanggalPenetapan ?? "",
-    penanggungJawab: aset?.penanggungJawab ?? "",
-    status: aset?.status ?? "",
-    keterangan: aset?.keterangan ?? "",
+    nama: "",
+    kode: "",
+    nup: "",
+    kategori: "",
+    lokasi: "",
+    kondisi: "",
+    tanggalPenetapan: "",
+    penanggungJawab: "",
+    status: "",
+    keterangan: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [simpanGagal, setSimpanGagal] = useState<string | null>(null);
+  const formDiisi = useRef(false);
+
+  // Saat aset selesai dimuat, isi form sekali — hanya saat pertama kali aset
+  // tersedia (tandai dengan ref supaya tidak reset input user berikutnya).
+  useEffect(() => {
+    if (aset && !formDiisi.current) {
+      formDiisi.current = true;
+      setFormData({
+        nama: aset.nama,
+        kode: aset.kode,
+        nup: aset.nup,
+        kategori: aset.kategori,
+        lokasi: aset.lokasi,
+        kondisi: aset.kondisi,
+        tanggalPenetapan: aset.tanggalPenetapan,
+        penanggungJawab: aset.penanggungJawab,
+        status: aset.status,
+        keterangan: aset.keterangan ?? "",
+      });
+    }
+  }, [aset]);
+
+  if (asetLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <p className="text-sm text-slate-500">Memuat aset…</p>
+      </div>
+    );
+  }
 
   if (!aset) {
     return (
@@ -82,45 +116,61 @@ export default function EditAsetPage() {
     return next;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    // Bila tanggal penetapan berubah, catat ke riwayat agar jejak audit konsisten.
-    const tanggalPenetapanBerubah =
-      formData.tanggalPenetapan !== aset.tanggalPenetapan;
-    const riwayatBaru: RiwayatAset[] = tanggalPenetapanBerubah
-      ? [
-          {
-            tanggal: todayISODate(),
-            aksi: "Perubahan Tanggal Penetapan",
-            keterangan: `Tanggal penetapan diubah dari ${formatTanggal(aset.tanggalPenetapan)} menjadi ${formatTanggal(formData.tanggalPenetapan)}`,
-            userId: formData.penanggungJawab,
-          },
-        ]
-      : [];
+    setMenyimpan(true);
+    setSimpanGagal(null);
+    try {
+      // Bila tanggal penetapan berubah, catat ke riwayat agar jejak audit
+      // konsisten.
+      const tanggalPenetapanBerubah =
+        formData.tanggalPenetapan !== aset.tanggalPenetapan;
+      const riwayatBaru: RiwayatAset[] = tanggalPenetapanBerubah
+        ? [
+            {
+              tanggal: todayISODate(),
+              aksi: "Perubahan Tanggal Penetapan",
+              keterangan: `Tanggal penetapan diubah dari ${formatTanggal(aset.tanggalPenetapan)} menjadi ${formatTanggal(formData.tanggalPenetapan)}`,
+              userId: ses.id || formData.penanggungJawab,
+            },
+          ]
+        : [];
 
-    updateAset(
-      aset.id,
-      {
-        nama: formData.nama.trim(),
-        kode: formData.kode.trim(),
-        nup: formData.nup,
-        kategori: formData.kategori as KategoriAset,
-        lokasi: formData.lokasi.trim(),
-        kondisi: formData.kondisi as KondisiAset,
-        tanggalPenetapan: formData.tanggalPenetapan,
-        penanggungJawab: formData.penanggungJawab,
-        status: formData.status as StatusAset,
-        keterangan: formData.keterangan.trim() || undefined,
-      },
-      riwayatBaru
-    );
-
-    // TODO: ganti navigasi ini dengan redirect setelah API berhasil menyimpan.
-    router.push(`/bmn/${aset.id}`);
+      await updateAsetRow(
+        aset.id,
+        {
+          nama: formData.nama.trim(),
+          kode: formData.kode.trim(),
+          nup: formData.nup,
+          kategori: formData.kategori as KategoriAset,
+          lokasi: formData.lokasi.trim(),
+          kondisi: formData.kondisi as KondisiAset,
+          tanggalPenetapan: formData.tanggalPenetapan,
+          penanggungJawab: formData.penanggungJawab,
+          status: formData.status as StatusAset,
+          keterangan: formData.keterangan.trim() || undefined,
+        },
+        tanggalPenetapanBerubah
+          ? {
+              tanggal: riwayatBaru[0].tanggal,
+              aksi: riwayatBaru[0].aksi,
+              keterangan: riwayatBaru[0].keterangan,
+              userId: riwayatBaru[0].userId,
+            }
+          : undefined
+      );
+      router.push(`/bmn/${aset.id}`);
+    } catch (err) {
+      setSimpanGagal(
+        err instanceof Error ? err.message : "Gagal menyimpan perubahan aset."
+      );
+    } finally {
+      setMenyimpan(false);
+    }
   };
 
   return (
@@ -141,6 +191,17 @@ export default function EditAsetPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* Error dari database (RLS / duplikat / FK) */}
+        {simpanGagal && (
+          <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            <p className="text-sm text-rose-800">
+              <span className="font-medium">Gagal tersimpan.</span>{" "}
+              {simpanGagal}
+            </p>
+          </div>
+        )}
+
         {/* Ringkasan error */}
         {Object.keys(errors).length > 0 && (
           <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
@@ -317,7 +378,7 @@ export default function EditAsetPage() {
                       user.role === "OPERATOR_LAPANGAN" && user.aktif
                   )
                   .map((user) => (
-                    <option key={user.id} value={user.id}>
+                    <option key={user.nip} value={user.nip}>
                       {user.nama}
                     </option>
                   ))}
@@ -350,7 +411,9 @@ export default function EditAsetPage() {
           <Link href={`/bmn/${aset.id}`}>
             <Button variant="outline">Batal</Button>
           </Link>
-          <Button type="submit">Simpan Perubahan</Button>
+          <Button type="submit" disabled={menyimpan}>
+            {menyimpan ? "Menyimpan…" : "Simpan Perubahan"}
+          </Button>
         </div>
       </form>
     </div>

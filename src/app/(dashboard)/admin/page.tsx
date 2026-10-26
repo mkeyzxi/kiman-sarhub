@@ -11,7 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { users, formatTanggal } from "@/components/shared/mock-data";
+import { formatTanggal } from "@/components/shared/mock-data";
+import { useSupabaseUsers } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 // ─── Data untuk halaman setting ──────────────────────────────────────────────
@@ -148,8 +150,23 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
+  // Pengguna dari Supabase; pengaturan sistem & log tetap konfigurasi lokal.
+  const { data: users, loading, error, refetch } = useSupabaseUsers();
   const activeUsers = users.filter((u) => u.aktif).length;
   const totalUsers = users.length;
+
+  if (loading) {
+    return <DataLoading label="Memuat statistik pengguna…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat data pengguna dari database"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

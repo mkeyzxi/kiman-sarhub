@@ -27,40 +27,40 @@ export interface User {
 export const users: User[] = [
   {
     id: "usr-001",
-    nama: "Medlyn R. Pagali",
-    nip: "198503122010012001",
+    nama: "Medline",
+    nip: "199810212022032001",
     role: "PENGELOLA_BMN",
-    email: "medlyn.pagali@basarnas.go.id",
+    email: "199810212022032001@basarnas.ac.id",
     noTelepon: "0812-3456-7890",
     avatar: "/avatars/medlyn.png",
     aktif: true,
   },
   {
     id: "usr-002",
-    nama: "Kauluddin",
-    nip: "197801152005011002",
+    nama: "Muhammad Makbul N",
+    nip: "1111111111111111",
     role: "PENGELOLA_BMN",
-    email: "kauluddin@basarnas.go.id",
+    email: "1111111111111111@basarnas.ac.id",
     noTelepon: "0813-2345-6789",
     avatar: "/avatars/kaul.png",
     aktif: true,
   },
   {
     id: "usr-003",
-    nama: "Ansaruddin",
-    nip: "196905201994031003",
+    nama: "Mahmud Afandi",
+    nip: "198208042009121003",
     role: "KAKANSAR",
-    email: "ansaruddin@basarnas.go.id",
+    email: "198208042009121003@basarnas.ac.id",
     noTelepon: "0811-9876-5432",
     avatar: "/avatars/kansar.png",
     aktif: true,
   },
   {
     id: "usr-004",
-    nama: "Rizky Pratama",
-    nip: "199201102015011004",
+    nama: "Oky Juneva Marsel",
+    nip: "200006042025061006",
     role: "ADMIN_IT",
-    email: "rizky.pratama@basarnas.go.id",
+    email: "200006042025061006@basarnas.ac.id",
     noTelepon: "0821-1122-3344",
     avatar: "/avatars/rizky.png",
     aktif: true,
@@ -262,28 +262,31 @@ export const users: User[] = [
 
 /**
  * Pemetaan penanggung jawab aset ke operator lapangan.
- * Nama/NIP user mengikuti `scripts/create-supabase-users-v3.mjs`.
+ *
+ * Nilai disimpan sebagai **NIP** (bukan `usr-XXX`) — NIP adalah kunci
+ * identitas standar di seluruh app. NIP mengikuti
+ * `scripts/create-supabase-users-v3.mjs` (source of truth user Supabase).
  */
 const PJ_ASET = {
-  fajar: "usr-005",
-  hasril: "usr-006",
-  ahmadAidid: "usr-007",
-  ardiansyah: "usr-008",
-  agustang: "usr-009",
-  abdMalik: "usr-010",
-  adiaksa: "usr-011",
-  agan: "usr-012",
-  haerul: "usr-013",
-  abduh: "usr-014",
-  ibnu: "usr-015",
-  calvin: "usr-016",
-  wahyudi: "usr-017",
-  fajrin: "usr-018",
-  sulaeman: "usr-019",
-  akmal: "usr-020",
-  akbar: "usr-021",
-  andi: "usr-022",
-  andrie: "usr-023",
+  fajar: "199709262022031001",
+  hasril: "198212022007121002",
+  ahmadAidid: "198807022022031001",
+  ardiansyah: "198102142005021001",
+  agustang: "198908082010121001",
+  abdMalik: "198802052007121001",
+  adiaksa: "199806052022031001",
+  agan: "199811182022031001",
+  haerul: "200001052025211020",
+  abduh: "200206132025061001",
+  ibnu: "200004152022031002",
+  calvin: "200305132025061001",
+  wahyudi: "199807192025211027",
+  fajrin: "199610042025211053",
+  sulaeman: "200409052025061001",
+  akmal: "199612212022031001",
+  akbar: "199705052022031001",
+  andi: "198607222007121001",
+  andrie: "199811292022031001",
 } as const;
 
 // -----------------------------------------------------------------------------
@@ -647,13 +650,13 @@ export const asetList: Aset[] = [
         tanggal: "2009-11-26",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020101001",
@@ -689,13 +692,13 @@ export const asetList: Aset[] = [
         tanggal: "2011-11-21",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020104001",
@@ -731,13 +734,13 @@ export const asetList: Aset[] = [
         tanggal: "2024-05-28",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2025).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2025-07-30",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2025.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020104001",
@@ -775,13 +778,13 @@ export const asetList: Aset[] = [
         tanggal: "2024-05-28",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2025).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2025-07-30",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2025.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020104001",
@@ -819,13 +822,13 @@ export const asetList: Aset[] = [
         tanggal: "2015-10-12",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2026).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2026-06-29",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2026.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020104001",
@@ -862,13 +865,13 @@ export const asetList: Aset[] = [
         tanggal: "2020-03-20",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020105058",
@@ -904,13 +907,13 @@ export const asetList: Aset[] = [
         tanggal: "2018-08-15",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020105062",
@@ -946,13 +949,13 @@ export const asetList: Aset[] = [
         tanggal: "2020-08-31",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020105062",
@@ -990,13 +993,13 @@ export const asetList: Aset[] = [
         tanggal: "2022-02-07",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2025).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2025-07-30",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2025.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020105062",
@@ -1034,13 +1037,13 @@ export const asetList: Aset[] = [
         tanggal: "2013-06-28",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020105128",
@@ -1075,13 +1078,13 @@ export const asetList: Aset[] = [
         tanggal: "2020-07-30",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020105128",
@@ -1119,13 +1122,13 @@ export const asetList: Aset[] = [
         tanggal: "2020-07-30",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020105129",
@@ -1163,13 +1166,13 @@ export const asetList: Aset[] = [
         tanggal: "2020-07-30",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020105129",
@@ -1207,13 +1210,13 @@ export const asetList: Aset[] = [
         tanggal: "2014-10-16",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020105129",
@@ -1249,13 +1252,13 @@ export const asetList: Aset[] = [
         tanggal: "2009-01-07",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020105129",
@@ -1291,13 +1294,13 @@ export const asetList: Aset[] = [
         tanggal: "2009-04-01",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020302001",
@@ -1332,13 +1335,13 @@ export const asetList: Aset[] = [
         tanggal: "2022-02-07",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: SK.SU-187/PL.01.05/XI/BSN-2023).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2023-11-07",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor SK.SU-187/PL.01.05/XI/BSN-2023.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020302001",
@@ -1374,13 +1377,13 @@ export const asetList: Aset[] = [
         tanggal: "2013-12-16",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: SK.SU-187/PL.01.05/XI/BSN-2023).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2023-11-07",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor SK.SU-187/PL.01.05/XI/BSN-2023.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1414,13 +1417,13 @@ export const asetList: Aset[] = [
         tanggal: "2002-04-30",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: SK.SU-187/PL.01.05/XI/BSN-2023).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2023-11-07",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor SK.SU-187/PL.01.05/XI/BSN-2023.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303004",
@@ -1455,13 +1458,13 @@ export const asetList: Aset[] = [
         tanggal: "2009-04-01",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1496,13 +1499,13 @@ export const asetList: Aset[] = [
         tanggal: "2009-04-01",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 134/KM.6/WKN.15/KNL.01/2020).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2020-12-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 134/KM.6/WKN.15/KNL.01/2020.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303004",
@@ -1537,13 +1540,13 @@ export const asetList: Aset[] = [
         tanggal: "2009-01-07",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: SK.SU-187/PL.01.05/XI/BSN-2023).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2023-11-07",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor SK.SU-187/PL.01.05/XI/BSN-2023.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1578,13 +1581,13 @@ export const asetList: Aset[] = [
         tanggal: "2021-06-04",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 65/KM.6/KNL.1501/2024).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2024-07-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 65/KM.6/KNL.1501/2024.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303004",
@@ -1618,13 +1621,13 @@ export const asetList: Aset[] = [
         tanggal: "2021-06-04",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 65/KM.6/KNL.1501/2024).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2024-07-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 65/KM.6/KNL.1501/2024.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1658,13 +1661,13 @@ export const asetList: Aset[] = [
         tanggal: "2021-12-27",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 65/KM.6/KNL.1501/2024).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2024-07-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 65/KM.6/KNL.1501/2024.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303004",
@@ -1698,13 +1701,13 @@ export const asetList: Aset[] = [
         tanggal: "2021-12-27",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 65/KM.6/KNL.1501/2024).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2024-07-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 65/KM.6/KNL.1501/2024.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1738,13 +1741,13 @@ export const asetList: Aset[] = [
         tanggal: "2023-10-02",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: SK.SU-125/PL.01.05/VII/BSN-2024).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2024-07-18",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor SK.SU-125/PL.01.05/VII/BSN-2024.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303004",
@@ -1780,13 +1783,13 @@ export const asetList: Aset[] = [
         tanggal: "2023-10-02",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: SK.SU-125/PL.01.05/VII/BSN-2024).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2024-07-18",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor SK.SU-125/PL.01.05/VII/BSN-2024.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1822,13 +1825,13 @@ export const asetList: Aset[] = [
         tanggal: "2025-12-31",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2026).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2026-06-29",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2026.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303004",
@@ -1864,13 +1867,13 @@ export const asetList: Aset[] = [
         tanggal: "2025-12-31",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2026).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2026-06-29",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2026.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303004",
@@ -1906,13 +1909,13 @@ export const asetList: Aset[] = [
         tanggal: "2021-12-01",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 65/KM.6/KNL.1501/2024).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2024-07-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 65/KM.6/KNL.1501/2024.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303037",
@@ -1948,13 +1951,13 @@ export const asetList: Aset[] = [
         tanggal: "2021-06-04",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 65/KM.6/KNL.1501/2024).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2024-07-16",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 65/KM.6/KNL.1501/2024.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303040",
@@ -1991,13 +1994,13 @@ export const asetList: Aset[] = [
         tanggal: "2025-12-31",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2026).",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
       {
         tanggal: "2026-06-29",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2026.",
-        userId: "usr-001",
+        userId: "199810212022032001",
       },
     ],
     kodeBarang: "3020303040",
@@ -2033,13 +2036,13 @@ export const asetList: Aset[] = [
         tanggal: "2025-12-31",
         aksi: "Perolehan BMN",
         keterangan: "Aset diperoleh dan tercatat dalam register BMN (PSP: 85/MK/KNL.1501/2026).",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
       {
         tanggal: "2026-06-29",
         aksi: "Penetapan Status Penggunaan",
         keterangan: "Ditetapkan penggunaannya melalui PSP nomor 85/MK/KNL.1501/2026.",
-        userId: "usr-002",
+        userId: "1111111111111111",
       },
     ],
     kodeBarang: "3020303040",
@@ -2089,7 +2092,7 @@ export const ewsTickets: EWSTicket[] = [
     status: "Diproses",
     tanggalBuat: "2026-09-25",
     tanggalUpdate: "2026-09-26",
-    assignedTo: "usr-002",
+    assignedTo: "1111111111111111",
   },
   {
     id: "ews-002",
@@ -2101,7 +2104,7 @@ export const ewsTickets: EWSTicket[] = [
     status: "Diproses",
     tanggalBuat: "2026-09-27",
     tanggalUpdate: "2026-09-27",
-    assignedTo: "usr-001",
+    assignedTo: "199810212022032001",
   },
   {
     id: "ews-003",
@@ -2113,7 +2116,7 @@ export const ewsTickets: EWSTicket[] = [
     status: "Menunggu",
     tanggalBuat: "2026-09-23",
     tanggalUpdate: "2026-09-23",
-    assignedTo: "usr-002",
+    assignedTo: "1111111111111111",
   },
   {
     id: "ews-004",
@@ -2125,7 +2128,7 @@ export const ewsTickets: EWSTicket[] = [
     status: "Selesai",
     tanggalBuat: "2026-09-19",
     tanggalUpdate: "2026-09-20",
-    assignedTo: "usr-001",
+    assignedTo: "199810212022032001",
   },
   {
     id: "ews-005",
@@ -2137,7 +2140,7 @@ export const ewsTickets: EWSTicket[] = [
     status: "Selesai",
     tanggalBuat: "2026-09-07",
     tanggalUpdate: "2026-09-08",
-    assignedTo: "usr-004",
+    assignedTo: "200006042025061006",
   },
   {
     id: "ews-006",
@@ -2149,7 +2152,7 @@ export const ewsTickets: EWSTicket[] = [
     status: "Menunggu",
     tanggalBuat: "2026-09-26",
     tanggalUpdate: "2026-09-26",
-    assignedTo: "usr-002",
+    assignedTo: "1111111111111111",
   },
 ];
 
@@ -2180,7 +2183,7 @@ export const antreanVerifikasi: AntreanVerifikasi[] = [
       "Pengajuan penambahan mesin chainset Stihl MS 261 untuk keperluan operasi SAR di daerah hutan dan pegunungan. Harga perkiraan Rp 18.500.000.",
     status: "Menunggu",
     tanggalBuat: "2026-09-26",
-    createdBy: "usr-001",
+    createdBy: "199810212022032001",
   },
   {
     id: "ver-002",
@@ -2190,7 +2193,7 @@ export const antreanVerifikasi: AntreanVerifikasi[] = [
       "Rescue Truck ISUZU mengalami kebocoran halus pada sistem rem dan lampu kabin belakang mati. Perlu penggantian kampas rem dan pemeriksaan kelistrikan.",
     status: "Disetujui",
     tanggalBuat: "2026-09-25",
-    createdBy: "usr-007",
+    createdBy: "198807022022031001",
     catatanRevisi:
       "Disetujui. Gunakan anggaran pemeliharaan Q3. Mohon sertakan foto kerusakan lebih detail pada laporan berikutnya.",
   },
@@ -2202,7 +2205,7 @@ export const antreanVerifikasi: AntreanVerifikasi[] = [
       "RIB Kelas I ditemukan bocor halus pada sambungan jahitan lambung. Sudah dilakukan penambalan sementara, perlu perbaikan permanen.",
     status: "Disetujui",
     tanggalBuat: "2026-09-19",
-    createdBy: "usr-005",
+    createdBy: "199709262022031001",
   },
   {
     id: "ver-004",
@@ -2212,7 +2215,7 @@ export const antreanVerifikasi: AntreanVerifikasi[] = [
       "Pengajuan pembelian kamera termal FLIR untuk operasi pencarian korban dalam kondisi malam hari atau area berasap. Harga perkiraan Rp 85.000.000.",
     status: "Ditolak",
     tanggalBuat: "2026-09-21",
-    createdBy: "usr-001",
+    createdBy: "199810212022032001",
     catatanRevisi:
       "Ditolak sementara karena melebihi pagu anggaran BMN tahun berjalan. Mohon ajukan kembali pada penganggaran tahun depan dengan kajian kebutuhan yang lebih komprehensif.",
   },
@@ -2224,7 +2227,7 @@ export const antreanVerifikasi: AntreanVerifikasi[] = [
       "Out Boat Motor Yamaha F300 DET mengalami overheat pada operasi terakhir. Perlu pemeriksaan sistem pendingin dan penggantian impeller.",
     status: "Menunggu",
     tanggalBuat: "2026-09-23",
-    createdBy: "usr-006",
+    createdBy: "198212022007121002",
   },
 ];
 
@@ -2665,7 +2668,7 @@ export interface LogAktivitas {
 export const logAktivitas: LogAktivitas[] = [
   {
     id: "log-001",
-    userId: "usr-005",
+    userId: "199709262022031001",
     aksi: "UPDATE_JURNAL_SIAGA",
     target: "Jurnal Siaga Rutin",
     tanggal: "2026-10-08T17:00:00",
@@ -2673,7 +2676,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-002",
-    userId: "usr-006",
+    userId: "198212022007121002",
     aksi: "SETOR_CHECKLIST",
     target: "Checklist RIB 12M",
     tanggal: "2026-10-08T08:30:00",
@@ -2681,7 +2684,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-003",
-    userId: "usr-008",
+    userId: "198102142005021001",
     aksi: "UPDATE_LOGBOOK",
     target: "Logbook Motor",
     tanggal: "2026-10-08T09:00:00",
@@ -2689,7 +2692,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-004",
-    userId: "usr-007",
+    userId: "198807022022031001",
     aksi: "UPDATE_CHECKLIST",
     target: "Checklist Mobil",
     tanggal: "2026-10-07T16:00:00",
@@ -2698,7 +2701,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-005",
-    userId: "usr-005",
+    userId: "199709262022031001",
     aksi: "ABSENSI_SIAGA",
     target: "Absensi Shift",
     tanggal: "2026-10-07T07:00:00",
@@ -2706,7 +2709,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-006",
-    userId: "usr-006",
+    userId: "198212022007121002",
     aksi: "SETOR_CHECKLIST",
     target: "Checklist RIB Kelas I",
     tanggal: "2026-10-07T08:15:00",
@@ -2714,7 +2717,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-007",
-    userId: "usr-001",
+    userId: "199810212022032001",
     aksi: "UPDATE_LOGBOOK",
     target: "Logbook Mobil",
     tanggal: "2026-10-06T10:00:00",
@@ -2722,7 +2725,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-008",
-    userId: "usr-005",
+    userId: "199709262022031001",
     aksi: "UPDATE_JURNAL_SIAGA",
     target: "Jurnal Siaga Rutin",
     tanggal: "2026-10-06T17:00:00",
@@ -2730,7 +2733,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-009",
-    userId: "usr-007",
+    userId: "198807022022031001",
     aksi: "SETOR_CHECKLIST",
     target: "Checklist Mobil",
     tanggal: "2026-10-05T09:00:00",
@@ -2738,7 +2741,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-010",
-    userId: "usr-006",
+    userId: "198212022007121002",
     aksi: "PEMANASAN_RIB",
     target: "RIB Kelas I",
     tanggal: "2026-10-05T07:30:00",
@@ -2746,7 +2749,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-011",
-    userId: "usr-008",
+    userId: "198102142005021001",
     aksi: "ABSENSI_SIAGA",
     target: "Absensi Shift",
     tanggal: "2026-10-04T07:00:00",
@@ -2754,7 +2757,7 @@ export const logAktivitas: LogAktivitas[] = [
   },
   {
     id: "log-012",
-    userId: "usr-005",
+    userId: "199709262022031001",
     aksi: "SETOR_CHECKLIST",
     target: "Checklist Selam",
     tanggal: "2026-10-04T08:00:00",
@@ -2827,7 +2830,7 @@ export interface ReadinessStats {
  * Statistik kesiapan dihitung langsung dari {@link asetList} agar selalu
  * konsisten dengan master data — tidak lagi berupa angka hardcode.
  */
-function hitungReadinessStats(list: Aset[]): ReadinessStats {
+export function hitungReadinessStats(list: Aset[]): ReadinessStats {
   const jumlahStatus = (status: StatusAset) =>
     list.filter((a) => a.status === status).length;
   const totalAset = list.length;
@@ -2884,145 +2887,39 @@ export interface ComplianceRanking {
 
 export const complianceRanking: ComplianceRanking[] = [
   {
-    personelId: "usr-005",
+    personelId: "199709262022031001",
     nama: "Fajar Farial",
     telatKembali: 0,
     abaikanChecklist: 0,
     skorKepatuhan: 100,
   },
   {
-    personelId: "usr-006",
+    personelId: "198212022007121002",
     nama: "Hasril",
     telatKembali: 1,
     abaikanChecklist: 0,
     skorKepatuhan: 95,
   },
   {
-    personelId: "usr-007",
+    personelId: "198807022022031001",
     nama: "Ahmad Aidid",
     telatKembali: 1,
     abaikanChecklist: 1,
     skorKepatuhan: 88,
   },
   {
-    personelId: "usr-008",
+    personelId: "198102142005021001",
     nama: "Ardiansyah",
     telatKembali: 2,
     abaikanChecklist: 1,
     skorKepatuhan: 80,
   },
   {
-    personelId: "usr-004",
-    nama: "Rizky Pratama",
+    personelId: "200006042025061006",
+    nama: "Oky Juneva Marsel",
     telatKembali: 3,
     abaikanChecklist: 2,
     skorKepatuhan: 70,
-  },
-];
-
-// -----------------------------------------------------------------------------
-// 10. PENGAJUAN PERSETUJUAN
-// -----------------------------------------------------------------------------
-
-export type StatusApproval = "Menunggu" | "Disetujui" | "Ditolak";
-
-export interface Approval {
-  id: string;
-  kode: string;
-  namaAset: string;
-  kategori: KategoriAset;
-  pengajuanOleh: string;
-  tanggal: string;
-  status: StatusApproval;
-  alasan: string;
-  rincian: { label: string; value: string }[];
-}
-
-export const approvalList: Approval[] = [
-  {
-    id: "apr-001",
-    kode: "BMN-SAR-005",
-    namaAset: "Chain Stihl MS 261",
-    kategori: "Peralatan SAR",
-    pengajuanOleh: "usr-001",
-    tanggal: "2026-09-26",
-    status: "Menunggu",
-    alasan:
-      "Menggantikan chainsaw lama yang sudah tidak berfungsi optimal karena mata rantai aus.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Rusak Berat" },
-      { label: "Usia Pakai", value: "6 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 4.500.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-002",
-    kode: "BMN-KOM-003",
-    namaAset: "Thermal Imaging Camera FLIR",
-    kategori: "Komunikasi",
-    pengajuanOleh: "usr-001",
-    tanggal: "2026-09-21",
-    status: "Ditolak",
-    alasan:
-      "Usulan tidak sesuai prioritas kebutuhan. Anggaran tahun ini sudah terpakai untuk kebutuhan komunikasi VHF.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Baik" },
-      { label: "Usia Pakai", value: "1 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 38.000.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-003",
-    kode: "BMN-MED-003",
-    namaAset: "Tabung Oksigen 10L",
-    kategori: "Medis",
-    pengajuanOleh: "usr-002",
-    tanggal: "2026-09-24",
-    status: "Disetujui",
-    alasan:
-      "Menambah stok oksigen untuk tim medis lapangan agar siap pada setiap operasi evakuasi.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Habis Terpakai" },
-      { label: "Usia Pakai", value: "3 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 1.750.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-004",
-    kode: "BMN-DOK-003",
-    namaAset: "Laptop Field Rugged Panasonic",
-    kategori: "Dokumentasi",
-    pengajuanOleh: "usr-003",
-    tanggal: "2026-09-18",
-    status: "Menunggu",
-    alasan:
-      "Laptop lama sering gagal menyala di lapangan karena kompresinya sudah tidak stabil.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Rusak Ringan" },
-      { label: "Usia Pakai", value: "5 tahun" },
-      { label: "Estimasi Biaya", value: "Rp 12.000.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
-  },
-  {
-    id: "apr-005",
-    kode: "BMN-KND-003",
-    namaAset: "Motor Honda CRF250R",
-    kategori: "Motor",
-    pengajuanOleh: "usr-001",
-    tanggal: "2026-09-20",
-    status: "Menunggu",
-    alasan:
-      "Menambah armada motor trail untuk memperbesar daya jangkau di wilayah pedalaman yang sulit dijangkau kendaraan roda empat.",
-    rincian: [
-      { label: "Kondisi Aset Lama", value: "Tidak Ada (Usulan Baru)" },
-      { label: "Usia Pakai", value: "-" },
-      { label: "Estimasi Biaya", value: "Rp 58.000.000" },
-      { label: "Sumber Dana", value: "DIPA 2026" },
-    ],
   },
 ];
 
@@ -3172,7 +3069,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Latihan SAR",
     kategoriUnit: "RIB",
     jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100",
-    nahkoda: "Medlyn R. Pagali",
+    nahkoda: "Medline",
     jumlahPersonel: 8,
     bbmSebelum: "100%",
     bbmSesudah: "70%",
@@ -3192,7 +3089,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Patroli rutin",
     kategoriUnit: "RIB",
     jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Sea First",
-    nahkoda: "Kauluddin",
+    nahkoda: "Muhammad Makbul N",
     jumlahPersonel: 4,
     bbmSebelum: "88%",
     bbmSesudah: "",
@@ -3211,7 +3108,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Patroli sore",
     kategoriUnit: "RIB",
     jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100",
-    nahkoda: "Rizky Pratama",
+    nahkoda: "Oky Juneva Marsel",
     jumlahPersonel: 3,
     bbmSebelum: "85%",
     bbmSesudah: "",
@@ -3235,7 +3132,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Patroli laut dan pengamatan korban",
     kategoriUnit: "Kapal",
     jenisUnit: "Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)",
-    nahkoda: "Ansaruddin",
+    nahkoda: "Mahmud Afandi",
     jumlahPersonel: 6,
     bbmSebelum: "88%",
     bbmSesudah: "74%",
@@ -3255,7 +3152,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Sosialisasi kesiapsiagaan SAR",
     kategoriUnit: "Kapal",
     jenisUnit: "Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)",
-    nahkoda: "Kauluddin",
+    nahkoda: "Muhammad Makbul N",
     jumlahPersonel: 5,
     bbmSebelum: "82%",
     bbmSesudah: "71%",
@@ -3397,7 +3294,7 @@ export const logbookPerjalananList: LogbookPerjalanan[] = [
     tujuan: "Evakuasi korban banjir",
     kategoriUnit: "Mobil",
     jenisUnit: "Rescue Truck ISUZU (DC 8982)",
-    nahkoda: "Medlyn R. Pagali",
+    nahkoda: "Medline",
     jumlahPersonel: 5,
     bbmSebelum: "100%",
     bbmSesudah: "",
@@ -3636,10 +3533,6 @@ export const checklistHarianList: ChecklistHarian[] = [
 // Helper Functions
 // -----------------------------------------------------------------------------
 
-export function getApprovalById(id: string): Approval | undefined {
-  return approvalList.find((a) => a.id === id);
-}
-
 export function getChecklistHarianById(id: string): ChecklistHarian | undefined {
   return checklistHarianList.find((c) => c.id === id);
 }
@@ -3652,8 +3545,20 @@ export function getLogbookPerjalananById(id: string): LogbookPerjalanan | undefi
   return logbookPerjalananList.find((l) => l.id === id);
 }
 
+/**
+ * Cari user berdasarkan **NIP** atau **`usr-XXX` placeholder**.
+ *
+ * Dual lookup: id NIP menjadi kunci standar; `usr-XXX` dipertahankan
+ * untuk kompatibilitas data lama / transisi mock→DB. NIP di-normalisasi
+ * (trim, buang spasi/titik/tengah-tarik).
+ */
 export function getUserById(id: string): User | undefined {
-  return users.find((u) => u.id === id);
+  if (!id) return undefined;
+  const nipClean = id.replace(/[\s.\-_]/g, "");
+  return (
+    users.find((u) => u.id === id) ??
+    users.find((u) => u.nip === nipClean)
+  );
 }
 
 export function getAsetById(id: string): Aset | undefined {
@@ -4163,10 +4068,10 @@ export const beritaAcaraList: BeritaAcara[] = [
     nomor: "",
     asetId: "ast-034",
     tiketId: "ews-001",
-    pengajuId: "usr-002",
-    pengajuNama: "Kauluddin",
+    pengajuId: "1111111111111111",
+    pengajuNama: "Muhammad Makbul N",
     pengajuJabatan: "Pengelola BMN",
-    pelapor: "Kauluddin",
+    pelapor: "Muhammad Makbul N",
     pelaporJabatan: "Pengelola BMN",
     tanggalBuat: "2026-09-25",
     tanggalUpdate: "2026-09-26",
@@ -4200,10 +4105,10 @@ export const beritaAcaraList: BeritaAcara[] = [
     nomor: "",
     asetId: "ast-029",
     tiketId: "ews-006",
-    pengajuId: "usr-001",
-    pengajuNama: "Medlyn R. Pagali",
+    pengajuId: "199810212022032001",
+    pengajuNama: "Medline",
     pengajuJabatan: "Pengelola BMN",
-    pelapor: "Medlyn R. Pagali",
+    pelapor: "Medline",
     pelaporJabatan: "Pengelola BMN",
     tanggalBuat: "2026-09-26",
     tanggalUpdate: "2026-09-26",

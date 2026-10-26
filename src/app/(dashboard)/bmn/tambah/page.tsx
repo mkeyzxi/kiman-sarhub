@@ -16,11 +16,11 @@ import {
   isValidISODate,
   isKodeAsetTerpakai,
   isNupAsetTerpakai,
-  tambahAset,
   type KategoriAset,
   type KondisiAset,
   type StatusAset,
 } from "@/components/shared/mock-data";
+import { insertAset } from "@/components/shared/db-writes";
 
 /** Field yang punya pesan error; key tidak ada berarti valid. */
 type FormErrors = Partial<
@@ -57,6 +57,8 @@ export default function TambahAsetPage() {
     keterangan: "",
   }));
   const [errors, setErrors] = useState<FormErrors>({});
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [simpanGagal, setSimpanGagal] = useState<string | null>(null);
 
   /** Validasi field yang punya aturan unik/format. */
   const validate = (): FormErrors => {
@@ -75,27 +77,37 @@ export default function TambahAsetPage() {
     return next;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    const aset = tambahAset({
-      nama: formData.nama.trim(),
-      kode: formData.kode.trim(),
-      nup: formData.nup,
-      kategori: formData.kategori as KategoriAset,
-      status: formData.status as StatusAset,
-      lokasi: formData.lokasi.trim(),
-      kondisi: formData.kondisi as KondisiAset,
-      tanggalPenetapan: formData.tanggalPenetapan,
-      penanggungJawab: formData.penanggungJawab,
-      keterangan: formData.keterangan.trim() || undefined,
-    });
-
-    // TODO: ganti navigasi ini dengan redirect setelah API berhasil menyimpan.
-    router.push(`/bmn/${aset.id}`);
+    setMenyimpan(true);
+    setSimpanGagal(null);
+    try {
+      const id = crypto.randomUUID();
+      await insertAset({
+        id,
+        nama: formData.nama.trim(),
+        kode: formData.kode.trim(),
+        nup: formData.nup,
+        kategori: formData.kategori as KategoriAset,
+        status: formData.status as StatusAset,
+        lokasi: formData.lokasi.trim(),
+        kondisi: formData.kondisi as KondisiAset,
+        tanggalPenetapan: formData.tanggalPenetapan,
+        penanggungJawab: formData.penanggungJawab,
+        keterangan: formData.keterangan.trim() || undefined,
+      });
+      router.push(`/bmn/${id}`);
+    } catch (err) {
+      setSimpanGagal(
+        err instanceof Error ? err.message : "Gagal menyimpan aset ke database."
+      );
+    } finally {
+      setMenyimpan(false);
+    }
   };
 
   return (
@@ -116,6 +128,17 @@ export default function TambahAsetPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* Error dari database (RLS / duplikat / FK) */}
+        {simpanGagal && (
+          <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            <p className="text-sm text-rose-800">
+              <span className="font-medium">Gagal tersimpan.</span>{" "}
+              {simpanGagal}
+            </p>
+          </div>
+        )}
+
         {/* Ringkasan error */}
         {Object.keys(errors).length > 0 && (
           <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
@@ -301,7 +324,7 @@ export default function TambahAsetPage() {
                       user.role === "OPERATOR_LAPANGAN" && user.aktif
                   )
                   .map((user) => (
-                    <option key={user.id} value={user.id}>
+                    <option key={user.nip} value={user.nip}>
                       {user.nama} ({user.role})
                     </option>
                   ))}
@@ -373,7 +396,9 @@ export default function TambahAsetPage() {
               Batal
             </Button>
           </Link>
-          <Button type="submit">Simpan</Button>
+          <Button type="submit" disabled={menyimpan}>
+            {menyimpan ? "Menyimpan…" : "Simpan"}
+          </Button>
         </div>
       </form>
     </div>

@@ -2,7 +2,7 @@
 
 import {Suspense, useState} from 'react'
 import {useRouter, useSearchParams} from 'next/navigation'
-import {Lock, Eye, EyeOff, Loader2, AlertTriangle, Hash} from 'lucide-react'
+import {Lock, Eye, EyeOff, Loader2, AlertTriangle, UserRound} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {Input, Label} from '@/components/ui/input'
 import {getDefaultPageForRole} from '@/config/navigation'
@@ -151,7 +151,7 @@ function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="nip">NIP</Label>
               <div className="relative">
-                <Hash className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                <UserRound className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                 <Input
                   id="nip"
                   type="text"

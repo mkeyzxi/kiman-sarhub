@@ -18,8 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
-import { getAsetById, getUserById, formatTanggal } from "@/components/shared/mock-data";
-import { useTickets } from "@/components/shared/ticket-store";
+import { getAsetById, getUserById, formatTanggal, } from "@/components/shared/mock-data";
+import { useTicketsCombined } from "@/components/shared/ticket-store";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -49,10 +50,24 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function TiketMaintenancePage() {
-  const tickets = useTickets();
+  // Tiket: Supabase + tulisan sesi ini (in-memory), digabung.
+  const { data: tickets, loading, error, refetch } = useTicketsCombined();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
+
+  if (loading) {
+    return <DataLoading label="Memuat antrean tiket maintenance…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat tiket dari database"
+      />
+    );
+  }
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchSearch =
