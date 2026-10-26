@@ -5,7 +5,6 @@ import { notFound, useParams, useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
-  QrCode,
   Pencil,
   Package,
   MapPin,
@@ -15,10 +14,24 @@ import {
   FileText,
   Hash,
   CheckCircle,
+  QrCode,
+  Download,
+  Copy,
+  ExternalLink,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { QRCodeSVG } from "qrcode.react";
 import RiwayatTable from "./riwayat-table";
 import {
   getUserById,
@@ -28,7 +41,7 @@ import {
 import { useAsetById } from "@/components/shared/use-supabase-data";
 import { updateAsetStatus } from "@/components/shared/db-writes";
 import { useSesiUser } from "@/components/shared/use-session";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export default function DetailAsetPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +50,66 @@ export default function DetailAsetPage() {
   // Aset dari Supabase.
   const { data: aset, loading, error, refetch } = useAsetById(id);
   const [gagal, setGagal] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const qrUrl = aset
+    ? `${process.env.NEXT_PUBLIC_URL_QRCODE}/operator/logbook/tambah?unit=${encodeURIComponent(aset.kode)}`
+    : "";
+
+  // Salin URL ke clipboard
+  const handleCopy = useCallback(async () => {
+    if (!qrUrl) return;
+    try {
+      await navigator.clipboard.writeText(qrUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: prompt
+      window.prompt("Salin URL berikut:", qrUrl);
+    }
+  }, [qrUrl]);
+
+  // Unduh QR code sebagai PNG
+  const handleDownload = useCallback(() => {
+    const svg = document.getElementById("qr-code-img") as SVGSVGElement | null;
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 400;
+      canvas.height = 400;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.drawImage(img, 0, 0, 400, 400);
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = downloadUrl;
+          a.download = `qrcode-${aset?.kode ?? "aset"}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(downloadUrl);
+        }, "image/png");
+      }
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, [aset?.kode]);
+
+  // Buka link dalam tab baru untuk testing
+  const handleTestLink = useCallback(() => {
+    if (qrUrl) window.open(qrUrl, "_blank");
+  }, [qrUrl]);
 
   if (loading) {
     return (
@@ -110,7 +183,7 @@ export default function DetailAsetPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowQr(true)}>
             <QrCode className="h-4 w-4" />
             Cetak QR Code
           </Button>
@@ -122,6 +195,74 @@ export default function DetailAsetPage() {
           </Link>
         </div>
       </div>
+
+      {/* Modal QR Code */}
+      <Dialog open={showQr} onOpenChange={setShowQr}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Code Aset</DialogTitle>
+            <DialogDescription>
+              Aset: {aset?.nama} · Kode: {aset?.kode}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-4">
+            {/* QR Code */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4">
+              <QRCodeSVG
+                id="qr-code-img"
+                value={qrUrl}
+                size={220}
+                bgColor="#FFFFFF"
+                fgColor="#000000"
+              />
+            </div>
+
+            {/* Link Display */}
+            <div className="w-full space-y-2">
+              <p className="text-xs text-slate-500">Link QR Code:</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 truncate rounded bg-slate-100 px-2 py-1.5 text-xs text-slate-700">
+                  {qrUrl}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 px-2"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3 w-3 text-green-600" />
+                      <span className="ml-1 text-xs">Tersalin</span>
+                    </>
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button variant="outline" size="sm" onClick={handleTestLink}>
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              Test Link
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Unduh PNG
+            </Button>
+          </div>
+
+          <DialogFooter className="border-t pt-4">
+            <Button variant="outline" size="sm" onClick={() => setShowQr(false)}>
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Asset Info Card */}
       <Card>
