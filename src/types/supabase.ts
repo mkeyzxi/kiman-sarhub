@@ -421,6 +421,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      /** BMN/PJ pelaksana memutus tiket maintenance (selesai/tolak) + status aset + riwayat. */
+      putuskan_tiket_maintenance: {
+        Args: {
+          p_tiket_id: string;
+          p_selesai: boolean;
+          p_keterangan?: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       user_role: UserRole;

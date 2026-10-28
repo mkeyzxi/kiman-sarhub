@@ -337,9 +337,9 @@ grant execute on function public.serahkan_kerusakan_aset(text, text, text)
 -- Alur: operator isi BA & serahkan (Diserahkan) → Pengelola BMN isi nomor
 -- surat & teruskan (Diproses) → KAKANSAR meng-acc / menolak lewat fungsi ini.
 -- SECURITY DEFINER karena KAKANSAR tidak punya izin UPDATE berita_acara
--- maupun aset langsung. Setujui → BA "Disetujui" + aset "Dipindahkan"
--- (dikirim ke unit service). Tolak → BA "Ditolak" + alasan wajib diisi;
--- status aset tidak diubah (tetap rusak, menunggu perbaikan).
+-- maupun aset langsung. Setujui → BA "Disetujui" + aset "Maintenance"
+-- (sedang diperbaiki di unit service). Tolak → BA "Ditolak" + alasan wajib
+-- diisi; status aset tidak diubah (tetap rusak, menunggu perbaikan).
 create or replace function public.putuskan_berita_acara(
   p_ba_id   text,
   p_setujui boolean,
@@ -386,7 +386,7 @@ begin
   -- Aset terkait hanya berlaku bila BA tersambung ke aset.
   if v_aset_id is not null and v_aset_id <> '' then
     if p_setujui then
-      update public.asets set status = 'Dipindahkan' where id = v_aset_id;
+      update public.asets set status = 'Maintenance' where id = v_aset_id;
       insert into public.riwayat_aset (aset_id, tanggal, aksi, keterangan, user_id)
         values (
           v_aset_id, current_date, 'Berita Acara Disetujui',
@@ -404,6 +404,89 @@ end;
 $$;
 
 grant execute on function public.putuskan_berita_acara(text, boolean, text)
+  to authenticated;
+
+-- Migrasi nilai status lama → baru (idempoten, aman dijalankan ulang).
+update public.asets set status = 'Maintenance' where status = 'Dipindahkan';
+
+-- ─── 16c. RPC keputusan tiket maintenance (Pengelola BMN / PJ pelaksana) ────--
+-- Alur: BA disetujui KAKANSAR → aset "Maintenance" + BMN buat tiket →
+-- perbaikan dilakukan → tiket diputus lewat fungsi ini:
+--   Selesai → tiket "Selesai" + aset kembali "Standby" (kondisi "Baik",
+--             siap operasional lagi).
+--   Tolak   → tiket "Selesai" + aset kembali ke status rusaknya
+--             ("Rusak Ringan"/"Rusak Berat" sesuai kondisi fisik) karena
+--             perbaikan batal — butuh tiket baru bila diurus ulang.
+-- SECURITY DEFINER karena operator pelaksana tidak punya izin UPDATE aset
+-- langsung (RLS hanya mengizinkan BMN/ADMIN), tetapi ia berhak menandai
+-- selesai pada tiket yang diarahkan ke NIP-nya.
+create or replace function public.putuskan_tiket_maintenance(
+  p_tiket_id   text,
+  p_selesai    boolean,
+  p_keterangan text default ''
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_aset_id text;
+  v_nip     text := public.nip_jwt();
+begin
+  if not (
+    public.boleh_tulis_aset()
+    or exists (
+      select 1 from public.ews_tickets t
+       where t.id = p_tiket_id
+         and t.assigned_to = public.nip_jwt()
+    )
+  ) then
+    raise exception 'Hanya Pengelola BMN atau penanggung jawab tiket yang dapat memutus tiket.';
+  end if;
+
+  select aset_id into v_aset_id
+    from public.ews_tickets
+   where id = p_tiket_id;
+  if not found then
+    raise exception 'Tiket "%" tidak ditemukan.', p_tiket_id;
+  end if;
+
+  update public.ews_tickets
+     set status = 'Selesai', tanggal_update = current_date
+   where id = p_tiket_id;
+
+  -- Aset terkait hanya berlaku bila tiket tersambung ke aset.
+  if v_aset_id is not null and v_aset_id <> '' then
+    if p_selesai then
+      update public.asets set status = 'Standby', kondisi = 'Baik'
+       where id = v_aset_id;
+      insert into public.riwayat_aset (aset_id, tanggal, aksi, keterangan, user_id)
+        values (
+          v_aset_id, current_date, 'Maintenance Selesai',
+          case when coalesce(p_keterangan, '') = ''
+               then 'Perbaikan selesai — aset kembali standby dan siap operasional.'
+               else p_keterangan end,
+          v_nip
+        );
+    else
+      update public.asets
+         set status = case when kondisi in ('Rusak Ringan', 'Rusak Berat')
+                           then kondisi else 'Rusak Ringan' end
+       where id = v_aset_id;
+      insert into public.riwayat_aset (aset_id, tanggal, aksi, keterangan, user_id)
+        values (
+          v_aset_id, current_date, 'Tiket Maintenance Ditolak',
+          case when coalesce(p_keterangan, '') = ''
+               then 'Tiket maintenance ditolak — aset kembali berstatus rusak.'
+               else p_keterangan end,
+          v_nip
+        );
+    end if;
+  end if;
+end;
+$$;
+
+grant execute on function public.putuskan_tiket_maintenance(text, boolean, text)
   to authenticated;
 
 -- ─── 17. VERIFIKASI (tampil di panel "Results" SQL Editor) ─────────────────

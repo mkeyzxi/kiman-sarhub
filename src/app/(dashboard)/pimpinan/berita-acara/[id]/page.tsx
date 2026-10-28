@@ -89,7 +89,7 @@ export default function DetailBeritaAcaraPimpinanPage() {
 
   /**
    * Keputusan KAKANSAR lewat RPC SECURITY DEFINER (putuskan_berita_acara):
-   * setujui → BA "Disetujui" + aset "Dipindahkan";
+   * setujui → BA "Disetujui" + aset "Maintenance";
    * tolak → BA "Ditolak" + alasan wajib.
    */
   const handlePutuskan = async (setujui: boolean) => {
@@ -220,7 +220,7 @@ export default function DetailBeritaAcaraPimpinanPage() {
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
               <p className="text-sm">
                 Berita acara ini sudah Anda setujui. Aset berstatus
-                &quot;Dipindahkan&quot; dan Pengelola BMN membuat tiket
+                &quot;Maintenance&quot; dan Pengelola BMN membuat tiket
                 maintenance untuk perbaikan.
               </p>
             </div>

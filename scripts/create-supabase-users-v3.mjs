@@ -182,7 +182,7 @@ const operatorLapangan = [
     aktif: true,
     password_changed: false,
   },
-  {
+{
     nip: "200206132025061001",
     nama: "Muh. Abduh Yanis",
     role: "OPERATOR_LAPANGAN",

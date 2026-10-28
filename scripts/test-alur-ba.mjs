@@ -7,7 +7,7 @@
  *  3. Pastikan tombol "Pengisian Berita Acara" muncul, lalu form BA terisi
  *     otomatis (nama aset, kode, tanggal dalam kata, tabel kendala).
  *  4. Serahkan ke BMN → tiket EWS dibuat, BA berstatus "Diserahkan".
- *  5. BMN menyetujui → status aset jadi "Dipindahkan".
+ *  5. KAKANSAR menyetujui → status aset jadi "Maintenance".
  *  6. Dashboard operasional menampilkan aset tersebut di "Perlu Perawatan".
  *
  * Navigasi memakai klik link (client-side routing) supaya state in-memory
@@ -360,7 +360,7 @@ async function main() {
     const bagian = i >= 0 ? teks.slice(i, i + 700) : "";
     return {
       adaTenda: bagian.includes("Tenda Medis"),
-      adaDipindahkan: /Tenda Medis[\\s\\S]{0,200}Dipindahkan/.test(bagian),
+      adaMaintenance: /Tenda Medis[\\s\\S]{0,200}Maintenance/.test(bagian),
       bagian: bagian.replace(/\\n+/g, " | ").slice(0, 400),
       jumlahUnit: (teks.match(/Perlu Perawatan\\s*\\n?\\s*(\\d+) unit/) || [])[1] || null,
     };
@@ -369,8 +369,8 @@ async function main() {
 
   if (!dashboard.adaTenda)
     throw new Error("Tenda Medis tidak muncul di panel Perlu Perawatan");
-  if (!dashboard.adaDipindahkan)
-    throw new Error("Status 'Dipindahkan' tidak tercermin di dashboard: " + dashboard.bagian);
+  if (!dashboard.adaMaintenance)
+    throw new Error("Status 'Maintenance' tidak tercermin di dashboard: " + dashboard.bagian);
 
   console.log("\nSELURUH ALUR BERITA ACARA LOLOS ✅");
   chrome.kill();

@@ -492,7 +492,7 @@ export default function OperatorPage() {
 
   // ── Status live dari master aset ──────────────────────────────────────────
   // Dihitung saat render supaya keputusan Pengelola BMN (setujui → aset
-  // "Dipindahkan", tolak → aset tetap "Rusak") langsung tercermin di sini.
+  // "Maintenance", tolak → aset tetap "Rusak") langsung tercermin di sini.
   const unitDarat = susunUnitArmada("darat", asetList);
   const unitAir = susunUnitArmada("air", asetList);
 
@@ -502,14 +502,14 @@ export default function OperatorPage() {
       if (aset.kondisi !== "Baik") return true;
       if (aset.status === "Rusak Berat" || aset.status === "Rusak Ringan")
         return true;
-      // Dipindahkan karena berita acara disetujui → menunggu service.
+      // Maintenance karena berita acara disetujui → menunggu service.
       const ba = beritaAcaraAset(aset.id);
-      return aset.status === "Dipindahkan" && ba?.status === "Disetujui";
+      return aset.status === "Maintenance" && ba?.status === "Disetujui";
     })
     .map((aset) => {
       const ba = beritaAcaraAset(aset.id);
       // Status operasional aset yang ditampilkan (bukan kondisi fisik):
-      // setelah BA disetujui aset menjadi "Dipindahkan" ke tempat service.
+      // setelah BA disetujui aset menjadi "Maintenance" di tempat service.
       const keterangan =
         ba?.status === "Disetujui"
           ? `Berita acara disetujui — ${ba.keterangan || "dikirim ke tempat service"}`
