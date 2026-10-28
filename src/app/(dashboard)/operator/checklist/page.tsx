@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ClipboardCheck,
@@ -17,6 +17,7 @@ import {
   Wrench,
   Loader2,
   Clock,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,10 @@ import {
   countItemKritis,
   getUserById,
 } from "@/components/shared/mock-data";
+import {
+  beritaAcaraByChecklist,
+  useBeritaAcara,
+} from "@/components/shared/berita-acara-store";
 import { cn } from "@/lib/utils";
 import { useSesiUser } from "@/components/shared/use-session";
 import { useChecklistsCombined } from "@/components/shared/checklist-store";
@@ -207,6 +212,48 @@ export default function ChecklistPerawatanPage() {
   // Kartu monitor alur kerusakan per penanggung jawab (independen dari gate
   // loading checklist supaya tetap tampil saat data checklist sudah siap).
   const carduPJ = useKartuPenanggungJawab();
+  /**
+   * Kartu alur milik user yang sedang login — hook `useKartuPenanggungJawab`
+   * mengambil data SEMUA penanggung jawab (dipakai juga halaman lain), jadi
+   * di halaman operator disaring: hanya kartu dengan NIP = NIP user login.
+   * Tanpa filter ini, operator melihat alur kerusakan operator lain
+   * (mis. Adriansyah melihat kartu atas nama Fajar Farial).
+   */
+  const kartuSaya = useMemo(
+    () =>
+      ses.id
+        ? carduPJ.data.filter((card) => card.nip === ses.id)
+        : [],
+    [carduPJ.data, ses.id]
+  );
+
+  // Berlangganan store berita acara: memicu hidrasi Supabase sekali per sesi
+  // dan re-render setelah data database masuk — status draft selalu segar
+  // tanpa useEffect + setState (pemicu "Maximum update depth exceeded").
+  useBeritaAcara();
+
+  /**
+   * Draft Berita Acara milik user yang sedang login — dihitung langsung saat
+   * render (bukan useEffect + setState) supaya tidak memicu loop render.
+   * Draft sifatnya PER PENGGUNA: hanya checklist yang menjadi tanggung jawab
+   * user (pemeriksaId = NIP user login) yang dipertimbangkan, sehingga draft
+   * operator lain tidak ikut tampil.
+   * Fallback: jika sesi belum siap atau data belum datang, tampilkan null
+   * agar button "Lanjutkan Draft" tidak muncul sewaktu-waktu.
+   */
+  let checklistDraf: { id: string; nama: string } | null = null;
+  // Hanya hitung draft jika user sudah login DAN daftar checklist sudah muncul
+  if (ses.id && checklistHarianList.length > 0) {
+    for (const ck of checklistHarianList) {
+      // cek pemeriksaId (NIP operator yang buat checklist) harus sama dengan user login
+      if (ck.pemeriksaId !== ses.id) continue;
+      const ba = beritaAcaraByChecklist(ck.id);
+      if (ba && ba.status === "Draf") {
+        checklistDraf = { id: ck.id, nama: ck.unit };
+        break;
+      }
+    }
+  }
 
   if (loading) {
     return <DataLoading label="Memuat daftar checklist harian…" />;
@@ -245,12 +292,27 @@ export default function ChecklistPerawatanPage() {
           </p>
         </div>
         {bolehBuatChecklist ? (
-          <Link href="/operator/checklist/buat">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Buat Checklist
-            </Button>
-          </Link>
+          <>
+            <Link href="/operator/checklist/buat">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Buat Checklist
+              </Button>
+            </Link>
+            {checklistDraf && (
+              <Link href={`/operator/checklist/${checklistDraf.id}/berita-acara`}>
+                <Button variant="secondary" className="ml-2">
+                  <FileText className="h-4 w-4" />
+                  Lanjutkan Draft
+                </Button>
+              </Link>
+            )}
+            {!checklistDraf && (
+              <Badge variant="outline" className="ml-2 self-start text-sm">
+                Belum ada draft
+              </Badge>
+            )}
+          </>
         ) : (
           <Badge variant="outline" className="self-start">
             Pengisian hanya oleh operator lapangan
@@ -284,15 +346,15 @@ export default function ChecklistPerawatanPage() {
         />
       </div>
 
-      {/* Kartu monitor alur kerusakan per penanggung jawab */}
+      {/* Kartu monitor alur kerusakan — hanya milik user yang login */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800">
             Monitor Alur Kerusakan Kendaraan
           </h2>
-          {carduPJ.data.length > 0 && (
+          {kartuSaya.length > 0 && (
             <Badge variant="outline" className="text-xs">
-              {carduPJ.data.length} penanggung jawab terpantau
+              {kartuSaya.length} alur milik Anda terpantau
             </Badge>
           )}
         </div>
@@ -305,16 +367,16 @@ export default function ChecklistPerawatanPage() {
             onRetry={carduPJ.refetch}
             label="Gagal memuat status penanggung jawab dari database"
           />
-        ) : carduPJ.data.length === 0 ? (
+        ) : kartuSaya.length === 0 ? (
           <Card className="p-4">
             <p className="text-sm text-slate-500">
-              Belum ada alur kerusakan yang sedang berjalan — semua aset dalam
-              kondisi siap operasional.
+              Belum ada alur kerusakan atas nama Anda — semua aset yang Anda
+              tanggung jawabkan dalam kondisi siap operasional.
             </p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {carduPJ.data.map((card) => (
+            {kartuSaya.map((card) => (
               <KartuPJItem key={card.nip} card={card} />
             ))}
           </div>

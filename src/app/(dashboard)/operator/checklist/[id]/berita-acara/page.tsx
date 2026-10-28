@@ -101,6 +101,22 @@ export default function BeritaAcaraPage() {
   );
   const adaRusak = rusakItems.length > 0;
 
+  // ── Reset saat pindah checklist ──────────────────────────────────────────────
+  // Next.js dapat memakai ulang komponen halaman ini untuk checklist lain
+  // (route sama, param beda). Tanpa reset, guard `baSiap` tetap true dan
+  // isian draft checklist LAMA ikut tampil pada checklist baru — sehingga
+  // "template apapun diisi, berita acara selalu draft sebelumnya".
+  useEffect(() => {
+    baSiap.current = false;
+    setBaId("");
+    setNomor("");
+    setUraian("");
+    setFotoBukti([]);
+    setKendala([]);
+    setPesan(null);
+    setGagal(null);
+  }, [checklistId]);
+
   // ── Siapkan berita acara (sekali, saat checklist tersedia) ───────────────
   // Kalau belum ada BA untuk checklist ini, buat otomatis dengan status
   // "Draf" supaya isinya bisa langsung diedit. Setelah diserahkan, statusnya
@@ -115,7 +131,9 @@ export default function BeritaAcaraPage() {
         baSiap.current = true;
 
         const ada = beritaAcaraByChecklist(checklist.id);
-        if (ada) {
+        // Filter: hanya ambil BA ini jika milik user yang sedang login
+        const adaMilikSaya = ada && ada.pengajuId === ses.id;
+        if (adaMilikSaya) {
           setBaId(ada.id);
           setNomor(ada.nomor);
           setUraian(ada.uraian);
@@ -128,6 +146,7 @@ export default function BeritaAcaraPage() {
           return;
         }
 
+        // Bukan milik user ini — buat BA baru untuk checklist ini
         const baru = tambahBeritaAcaraSupabase({
           tanggal: checklist.tanggal,
           namaAset: aset?.nama ?? checklist.unit,
@@ -150,7 +169,7 @@ export default function BeritaAcaraPage() {
       });
     }, 0);
     return () => clearTimeout(t);
-  }, [checklist, aset]);
+  }, [checklist, aset, ses]);
 
   // ── Handler ──────────────────────────────────────────────────────────────
   const handleFotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,11 +197,19 @@ export default function BeritaAcaraPage() {
     );
 
   /** Simpan isi form ke berita acara (status tetap "Draf"). */
-  const handleSimpanDraf = () => {
+  const handleSimpanDraf = async () => {
     if (!baId) return;
-    ubahIsiBeritaAcaraSupabase(baId, { nomor, uraian, kendala, fotoBukti });
-    ubahStatusBeritaAcaraSupabase(baId, "Draf");
-    setPesan("Berita acara disimpan sebagai draf.");
+    try {
+      await ubahIsiBeritaAcaraSupabase(baId, { nomor, uraian, kendala, fotoBukti });
+      await ubahStatusBeritaAcaraSupabase(baId, "Draf");
+      setPesan("Berita acara disimpan sebagai draf.");
+    } catch (e) {
+      setGagal(
+        e instanceof Error
+          ? e.message
+          : "Gagal menyimpan berita acara ke database"
+      );
+    }
   };
 
   /**
