@@ -45,6 +45,9 @@ const kategoriAsetMapping: Record<JenisArmada, string[]> = {
   Lainnya: ["Peralatan SAR", "Medis", "Komunikasi", "Dokumentasi"],
 };
 
+const tanggalHariIni = new Date().toLocaleDateString("sv-SE"); 
+
+
 /** Apakah aset termasuk jenis armada yang dipilih pada form. */
 function cocokJenisArmada(aset: Aset, jenisArmada: JenisArmada): boolean {
   if (!kategoriAsetMapping[jenisArmada].includes(aset.kategori)) return false;
@@ -79,7 +82,7 @@ export default function BuatChecklistPage() {
   const ses = useSesiUser();
   // Aset dari Supabase. Dipakai untuk filter unit PJ — NIP disandingkan NIP.
   const { data: asetList, loading, error, refetch } = useAsets();
-  const [tanggal, setTanggal] = useState("");
+  const [tanggal, setTanggal] = useState(tanggalHariIni);
   const [unit, setUnit] = useState("");
   const [jenisUnit, setJenisUnit] = useState<JenisArmada>("Kapal");
   /** PJ (pemeriksa) terisi otomatis dari akun yang sedang login — bukan dropdown. */

@@ -109,12 +109,18 @@ export async function tambahChecklist(
     if (err) {
       error = err.message;
       persisted = false;
+      // Tampilkan error yang jelas — jangan sunyi
+      if (err.message?.includes("PRO FEATURE") || err.code === 409) {
+        // RLS policy error — tampilkan di console dan tetap lanjut dengan in-memory
+        console.error("[checklist-store] RLS/INSERT error:", err.message, err.details);
+      }
     } else {
       persisted = true;
     }
   } catch (e) {
     error = e instanceof Error ? e.message : "Gagal simpan ke Supabase";
     persisted = false;
+    console.error("[checklist-store] INSERT exception:", e);
   }
 
   return { id, status: baru.status, persisted, error };
