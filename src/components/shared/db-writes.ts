@@ -319,7 +319,7 @@ export async function updateBeritaAcaraIsi(
 /**
  * KAKANSAR memutus berita acara (acc / tolak) lewat RPC SECURITY DEFINER —
  * role KAKANSAR tidak punya izin UPDATE berita acara maupun aset langsung.
- * Setujui → BA "Disetujui" + aset "Dipindahkan"; Tolak → BA "Ditolak"
+ * Setujui → BA "Disetujui" + aset "Maintenance"; Tolak → BA "Ditolak"
  * (alasan wajib). Pemanggil menunggu hasil; kesalahan dilempar ke form.
  */
 export async function putuskanBeritaAcara(
@@ -332,6 +332,27 @@ export async function putuskanBeritaAcara(
     p_ba_id: baId,
     p_setujui: setujui,
     p_alasan: alasan,
+  });
+  if (error) throw new Error(pesan(error.message));
+}
+
+/**
+ * Pengelola BMN (atau PJ pelaksana tiket) memutus tiket maintenance lewat
+ * RPC SECURITY DEFINER — operator pelaksana tidak punya izin UPDATE aset
+ * langsung, tetapi berhak memutus tiket yang diarahkan ke NIP-nya.
+ * Selesai → tiket "Selesai" + aset kembali "Standby" (kondisi "Baik");
+ * Tolak → tiket "Selesai" + aset kembali ke status rusaknya sesuai kondisi.
+ */
+export async function putuskanTiketMaintenance(
+  tiketId: string,
+  selesai: boolean,
+  keterangan = ""
+): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const { error } = await supa.rpc("putuskan_tiket_maintenance", {
+    p_tiket_id: tiketId,
+    p_selesai: selesai,
+    p_keterangan: keterangan,
   });
   if (error) throw new Error(pesan(error.message));
 }

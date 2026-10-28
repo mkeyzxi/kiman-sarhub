@@ -307,14 +307,14 @@ export type StatusAset =
   | "Standby"
   | "Rusak Berat"
   | "Rusak Ringan"
-  | "Dipindahkan"
+  | "Maintenance"
   | "Sedang digunakan";
 
 /** Daftar status aset, diurutkan dari kondisi terbaik ke terburuk. */
 export const STATUS_ASET = [
   "Standby",
   "Sedang digunakan",
-  "Dipindahkan",
+  "Maintenance",
   "Rusak Ringan",
   "Rusak Berat",
 ] as const satisfies readonly StatusAset[];
@@ -329,7 +329,7 @@ export type StatusAsetBadgeVariant = "success" | "default" | "warning" | "danger
 export const STATUS_ASET_VARIANT: Record<StatusAset, StatusAsetBadgeVariant> = {
   Standby: "success",
   "Sedang digunakan": "default",
-  Dipindahkan: "outline",
+  Maintenance: "outline",
   "Rusak Ringan": "warning",
   "Rusak Berat": "danger",
 };
@@ -358,7 +358,7 @@ export type StatusBeritaAcara =
 
 /**
  * Nilai bawaan keterangan aset saat berita acara DISETUJUI: unit dikirim ke
- * tempat service (aset berstatus "Dipindahkan").
+ * tempat service (aset berstatus "Maintenance").
  */
 export const KETERANGAN_SERVICE_DEFAULT =
   "Dikirim ke tempat service untuk perbaikan";
@@ -435,7 +435,7 @@ export interface BeritaAcara {
   alasanPenolakan?: string;
   /**
    * Keterangan aset terkait: nilai bawaan "Dikirim ke Tempat Service".
-   * Ketika berita acara disetujui, status aset menjadi "Dipindahkan".
+   * Ketika berita acara disetujui, status aset menjadi "Maintenance".
    */
   keterangan: string;
 }
@@ -2814,7 +2814,7 @@ export interface ReadinessStats {
   totalAset: number;
   standby: number;
   sedangDigunakan: number;
-  dipindahkan: number;
+  maintenance: number;
   rusakRingan: number;
   rusakBerat: number;
   readinessIndex: number;
@@ -2852,7 +2852,7 @@ export function hitungReadinessStats(list: Aset[]): ReadinessStats {
     totalAset,
     standby,
     sedangDigunakan: jumlahStatus("Sedang digunakan"),
-    dipindahkan: jumlahStatus("Dipindahkan"),
+    maintenance: jumlahStatus("Maintenance"),
     rusakRingan: jumlahStatus("Rusak Ringan"),
     rusakBerat: jumlahStatus("Rusak Berat"),
     readinessIndex: persen(standby, totalAset),

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -30,6 +31,7 @@ import {
   useBeritaAcara,
 } from "@/components/shared/berita-acara-store";
 import { useTicketsCombined, updateTicketStatus } from "@/components/shared/ticket-store";
+import { putuskanTiketMaintenance } from "@/components/shared/db-writes";
 import { useAsetById } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { useSesiUser } from "@/components/shared/use-session";
@@ -80,6 +82,30 @@ export default function DetailTiketPage() {
   // update bila `assigned_to = nip_jwt`).
   const sayaPenanggungJawab =
     !!ticket && !!ses?.nip && ticket.assignedTo === ses.nip;
+
+  // Keputusan tiket lewat RPC SECURITY DEFINER (putuskan_tiket_maintenance):
+  // selesai → aset kembali "Standby" (kondisi "Baik"); tolak → aset kembali
+  // ke status rusaknya. Kesalahan ditampilkan di panel aksi.
+  const [memutus, setMemutus] = useState(false);
+  const [gagalPutus, setGagalPutus] = useState<string | null>(null);
+  const handlePutuskan = async (selesai: boolean) => {
+    if (!ticket || memutus) return;
+    setMemutus(true);
+    setGagalPutus(null);
+    try {
+      await putuskanTiketMaintenance(ticket.id, selesai);
+    } catch (e) {
+      setGagalPutus(
+        e instanceof Error ? e.message : "Gagal menyimpan keputusan tiket"
+      );
+      setMemutus(false);
+      return;
+    }
+    // Selaraskan salinan in-memory tiket (tulis ulang sama — idempoten).
+    updateTicketStatus(ticket.id, "Selesai");
+    void refetch();
+    setMemutus(false);
+  };
 
   // Aset dari database Supabase (bukan mock). Hook dipanggil selalu — id
   // undefined saat tiket belum ketemu → tidak fetch.
@@ -362,7 +388,7 @@ export default function DetailTiketPage() {
                 {beritaAcara.status === "Diproses" &&
                   "Menunggu persetujuan Kepala Kantor SAR (KAKANSAR)."}
                 {beritaAcara.status === "Disetujui" &&
-                  "Disetujui KAKANSAR — aset dikirim ke unit service (Dipindahkan)."}
+                  "Disetujui KAKANSAR — aset dikirim ke unit service (Maintenance). Aset kembali Standby setelah tiket ini ditandai selesai."}
                 {beritaAcara.status === "Draf" &&
                   "Belum diserahkan oleh PJ."}
                 {beritaAcara.status === "Ditolak" &&
@@ -478,23 +504,30 @@ export default function DetailTiketPage() {
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <p className="text-xs text-slate-500 sm:mr-auto">
               {sayaPenanggungJawab
-                ? "Anda penanggung jawab aset ini — tandai selesai setelah perbaikan dilakukan."
-                : "Tindak lanjut perbaikan aset."}
+                ? "Anda penanggung jawab aset ini — tandai selesai setelah perbaikan dilakukan; aset otomatis kembali Standby."
+                : "Tandai selesai → aset kembali Standby. Tolak → aset kembali berstatus rusak."}
             </p>
+            {gagalPutus && (
+              <p className="text-xs text-rose-600 sm:w-full sm:text-right">
+                {gagalPutus}
+              </p>
+            )}
             <Button
               variant="outline"
               className="gap-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-              onClick={() => updateTicketStatus(ticket.id, "Selesai")}
+              onClick={() => handlePutuskan(false)}
+              disabled={memutus}
             >
               <XCircle className="h-4 w-4" />
-              Tolak Tiket
+              {memutus ? "Menyimpan…" : "Tolak Tiket"}
             </Button>
             <Button
               className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => updateTicketStatus(ticket.id, "Selesai")}
+              onClick={() => handlePutuskan(true)}
+              disabled={memutus}
             >
               <CheckCircle2 className="h-4 w-4" />
-              Tandai Selesai
+              {memutus ? "Menyimpan…" : "Tandai Selesai"}
             </Button>
           </CardContent>
         </Card>

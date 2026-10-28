@@ -161,7 +161,7 @@ export default function DetailBeritaAcaraBmnPage() {
       ikon: Send,
       judul: "Menunggu acc KAKANSAR",
       teks:
-        "Nomor surat sudah diisi dan berita acara dikirim ke Kepala Kantor SAR. Aset akan berstatus \u201CDipindahkan\u201D setelah KAKANSAR setuju; kemudian buat tiket maintenance.",
+        "Nomor surat sudah diisi dan berita acara dikirim ke Kepala Kantor SAR. Aset akan berstatus \u201CMaintenance\u201D setelah KAKANSAR setuju; kemudian buat tiket maintenance.",
       warna: "border-blue-200 bg-blue-50 text-blue-800",
     },
     Disetujui: {

@@ -120,7 +120,7 @@ function BuatTiketForm() {
     (a) => a.status === "Rusak Ringan" || a.status === "Rusak Berat"
   );
 
-  // Tiket dari alur berita acara: aset sudah "Dipindahkan" (bukan lagi
+  // Tiket dari alur berita acara: aset sudah "Maintenance" (bukan lagi
   // status Rusak*) — tetap muat ke daftar opsi agar dropdown tidak kosong.
   const asetKandidat =
     asetTerpilih && asetRusak.every((a) => a.id !== asetTerpilih.id)

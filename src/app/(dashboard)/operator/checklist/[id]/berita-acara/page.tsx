@@ -251,7 +251,7 @@ export default function BeritaAcaraPage() {
     }
 
     // Status aset langsung mencerminkan hasil pemeriksaan operator — jangan
-    // menunggu keputusan pimpinan (kondisi "Dipindahkan" berjalan saat BA
+    // menunggu keputusan pimpinan (kondisi "Maintenance" berjalan saat BA
     // di-setujui KAKANSAR).
     const adaBerat = kendala.some((k) => k.sifat === "Berat");
     if (kendala.length > 0) {
@@ -667,7 +667,7 @@ export default function BeritaAcaraPage() {
                   {KETERANGAN_SERVICE_DEFAULT}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Aset akan berstatus &quot;Dipindahkan&quot; setelah KAKANSAR
+                  Aset akan berstatus &quot;Maintenance&quot; setelah KAKANSAR
                   menyetujui berita acara ini. Selanjutnya Pengelola BMN membuat
                   tiket maintenance.
                 </p>
