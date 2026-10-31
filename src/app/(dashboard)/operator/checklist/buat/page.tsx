@@ -13,6 +13,7 @@ import {
   cariAsetDmUnit,
   bolehIsiChecklist,
   getUserById,
+  labelModelAset,
   type Aset,
   type KondisiHasil,
   type JenisArmada,
@@ -75,7 +76,10 @@ function getUnitOptionsForArmada(
     .filter(
       (a) => cocokJenisArmada(a, jenisArmada) && a.penanggungJawab === userId
     )
-    .map((a) => ({ value: a.kode, label: `${a.nama} (${a.kode})` }));
+    .map((a) => ({
+      value: a.kode,
+      label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""} (${a.kode})`,
+    }));
 }
 
 export default function BuatChecklistPage() {

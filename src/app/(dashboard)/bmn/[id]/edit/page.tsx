@@ -21,6 +21,9 @@ import {
   type KategoriAset,
   type KondisiAset,
   type StatusAset,
+  labelModelAset,
+  nupSimpan,
+  nupTampil,
 } from "@/components/shared/mock-data";
 import { updateAsetRow } from "@/components/shared/db-writes";
 import { useAsetById } from "@/components/shared/use-supabase-data";
@@ -40,6 +43,8 @@ export default function EditAsetPage() {
 
   const [formData, setFormData] = useState({
     nama: "",
+    merk: "",
+    tipe: "",
     kode: "",
     nup: "",
     kategori: "",
@@ -62,8 +67,11 @@ export default function EditAsetPage() {
       formDiisi.current = true;
       setFormData({
         nama: aset.nama,
+        merk: aset.merk ?? "",
+        tipe: aset.tipe ?? "",
         kode: aset.kode,
-        nup: aset.nup,
+        // Tampil tanpa nol depan; dipad kembali saat disimpan (nupSimpan).
+        nup: nupTampil(aset.nup),
         kategori: aset.kategori,
         lokasi: aset.lokasi,
         kondisi: aset.kondisi,
@@ -145,7 +153,7 @@ export default function EditAsetPage() {
         {
           nama: formData.nama.trim(),
           kode: formData.kode.trim(),
-          nup: formData.nup,
+          nup: nupSimpan(formData.nup),
           kategori: formData.kategori as KategoriAset,
           lokasi: formData.lokasi.trim(),
           kondisi: formData.kondisi as KondisiAset,
@@ -153,6 +161,8 @@ export default function EditAsetPage() {
           penanggungJawab: formData.penanggungJawab,
           status: formData.status as StatusAset,
           keterangan: formData.keterangan.trim() || undefined,
+          merk: formData.merk.trim() || undefined,
+          tipe: formData.tipe.trim() || undefined,
         },
         tanggalPenetapanBerubah
           ? {
@@ -185,7 +195,8 @@ export default function EditAsetPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Edit Aset</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {aset.kode} · {aset.nama}
+            {aset.nama}
+            {labelModelAset(aset) && ` · ${labelModelAset(aset)}`} · {aset.kode}
           </p>
         </div>
       </div>
@@ -234,6 +245,28 @@ export default function EditAsetPage() {
                 required
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="merk">Merek</Label>
+                <Input
+                  id="merk"
+                  value={formData.merk}
+                  onChange={(e) =>
+                    setFormData({ ...formData, merk: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tipe">Tipe</Label>
+                <Input
+                  id="tipe"
+                  value={formData.tipe}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tipe: e.target.value })
+                  }
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="kode">Kode Aset</Label>
               <Input
@@ -266,6 +299,7 @@ export default function EditAsetPage() {
               ) : (
                 <p className="text-xs text-slate-500">
                   Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
+                  Tulis tanpa nol di depan (mis. 13) — akan tersimpan sebagai 000013.
                 </p>
               )}
             </div>

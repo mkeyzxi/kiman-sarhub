@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AccountStatusGuard } from "@/components/layout/account-status-guard";
 import { canAccessPath, getDefaultPageForRole } from "@/config/navigation";
+import { useLocalStorageValue } from "@/lib/use-local-storage";
 import type { UserRole } from "@/components/shared/mock-data";
 
 export default function DashboardLayout({
@@ -18,6 +19,10 @@ export default function DashboardLayout({
   const [role, setRole] = useState<UserRole | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  // NIP user login — dibaca sinkron dari localStorage (dipakai untuk
+  // pembatasan menu/route per-pengguna, mis. menu Tiket Maintenance).
+  const nip = useLocalStorageValue("userNip");
 
   // Simpan role dari localStorage ke ref (hindari setState langsung di effect)
   const storedRoleRef = useRef<UserRole | null>(null);
@@ -42,10 +47,10 @@ export default function DashboardLayout({
   // Route protection — redirect ke 403 jika tidak punya akses
   useEffect(() => {
     if (!role) return;
-    if (!canAccessPath(role, pathname)) {
+    if (!canAccessPath(role, pathname, nip || null)) {
       router.replace("/403");
     }
-  }, [role, pathname, router]);
+  }, [role, nip, pathname, router]);
 
   // Redirect ke default page jika mengakses root dashboard
   useEffect(() => {

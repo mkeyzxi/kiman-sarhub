@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { roleLabels, roleDescriptions, navGroupsByRole } from "@/config/navigation";
+import { roleLabels, roleDescriptions, navGroupsByRole, filterNavGroupsForNip } from "@/config/navigation";
 import type { UserProfile } from "@/types/supabase";
 import { PasswordModal } from "./password-modal";
 
@@ -30,7 +30,13 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
 
-  const aksesModul = navGroupsByRole[user.role] ?? [];
+  // Daftar modul yang bisa diakses role — menu per-pengguna (mis. Tiket
+  // Maintenance hanya untuk NIP tertentu) ikut disaring agar tampilan
+  // hak akses sesuai kenyataan.
+  const aksesModul = filterNavGroupsForNip(
+    navGroupsByRole[user.role] ?? [],
+    user.nip
+  );
 
   const handleDelete = async () => {
     setIsDeleting(true);

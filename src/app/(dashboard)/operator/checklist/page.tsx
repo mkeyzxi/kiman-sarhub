@@ -28,6 +28,7 @@ import {
   checklistTemplates,
   countItemKritis,
   getUserById,
+  labelModelAset,
 } from "@/components/shared/mock-data";
 import {
   beritaAcaraByChecklist,
@@ -90,7 +91,14 @@ function KartuPJItem({ card }: { card: KartuPJ }) {
       <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 p-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs text-slate-400 font-mono">{card.aset.kode}</span>
-          <span className="text-sm text-slate-700 truncate">{card.aset.nama}</span>
+          <span className="text-sm text-slate-700 truncate" title={card.aset.nama}>
+            {card.aset.nama}
+          </span>
+          {labelModelAset(card.aset) && (
+            <span className="text-xs text-slate-400 truncate hidden xl:inline">
+              · {labelModelAset(card.aset)}
+            </span>
+          )}
         </div>
         <Badge variant={card.aset.status === "Rusak Ringan" ? "warning" : card.aset.status === "Rusak Berat" ? "danger" : "outline"} className="text-[10px]">
           {card.aset.status}

@@ -18,6 +18,7 @@ import {
   catatanPerbaikanDarat,
   pengisianBBM_RIB02,
   STATUS_ASET_VARIANT,
+  labelModelAset,
   type Aset,
   type StatusAsetBadgeVariant,
 } from "@/components/shared/mock-data";
@@ -330,17 +331,24 @@ function susunUnitArmada(
         ? a.kategori === "Mobil" || a.kategori === "Motor"
         : a.kategori === "Kapal"
     )
-    .map((aset) => ({
-      id: aset.id,
-      nama: aset.noPolisi ? `${aset.nama} (${aset.noPolisi})` : aset.nama,
-      status: aset.status,
-      kondisi: aset.kondisi,
-      lokasi: aset.lokasi,
-      rusak:
-        aset.kondisi !== "Baik" ||
-        aset.status === "Rusak Berat" ||
-        aset.status === "Rusak Ringan",
-    }));
+    .map((aset) => {
+      // Nama = jenis aset + model (merk · tipe) terpisah; no. polisi
+      // tetap dalam tanda kurung bila ada.
+      const namaInti = [aset.nama, labelModelAset(aset)]
+        .filter(Boolean)
+        .join(" · ");
+      return {
+        id: aset.id,
+        nama: aset.noPolisi ? `${namaInti} (${aset.noPolisi})` : namaInti,
+        status: aset.status,
+        kondisi: aset.kondisi,
+        lokasi: aset.lokasi,
+        rusak:
+          aset.kondisi !== "Baik" ||
+          aset.status === "Rusak Berat" ||
+          aset.status === "Rusak Ringan",
+      };
+    });
 }
 
 /** Catatan terakhir pada riwayat aset (paling baru). */

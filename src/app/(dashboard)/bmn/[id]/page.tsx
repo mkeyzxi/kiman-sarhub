@@ -37,11 +37,13 @@ import {
   getUserById,
   formatTanggal,
   STATUS_ASET_VARIANT,
+  labelModelAset,
+  nupTampil,
 } from "@/components/shared/mock-data";
 import { useAsetById } from "@/components/shared/use-supabase-data";
 import { updateAsetStatus } from "@/components/shared/db-writes";
 import { useSesiUser } from "@/components/shared/use-session";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 
 export default function DetailAsetPage() {
   const { id } = useParams<{ id: string }>();
@@ -178,7 +180,8 @@ export default function DetailAsetPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Detail Aset</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {aset.kode} · {aset.nama}
+              {aset.nama}
+              {labelModelAset(aset) && ` · ${labelModelAset(aset)}`} · {aset.kode}
             </p>
           </div>
         </div>
@@ -202,7 +205,8 @@ export default function DetailAsetPage() {
           <DialogHeader>
             <DialogTitle>QR Code Aset</DialogTitle>
             <DialogDescription>
-              Aset: {aset?.nama} · Kode: {aset?.kode}
+              Aset: {aset?.nama}
+              {labelModelAset(aset) ? ` · ${labelModelAset(aset)}` : ""} · Kode: {aset?.kode}
             </DialogDescription>
           </DialogHeader>
 
@@ -298,7 +302,7 @@ export default function DetailAsetPage() {
                   NUP
                 </p>
                 <p className="text-sm font-medium text-slate-800 font-mono">
-                  {aset.nup}
+                  {nupTampil(aset.nup)}
                 </p>
               </div>
             </div>

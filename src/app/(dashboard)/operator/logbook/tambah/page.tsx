@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   users,
   cariAsetDmUnit,
+  labelModelAset,
   type FormLogbook,
   type Aset,
 } from "@/components/shared/mock-data";
@@ -84,7 +85,10 @@ function getUnitOptions(
       if (kategori === "Kapal") return !/RIB|RBB/i.test(a.nama);
       return false;
     })
-    .map((a) => ({ value: a.kode, label: `${a.nama} (${a.kode})` }));
+    .map((a) => ({
+      value: a.kode,
+      label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""} (${a.kode})`,
+    }));
 }
 
 /**

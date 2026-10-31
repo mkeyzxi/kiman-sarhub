@@ -255,10 +255,10 @@ export function DokumenBeritaAcara({
           <div className="ba-signature">
             <div className="ba-signature-box">
               <p>Mengajukan,</p>
-              <p className="ba-signature-role">{pengajuJabatan}</p>
+              <p className="ba-signature-role">Kepala Subseksi Sumber Daya</p>
               <div className="ba-signature-space" aria-hidden="true" />
-              <p className="ba-signature-name">{pengajuNama}</p>
-              <p>{pengajuJabatan}</p>
+              <p className="ba-signature-name">Zulkfli S.I.P</p>
+              <p>Penata Muda Tk.I (III/b)</p>
             </div>
             <div className="ba-signature-box">
               <p>Yang Melaporkan,</p>

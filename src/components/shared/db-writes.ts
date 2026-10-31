@@ -10,6 +10,7 @@
 
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { InputAset } from "@/components/shared/mock-data";
+import { nupSimpan } from "@/components/shared/mock-data";
 import type {
   AsetInsert,
   AsetUpdate,
@@ -55,7 +56,8 @@ export async function insertAset(
     id: input.id,
     nama: input.nama,
     kode: input.kode,
-    nup: input.nup,
+    // Pad ke 6 digit register ("6" → "000006"); tampilan memakai nupTampil.
+    nup: nupSimpan(input.nup) || input.nup,
     kategori: input.kategori,
     status: input.status,
     lokasi: input.lokasi,
@@ -66,8 +68,8 @@ export async function insertAset(
     keterangan: input.keterangan ?? "",
     // Kolom katalog BMN yang belum dimiliki form — diisi nilai default.
     kode_barang: "",
-    merk: "",
-    tipe: "",
+    merk: input.merk ?? "",
+    tipe: input.tipe ?? "",
     no_stnk: "",
     no_polisi: "",
     tanggal_perolehan: input.tanggalPenetapan,
@@ -134,7 +136,8 @@ export async function updateAsetRow(
   const patch: AsetUpdate = {};
   if (changes.nama !== undefined) patch.nama = changes.nama;
   if (changes.kode !== undefined) patch.kode = changes.kode;
-  if (changes.nup !== undefined) patch.nup = changes.nup;
+  if (changes.nup !== undefined)
+    patch.nup = nupSimpan(changes.nup) || changes.nup;
   if (changes.kategori !== undefined) patch.kategori = changes.kategori;
   if (changes.status !== undefined) patch.status = changes.status;
   if (changes.lokasi !== undefined) patch.lokasi = changes.lokasi;
@@ -146,6 +149,8 @@ export async function updateAsetRow(
     patch.penanggung_jawab = changes.penanggungJawab || null;
   if (changes.keterangan !== undefined)
     patch.keterangan = changes.keterangan ?? "";
+  if (changes.merk !== undefined) patch.merk = changes.merk ?? "";
+  if (changes.tipe !== undefined) patch.tipe = changes.tipe ?? "";
 
   if (Object.keys(patch).length > 0) {
     const { error } = await supa.from("asets").update(patch).eq("id", id);

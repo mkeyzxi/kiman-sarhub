@@ -429,6 +429,10 @@ export interface KartuPJ {
     kode: string;
     nama: string;
     status: string;
+    /** Merek aset (bila ada) — untuk menampilkan "nama · merek · tipe". */
+    merk?: string;
+    /** Tipe aset (bila ada). */
+    tipe?: string;
   };
   /** Tahap alur saat ini: 0–4 (lihat `labelTahap`). */
   tahap: number;
@@ -572,6 +576,8 @@ export function useKartuPenanggungJawab(): SupabaseQueryResult<KartuPJ> {
           kode: aset.kode,
           nama: aset.nama,
           status: aset.status,
+          merk: aset.merk,
+          tipe: aset.tipe,
         },
         tahap,
         labelTahap: labelTahap[tahap] ?? "—",

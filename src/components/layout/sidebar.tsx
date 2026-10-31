@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {LogOut, X} from 'lucide-react'
 import {cn} from '@/lib/utils'
-import {navGroupsByRole, roleLabels, type NavGroup} from '@/config/navigation'
+import {navGroupsByRole, roleLabels, filterNavGroupsForNip, type NavGroup} from '@/config/navigation'
 import {useLocalStorageValue} from '@/lib/use-local-storage'
 
 import Image from 'next/image'
@@ -14,7 +14,11 @@ import type {UserRole} from '@/components/shared/mock-data'
 // ─── Sidebar Content (shared antara desktop fixed sidebar & mobile drawer) ──
 function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void}) {
   const pathname = usePathname()
-  const groups = navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN
+  const nip = useLocalStorageValue('userNip')
+  const groups = filterNavGroupsForNip(
+    navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN,
+    nip
+  )
   const storedName = useLocalStorageValue("userNama")
   const legacyName = useLocalStorageValue("userName")
   const userName = storedName || legacyName
