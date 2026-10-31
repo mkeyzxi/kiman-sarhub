@@ -28,6 +28,8 @@ import {
 import { DokumenBeritaAcara, susunButirAnalisa } from "@/components/shared/dokumen-berita-acara";
 import "@/components/shared/berita-acara-print.css";
 import { useBeritaAcara } from "@/components/shared/use-supabase-data";
+import { useLocalStorageValue } from "@/lib/use-local-storage";
+import { canAccessTiketMaintenance } from "@/config/navigation";
 import {
   updateBeritaAcaraIsi,
   updateBeritaAcaraStatus,
@@ -49,6 +51,12 @@ const statusVariant: Record<
 export default function DetailBeritaAcaraBmnPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+
+  // NIP user login — penerbitan tiket maintenance hanya untuk pengelola
+  // yang ditunjuk (ZULKIFLI), jadi tombol "Buat Tiket Maintenance"
+  // disembunyikan untuk NIP lain.
+  const nip = useLocalStorageValue("userNip");
+  const bisaTerbitkanTiket = canAccessTiketMaintenance(nip);
 
   // BA dari Supabase — tanpa fallback mock.
   const { data, loading, error, refetch } = useBeritaAcara();
@@ -254,7 +262,7 @@ export default function DetailBeritaAcaraBmnPage() {
 
           {ba.status === "Disetujui" && (
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              {!ba.tiketId && (
+              {!ba.tiketId && bisaTerbitkanTiket && (
                 <Button
                   onClick={() => router.push(buatTiketHref)}
                   disabled={!ba.asetId}

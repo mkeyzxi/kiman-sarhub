@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
-  getUserById,
   formatTanggal,
   type TingkatKeparahan,
   type StatusTicket,
@@ -32,9 +31,13 @@ import {
 } from "@/components/shared/berita-acara-store";
 import { useTicketsCombined, updateTicketStatus } from "@/components/shared/ticket-store";
 import { putuskanTiketMaintenance } from "@/components/shared/db-writes";
-import { useAsetById } from "@/components/shared/use-supabase-data";
+import {
+  useAsetById,
+  useSupabaseUsers,
+} from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { useSesiUser } from "@/components/shared/use-session";
+import { roleLabels, type UserRole } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
 const severityVariant: Record<TingkatKeparahan, "danger" | "warning" | "success"> = {
@@ -104,13 +107,25 @@ export default function DetailTiketPage() {
     // Selaraskan salinan in-memory tiket (tulis ulang sama — idempoten).
     updateTicketStatus(ticket.id, "Selesai");
     void refetch();
+    // Muat ulang aset agar kartu "Kondisi & Status" langsung menampilkan
+    // hasil keputusan RPC: Selesai → Baik · Standby, tolak → kembali rusak.
+    void refetchAset();
     setMemutus(false);
   };
 
   // Aset dari database Supabase (bukan mock). Hook dipanggil selalu — id
   // undefined saat tiket belum ketemu → tidak fetch.
-  const { data: aset } = useAsetById(ticket?.asetId || undefined);
-  const petugas = ticket ? getUserById(ticket.assignedTo) : undefined;
+  const {
+    data: aset,
+    refetch: refetchAset,
+  } = useAsetById(ticket?.asetId || undefined);
+  // Pengguna dari Supabase: petugas tiket disimpan sebagai NIP
+  // (ews_tickets.assigned_to), jadi nama dicari lewat kolom nip — bukan
+  // mock `getUserById` yang hanya mengenal id "usr-XXX".
+  const { data: userSemua } = useSupabaseUsers();
+  const petugas = ticket
+    ? userSemua.find((u) => u.nip === ticket.assignedTo)
+    : undefined;
 
   if (loading) {
     return <DataLoading label="Memuat detail tiket…" />;
@@ -468,7 +483,11 @@ export default function DetailTiketPage() {
                 <p className="text-sm font-medium text-slate-800">
                   {petugas?.nama ?? "-"}
                 </p>
-                <p className="text-xs text-slate-500">{petugas?.role ?? "-"}</p>
+                <p className="text-xs text-slate-500">
+                  {petugas
+                    ? roleLabels[petugas.role as UserRole] ?? petugas.role
+                    : "-"}
+                </p>
               </div>
             </div>
 

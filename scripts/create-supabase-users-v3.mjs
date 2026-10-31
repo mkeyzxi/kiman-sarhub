@@ -104,6 +104,14 @@ const nonOperatorUsers = [
     password_changed: true,
   },
   {
+    nip: "19850331200812100",
+    nama: "ZULKIFLI S.I.P.",
+    role: "PENGELOLA_BMN",
+    password: DEFAULT_PASSWORD,
+    aktif: true,
+    password_changed: true,
+  },
+  {
     // Test account (nonaktif) — dipertahankan dari kondisi live
     nip: "1111111111111111",
     nama: "Muhammad Makbul N",

@@ -18,8 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
-import { getAsetById, getUserById, formatTanggal, } from "@/components/shared/mock-data";
+import { formatTanggal } from "@/components/shared/mock-data";
 import { useTicketsCombined } from "@/components/shared/ticket-store";
+import { useAsets, useSupabaseUsers } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
@@ -52,9 +53,19 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 export default function TiketMaintenancePage() {
   // Tiket: Supabase + tulisan sesi ini (in-memory), digabung.
   const { data: tickets, loading, error, refetch } = useTicketsCombined();
+  // Aset & pengguna dari Supabase — sumber nama aset/petugas yang benar
+  // (mock getUserById/getAsetById tidak mengenal UUID/NIP data asli).
+  const { data: asetSemua } = useAsets();
+  const { data: userSemua } = useSupabaseUsers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
+
+  /** Nama petugas berdasarkan NIP (ews_tickets.assigned_to). */
+  const namaPetugas = (nip: string): string =>
+    userSemua.find((u) => u.nip === nip)?.nama ?? "-";
+  /** Asset lookup in-memory (id Supabase). */
+  const asetById = new Map(asetSemua.map((a) => [a.id, a]));
 
   if (loading) {
     return <DataLoading label="Memuat antrean tiket maintenance…" />;
@@ -216,7 +227,7 @@ export default function TiketMaintenancePage() {
                 key: "aset",
                 header: "Aset",
                 render: (row) => {
-                  const aset = getAsetById(row.asetId);
+                  const aset = asetById.get(row.asetId);
                   return (
                     <div className="flex min-w-0 items-center gap-2">
                       <Package className="h-4 w-4 shrink-0 text-slate-400" />
@@ -231,7 +242,7 @@ export default function TiketMaintenancePage() {
               {
                 key: "petugas",
                 header: "Petugas",
-                render: (row) => getUserById(row.assignedTo)?.nama ?? "-",
+                render: (row) => namaPetugas(row.assignedTo),
                 cellClassName: "text-sm text-slate-600",
                 hideBelowXl: true,
               },
@@ -311,7 +322,7 @@ export default function TiketMaintenancePage() {
             {tickets
               .filter((t) => t.tingkatKeparahan === "Tinggi")
               .map((ticket) => {
-                const aset = getAsetById(ticket.asetId);
+                const aset = asetById.get(ticket.asetId);
                 return (
                   <div key={ticket.id} className="flex items-start gap-3 p-4 bg-rose-50 border border-rose-200 rounded-lg">
                     <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />

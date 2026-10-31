@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/components/shared/mock-data";
+import { normalizeNip } from "@/lib/auth-identity";
 
 // Re-export UserRole agar modul lain bisa import langsung dari navigation.ts
 export type { UserRole };
@@ -33,6 +34,50 @@ export interface NavItem {
 export interface NavGroup {
   title: string;
   items: NavItem[];
+}
+
+// ─── Pembatasan Menu Tiket Maintenance (Per-Pengguna, berdasarkan NIP) ───────
+
+/**
+ * NIP tunggal yang berwenang mengakses menu Tiket Maintenance —
+ * termasuk menerbitkan tiket baru lewat "Buat Tiket".
+ *
+ * Kebutuhan proyek: hanya pengelola BMN ZULKIFLI S.I.P. (NIP di bawah)
+ * yang boleh membuka /bmn/maintenance dan form penerbitan tiket.
+ * Menu disembunyikan dan aksesnya ditolak untuk NIP lain, termasuk Admin IT.
+ *
+ * Semua NIP terdaftar di daftar di bawah — tambahkan NIP baru ke daftar
+ * bila kelak ada petugas tambahan yang diberi wewenang.
+ */
+export const NIP_PENGELOLA_TIKET_MAINTENANCE: readonly string[] = [
+  "19850331200812100",
+];
+
+/** Cek apakah NIP tertentu boleh membuka menu Tiket Maintenance. */
+export function canAccessTiketMaintenance(
+  nip: string | null | undefined
+): boolean {
+  if (!nip) return false;
+  return NIP_PENGELOLA_TIKET_MAINTENANCE.includes(normalizeNip(nip));
+}
+
+/**
+ * Saring grup navigasi berdasarkan NIP: item yang tidak boleh diakses
+ * oleh NIP tertentu (mis. "Tiket Maintenance") disembunyikan.
+ */
+export function filterNavGroupsForNip(
+  groups: NavGroup[],
+  nip: string | null | undefined
+): NavGroup[] {
+  if (canAccessTiketMaintenance(nip)) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => item.href !== "/bmn/maintenance"
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 // ─── Role Labels (user-friendly) ─────────────────────────────────────────────
@@ -144,11 +189,29 @@ export function getAccessibleHrefs(role: UserRole): string[] {
 
 /**
  * Mengecek apakah role tertentu dapat mengakses path tertentu
+ *
+ * @param nip NIP user login (opsional, dari localStorage) — dipakai untuk
+ *   pembatasan per-pengguna di luar pembatasan per-role.
  */
-export function canAccessPath(role: UserRole, pathname: string): boolean {
+export function canAccessPath(
+  role: UserRole,
+  pathname: string,
+  nip?: string | null
+): boolean {
   // Semua role bisa akses halaman profile
   if (pathname === "/profile" || pathname.startsWith("/profile/")) {
     return true;
+  }
+  // Menu Tiket Maintenance + form penerbitan tiket hanya untuk NIP yang
+  // ditunjuk (lihat NIP_PENGELOLA_TIKET_MAINTENANCE) — melampaui
+  // pembatasan role biasa, jadi diperiksa lebih dulu. Halaman DETAIL
+  // (/bmn/maintenance/<id>) tetap mengikuti aturan per-role di bawah,
+  // termasuk akses operator pada tiket yang diarahkan ke mereka.
+  if (
+    pathname === "/bmn/maintenance" ||
+    pathname.startsWith("/bmn/maintenance/buat")
+  ) {
+    return canAccessTiketMaintenance(nip);
   }
   const accessibleHrefs = getAccessibleHrefs(role);
   // Operator lapangan adalah penanggung jawab kendaraan: mereka perlu
