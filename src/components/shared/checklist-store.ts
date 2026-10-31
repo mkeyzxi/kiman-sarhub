@@ -110,7 +110,7 @@ export async function tambahChecklist(
       error = err.message;
       persisted = false;
       // Tampilkan error yang jelas — jangan sunyi
-      if (err.message?.includes("PRO FEATURE") || err.code === 409) {
+      if (err.message?.includes("PRO FEATURE") || err.code === "409") {
         // RLS policy error — tampilkan di console dan tetap lanjut dengan in-memory
         console.error("[checklist-store] RLS/INSERT error:", err.message, err.details);
       }
