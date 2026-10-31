@@ -9,6 +9,7 @@ import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   type TingkatKeparahan,
+  labelModelAset,
 } from "@/components/shared/mock-data";
 import { addTicket } from "@/components/shared/ticket-store";
 import {
@@ -231,7 +232,8 @@ function BuatTiketForm() {
                 <option value="">Pilih aset (berita acara sudah disetujui)</option>
                 {asetKandidat.map((aset) => (
                   <option key={aset.id} value={aset.id}>
-                    {aset.kode} ({aset.nama}) — {aset.status}
+                    {aset.kode} ({aset.nama}
+                    {labelModelAset(aset) ? ` · ${labelModelAset(aset)}` : ""}) — {aset.status}
                   </option>
                 ))}
               </Select>

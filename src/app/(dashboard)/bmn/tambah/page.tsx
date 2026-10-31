@@ -16,6 +16,7 @@ import {
   isValidISODate,
   isKodeAsetTerpakai,
   isNupAsetTerpakai,
+  nupSimpan,
   type KategoriAset,
   type KondisiAset,
   type StatusAset,
@@ -43,6 +44,8 @@ export default function TambahAsetPage() {
   const router = useRouter();
   const [formData, setFormData] = useState(() => ({
     nama: "",
+    merk: "",
+    tipe: "",
     kode: "",
     nup: "",
     kategori: "" as KategoriAset | "",
@@ -91,7 +94,7 @@ export default function TambahAsetPage() {
         id,
         nama: formData.nama.trim(),
         kode: formData.kode.trim(),
-        nup: formData.nup,
+        nup: nupSimpan(formData.nup),
         kategori: formData.kategori as KategoriAset,
         status: formData.status as StatusAset,
         lokasi: formData.lokasi.trim(),
@@ -99,6 +102,8 @@ export default function TambahAsetPage() {
         tanggalPenetapan: formData.tanggalPenetapan,
         penanggungJawab: formData.penanggungJawab,
         keterangan: formData.keterangan.trim() || undefined,
+        merk: formData.merk.trim() || undefined,
+        tipe: formData.tipe.trim() || undefined,
       });
       router.push(`/bmn/${id}`);
     } catch (err) {
@@ -164,13 +169,37 @@ export default function TambahAsetPage() {
               <Label htmlFor="nama">Nama Aset</Label>
               <Input
                 id="nama"
-                placeholder="Masukkan nama aset"
+                placeholder="Jenis aset, mis. Rescue Truck"
                 value={formData.nama}
                 onChange={(e) =>
                   setFormData({ ...formData, nama: e.target.value })
                 }
                 required
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="merk">Merek</Label>
+                <Input
+                  id="merk"
+                  placeholder="mis. Isuzu"
+                  value={formData.merk}
+                  onChange={(e) =>
+                    setFormData({ ...formData, merk: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tipe">Tipe</Label>
+                <Input
+                  id="tipe"
+                  placeholder="mis. NPS 75"
+                  value={formData.tipe}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tipe: e.target.value })
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="kode">Kode Aset</Label>
@@ -194,7 +223,7 @@ export default function TambahAsetPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={NUP_MAX_DIGIT}
-                placeholder="Contoh: 000013"
+                placeholder="Contoh: 13"
                 value={formData.nup}
                 onChange={(e) =>
                   setFormData({ ...formData, nup: normalizeNup(e.target.value) })
@@ -206,6 +235,7 @@ export default function TambahAsetPage() {
               ) : (
                 <p className="text-xs text-slate-500">
                   Nomor urut pendaftaran BMN, maksimal {NUP_MAX_DIGIT} digit.
+                  Tulis tanpa nol di depan (mis. 13) — akan tersimpan sebagai 000013.
                   Hanya angka yang diperbolehkan.
                 </p>
               )}

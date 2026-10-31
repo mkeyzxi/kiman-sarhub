@@ -631,10 +631,33 @@ export function normalizeNup(value: string): string {
   return value.replace(/\D/g, "").slice(0, NUP_MAX_DIGIT);
 }
 
+/**
+ * Tampilan NUP tanpa nol depan: "000006" → "6", "000020" → "20".
+ * Bila seluruh digit nol mengembalikan "0". Bila kosong/tak berangka,
+ * mengembalikan string kosong agar subtitle bisa disembunyikan.
+ */
+export function nupTampil(nup: string | null | undefined): string {
+  if (!nup) return "";
+  const digits = nup.replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.replace(/^0+(?=\d)/, "");
+}
+
+/**
+ * Kembalikan NUP ke format register BMN 6 digit (`"6"` → `"000006"`).
+ * Dipakai saat menyimpan ke database agar konvensi register tetap seragam,
+ * sementara tampilan memakai {@link nupTampil}.
+ */
+export function nupSimpan(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.padStart(NUP_MAX_DIGIT, "0").slice(-NUP_MAX_DIGIT);
+}
+
 export const asetList: Aset[] = [
   {
     id: "ast-001",
-    nama: "Sedan Toyota Corolla Altis 1.8 GAT",
+    nama: "Sedan",
     kode: "3020101001-000001",
     nup: "000001",
     kategori: "Mobil",
@@ -644,7 +667,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020101001-000001.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.abdMalik,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Toyota · Tipe: Corolla Altis 1.8 GAT · No. Polisi: DC 1801",
+    keterangan: "Digunakan sendiri untuk operasional · No. Polisi: DC 1801",
     riwayat: [
       {
         tanggal: "2009-11-26",
@@ -676,7 +699,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-002",
-    nama: "Sepeda Motor KAWASAKI LX 150L",
+    nama: "Sepeda Motor",
     kode: "3020104001-000003",
     nup: "000003",
     kategori: "Motor",
@@ -686,7 +709,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020104001-000003.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.akmal,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: KAWASAKI LX 150L · No. Polisi: DC 3481",
+    keterangan: "Digunakan sendiri untuk operasional · No. Polisi: DC 3481",
     riwayat: [
       {
         tanggal: "2011-11-21",
@@ -702,7 +725,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020104001",
-    merk: "KAWASAKI LX 150L",
+    merk: "Kawasaki",
+    tipe: "LX 150L",
     noStnk: "08086917",
     noPolisi: "DC 3481",
     tanggalPerolehan: "2011-11-21",
@@ -718,7 +742,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-003",
-    nama: "Sepeda Motor KAWASAKI KLX 230",
+    nama: "Sepeda Motor",
     kode: "3020104001-000005",
     nup: "000005",
     kategori: "Motor",
@@ -728,7 +752,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020104001-000005.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.sulaeman,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: KAWASAKI KLX 230 · Tipe: KAWASAKI KLX 230 · No. Polisi: B 3183 PKQ",
+    keterangan: "Digunakan sendiri untuk operasional · No. Polisi: B 3183 PKQ",
     riwayat: [
       {
         tanggal: "2024-05-28",
@@ -744,8 +768,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020104001",
-    merk: "KAWASAKI KLX 230",
-    tipe: "KAWASAKI KLX 230",
+    merk: "Kawasaki",
+    tipe: "KLX 230",
     noStnk: "B 3183 PKQ",
     noPolisi: "B 3183 PKQ",
     tanggalPerolehan: "2024-05-28",
@@ -762,7 +786,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-004",
-    nama: "Sepeda Motor KAWASAKI KLX 230",
+    nama: "Sepeda Motor",
     kode: "3020104001-000006",
     nup: "000006",
     kategori: "Motor",
@@ -772,7 +796,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020104001-000006.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.akbar,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: KAWASAKI KLX 230 · Tipe: KAWASAKI KLX 230 · No. Polisi: B 3184 PKQ",
+    keterangan: "Digunakan sendiri untuk operasional · No. Polisi: B 3184 PKQ",
     riwayat: [
       {
         tanggal: "2024-05-28",
@@ -788,8 +812,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020104001",
-    merk: "KAWASAKI KLX 230",
-    tipe: "KAWASAKI KLX 230",
+    merk: "Kawasaki",
+    tipe: "KLX 230",
     noStnk: "B 3184 PKQ",
     noPolisi: "B 3184 PKQ",
     tanggalPerolehan: "2024-05-28",
@@ -806,7 +830,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-005",
-    nama: "Sepeda Motor Kawasaki KLX 150 L",
+    nama: "Sepeda Motor",
     kode: "3020104001-000007",
     nup: "000007",
     kategori: "Motor",
@@ -816,7 +840,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020104001-000007.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.calvin,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Kawasaki KLX 150 L · Tipe: Kawasaki KLX 150 L · No. Polisi: DC 3480",
+    keterangan: "Digunakan sendiri untuk operasional · No. Polisi: DC 3480",
     riwayat: [
       {
         tanggal: "2015-10-12",
@@ -832,8 +856,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020104001",
-    merk: "Kawasaki KLX 150 L",
-    tipe: "Kawasaki KLX 150 L",
+    merk: "Kawasaki",
+    tipe: "KLX 150 L",
     noStnk: "08086916",
     noPolisi: "DC 3480",
     tanggalPerolehan: "2015-10-12",
@@ -849,7 +873,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-006",
-    nama: "Mobil Operasional PJR TOYOTA TF36",
+    nama: "Mobil Operasional PJR",
     kode: "3020105058-000001",
     nup: "000001",
     kategori: "Mobil",
@@ -859,7 +883,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105058-000001.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.fajrin,
-    keterangan: "Digunakan sendiri untuk dinas jabatan · Merk: TOYOTA · Tipe: TF36",
+    keterangan: "Digunakan sendiri untuk dinas jabatan",
     riwayat: [
       {
         tanggal: "2020-03-20",
@@ -875,7 +899,7 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105058",
-    merk: "TOYOTA",
+    merk: "Toyota",
     tipe: "TF36",
     tanggalPerolehan: "2020-03-20",
     noPsp: "134/KM.6/WKN.15/KNL.01/2020",
@@ -891,7 +915,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-007",
-    nama: "Rescue Truck ISUZU",
+    nama: "Rescue Truck",
     kode: "3020105062-000004",
     nup: "000004",
     kategori: "Mobil",
@@ -901,7 +925,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105062-000004.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.adiaksa,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: ISUZU · No. Polisi: DC 8982",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8982",
     riwayat: [
       {
         tanggal: "2018-08-15",
@@ -917,7 +941,7 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105062",
-    merk: "ISUZU",
+    merk: "Isuzu",
     noStnk: "08086913",
     noPolisi: "DC 8982",
     tanggalPerolehan: "2018-08-15",
@@ -933,7 +957,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-008",
-    nama: "Rescue Truck ISUZU",
+    nama: "Rescue Truck",
     kode: "3020105062-000005",
     nup: "000005",
     kategori: "Mobil",
@@ -943,7 +967,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105062-000005.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.wahyudi,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: ISUZU · Tipe: ISUZU · No. Polisi: DC 8977",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8977",
     riwayat: [
       {
         tanggal: "2020-08-31",
@@ -959,8 +983,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105062",
-    merk: "ISUZU",
-    tipe: "ISUZU",
+    merk: "Isuzu",
+    tipe: "",
     noStnk: "08086911",
     noPolisi: "DC 8977",
     tanggalPerolehan: "2020-08-31",
@@ -977,7 +1001,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-009",
-    nama: "Rescue Truck ISUZU NPS 75",
+    nama: "Rescue Truck",
     kode: "3020105062-000006",
     nup: "000006",
     kategori: "Mobil",
@@ -987,7 +1011,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105062-000006.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.abduh,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: ISUZU NPS 75 · Tipe: ISUZU NPS 75 · No. Polisi: DC 8981",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8981",
     riwayat: [
       {
         tanggal: "2022-02-07",
@@ -1003,8 +1027,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105062",
-    merk: "ISUZU NPS 75",
-    tipe: "ISUZU NPS 75",
+    merk: "Isuzu",
+    tipe: "NPS 75",
     noStnk: "DC 8981",
     noPolisi: "DC 8981",
     tanggalPerolehan: "2022-02-07",
@@ -1021,7 +1045,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-010",
-    nama: "Rescue Car Type I Dmax Compartemen (ISUZU)",
+    nama: "Rescue Car Type I",
     kode: "3020105128-000003",
     nup: "000003",
     kategori: "Mobil",
@@ -1031,7 +1055,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105128-000003.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.hasril,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: Dmax Compartemen (ISUZU) · No. Polisi: B 9891 PSC",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: B 9891 PSC",
     riwayat: [
       {
         tanggal: "2013-06-28",
@@ -1047,7 +1071,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105128",
-    merk: "Dmax Compartemen (ISUZU)",
+    merk: "Isuzu",
+    tipe: "Dmax Compartemen",
     noPolisi: "B 9891 PSC",
     tanggalPerolehan: "2013-06-28",
     noPsp: "134/KM.6/WKN.15/KNL.01/2020",
@@ -1062,7 +1087,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-011",
-    nama: "Rescue Car Type I Dmax Double Cabin (ISUZU)",
+    nama: "Rescue Car Type I",
     kode: "3020105128-000006",
     nup: "000006",
     kategori: "Mobil",
@@ -1072,7 +1097,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105128-000006.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ibnu,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: Dmax Double Cabin (ISUZU) · Tipe: ISUZU · No. Polisi: DC 8979",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8979",
     riwayat: [
       {
         tanggal: "2020-07-30",
@@ -1088,8 +1113,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105128",
-    merk: "Dmax Double Cabin (ISUZU)",
-    tipe: "ISUZU",
+    merk: "Isuzu",
+    tipe: "Dmax Double Cabin",
     noStnk: "08086912",
     noPolisi: "DC 8979",
     tanggalPerolehan: "2020-07-30",
@@ -1106,7 +1131,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-012",
-    nama: "Rescue Car Type II Dmax Double Cabin (ISUZU)",
+    nama: "Rescue Car Type II",
     kode: "3020105129-000005",
     nup: "000005",
     kategori: "Mobil",
@@ -1116,7 +1141,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105129-000005.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.haerul,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: Dmax Double Cabin (ISUZU) · Tipe: Dmax Double Cabin (ISUZU) · No. Polisi: DC 8978",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8978",
     riwayat: [
       {
         tanggal: "2020-07-30",
@@ -1132,8 +1157,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105129",
-    merk: "Dmax Double Cabin (ISUZU)",
-    tipe: "Dmax Double Cabin (ISUZU)",
+    merk: "Isuzu",
+    tipe: "Dmax Double Cabin",
     noStnk: "08086910",
     noPolisi: "DC 8978",
     tanggalPerolehan: "2020-07-30",
@@ -1150,7 +1175,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-013",
-    nama: "Rescue Car Type II Dmax Double Cabin (ISUZU)",
+    nama: "Rescue Car Type II",
     kode: "3020105129-000006",
     nup: "000006",
     kategori: "Mobil",
@@ -1160,7 +1185,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105129-000006.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.akmal,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: Dmax Double Cabin (ISUZU) · Tipe: Dmax Double Cabin (ISUZU) · No. Polisi: DC 8980",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8980",
     riwayat: [
       {
         tanggal: "2020-07-30",
@@ -1176,8 +1201,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105129",
-    merk: "Dmax Double Cabin (ISUZU)",
-    tipe: "Dmax Double Cabin (ISUZU)",
+    merk: "Isuzu",
+    tipe: "Dmax Double Cabin",
     noStnk: "08086909",
     noPolisi: "DC 8980",
     tanggalPerolehan: "2020-07-30",
@@ -1194,7 +1219,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-014",
-    nama: "Rescue Car Type II Dmax Compartemen (ISUZU)",
+    nama: "Rescue Car Type II",
     kode: "3020105129-000008",
     nup: "000008",
     kategori: "Mobil",
@@ -1204,7 +1229,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105129-000008.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.agustang,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: Dmax Compartemen (ISUZU) · No. Polisi: DC 1802",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 1802",
     riwayat: [
       {
         tanggal: "2014-10-16",
@@ -1220,7 +1245,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105129",
-    merk: "Dmax Compartemen (ISUZU)",
+    merk: "Isuzu",
+    tipe: "Dmax Compartemen",
     noStnk: "08086914",
     noPolisi: "DC 1802",
     tanggalPerolehan: "2014-10-16",
@@ -1236,7 +1262,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-015",
-    nama: "Rescue Car Type II Dmax Double Cabin (ISUZU)",
+    nama: "Rescue Car Type II",
     kode: "3020105129-000009",
     nup: "000009",
     kategori: "Mobil",
@@ -1246,7 +1272,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020105129-000009.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.akbar,
-    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · Merk: Dmax Double Cabin (ISUZU) · No. Polisi: DC 8145",
+    keterangan: "Digunakan sendiri untuk kendaraan fungsional Lainnya · No. Polisi: DC 8145",
     riwayat: [
       {
         tanggal: "2009-01-07",
@@ -1262,7 +1288,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020105129",
-    merk: "Dmax Double Cabin (ISUZU)",
+    merk: "Isuzu",
+    tipe: "Dmax Double Cabin",
     noStnk: "16069361",
     noPolisi: "DC 8145",
     tanggalPerolehan: "2009-01-07",
@@ -1278,7 +1305,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-016",
-    nama: "Speed Boat / Motor Tempel GEMINI SEA RIDER",
+    nama: "Speed Boat / Motor Tempel",
     kode: "3020302001-000001",
     nup: "000001",
     kategori: "Kapal",
@@ -1288,7 +1315,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020302001-000001.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.fajar,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: GEMINI · Tipe: SEA RIDER",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2009-04-01",
@@ -1304,7 +1331,7 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020302001",
-    merk: "GEMINI",
+    merk: "Gemini",
     tipe: "SEA RIDER",
     tanggalPerolehan: "2009-04-01",
     noPsp: "134/KM.6/WKN.15/KNL.01/2020",
@@ -1319,7 +1346,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-017",
-    nama: "Speed Boat / Motor Tempel Yamaha E25BMH",
+    nama: "Speed Boat / Motor Tempel",
     kode: "3020302001-000002",
     nup: "000002",
     kategori: "Kapal",
@@ -1329,7 +1356,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020302001-000002.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ardiansyah,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Yamaha E25BMH · Tipe: Yamaha E25BMH",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2022-02-07",
@@ -1345,8 +1372,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020302001",
-    merk: "Yamaha E25BMH",
-    tipe: "Yamaha E25BMH",
+    merk: "Yamaha",
+    tipe: "E25BMH",
     tanggalPerolehan: "2022-02-07",
     noPsp: "SK.SU-187/PL.01.05/XI/BSN-2023",
     tanggalPsp: "2023-11-07",
@@ -1361,7 +1388,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-018",
-    nama: "Out Boat Motor Yamaha E40 JMHL",
+    nama: "Out Boat Motor",
     kode: "3020303004-000001",
     nup: "000001",
     kategori: "Kapal",
@@ -1371,7 +1398,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000001.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.hasril,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Yamaha E40 JMHL",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2013-12-16",
@@ -1387,7 +1414,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "Yamaha E40 JMHL",
+    merk: "Yamaha",
+    tipe: "E40 JMHL",
     tanggalPerolehan: "2013-12-16",
     noPsp: "SK.SU-187/PL.01.05/XI/BSN-2023",
     tanggalPsp: "2023-11-07",
@@ -1401,7 +1429,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-019",
-    nama: "Out Boat Motor YAMAHA 40 PK ENDURO",
+    nama: "Out Boat Motor",
     kode: "3020303004-000002",
     nup: "000002",
     kategori: "Kapal",
@@ -1411,7 +1439,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000002.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ahmadAidid,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: YAMAHA 40 PK · Tipe: ENDURO",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2002-04-30",
@@ -1427,8 +1455,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "YAMAHA 40 PK",
-    tipe: "ENDURO",
+    merk: "Yamaha",
+    tipe: "40 PK ENDURO",
     tanggalPerolehan: "2002-04-30",
     noPsp: "SK.SU-187/PL.01.05/XI/BSN-2023",
     tanggalPsp: "2023-11-07",
@@ -1442,7 +1470,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-020",
-    nama: "Out Boat Motor YAMAHA ENDURO",
+    nama: "Out Boat Motor",
     kode: "3020303004-000003",
     nup: "000003",
     kategori: "Kapal",
@@ -1452,7 +1480,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000003.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.fajar,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: YAMAHA · Tipe: ENDURO",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2009-04-01",
@@ -1468,7 +1496,7 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "YAMAHA",
+    merk: "Yamaha",
     tipe: "ENDURO",
     tanggalPerolehan: "2009-04-01",
     noPsp: "134/KM.6/WKN.15/KNL.01/2020",
@@ -1483,7 +1511,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-021",
-    nama: "Out Boat Motor YAMAHA ENDURO",
+    nama: "Out Boat Motor",
     kode: "3020303004-000004",
     nup: "000004",
     kategori: "Kapal",
@@ -1493,7 +1521,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000004.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ardiansyah,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: YAMAHA · Tipe: ENDURO",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2009-04-01",
@@ -1509,7 +1537,7 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "YAMAHA",
+    merk: "Yamaha",
     tipe: "ENDURO",
     tanggalPerolehan: "2009-04-01",
     noPsp: "134/KM.6/WKN.15/KNL.01/2020",
@@ -1524,7 +1552,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-022",
-    nama: "Out Boat Motor YAMAHA 25 PK",
+    nama: "Out Boat Motor",
     kode: "3020303004-000005",
     nup: "000005",
     kategori: "Kapal",
@@ -1534,7 +1562,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000005.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.hasril,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: YAMAHA · Tipe: 25 PK",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2009-01-07",
@@ -1550,7 +1578,7 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "YAMAHA",
+    merk: "Yamaha",
     tipe: "25 PK",
     tanggalPerolehan: "2009-01-07",
     noPsp: "SK.SU-187/PL.01.05/XI/BSN-2023",
@@ -1725,7 +1753,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-027",
-    nama: "Out Boat Motor Yamaha E30HMHL (Outboard Motor 30 HP)",
+    nama: "Out Boat Motor",
     kode: "3020303004-000010",
     nup: "000010",
     kategori: "Kapal",
@@ -1735,7 +1763,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000010.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ahmadAidid,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Yamaha E30HMHL (Outboard Motor 30 HP) · Tipe: Yamaha E30HMHL (Outboard Motor 30 HP)",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2023-10-02",
@@ -1751,8 +1779,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "Yamaha E30HMHL (Outboard Motor 30 HP)",
-    tipe: "Yamaha E30HMHL (Outboard Motor 30 HP)",
+    merk: "Yamaha",
+    tipe: "E30HMHL",
     tanggalPerolehan: "2023-10-02",
     noPsp: "SK.SU-125/PL.01.05/VII/BSN-2024",
     tanggalPsp: "2024-07-18",
@@ -1767,7 +1795,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-028",
-    nama: "Out Boat Motor Yamaha E30HMHL (Outboard Motor 30 HP)",
+    nama: "Out Boat Motor",
     kode: "3020303004-000011",
     nup: "000011",
     kategori: "Kapal",
@@ -1777,7 +1805,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000011.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.fajar,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Yamaha E30HMHL (Outboard Motor 30 HP) · Tipe: Yamaha E30HMHL (Outboard Motor 30 HP)",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2023-10-02",
@@ -1793,8 +1821,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "Yamaha E30HMHL (Outboard Motor 30 HP)",
-    tipe: "Yamaha E30HMHL (Outboard Motor 30 HP)",
+    merk: "Yamaha",
+    tipe: "E30HMHL",
     tanggalPerolehan: "2023-10-02",
     noPsp: "SK.SU-125/PL.01.05/VII/BSN-2024",
     tanggalPsp: "2024-07-18",
@@ -1809,7 +1837,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-029",
-    nama: "Out Boat Motor Yamaha F300 DET",
+    nama: "Out Boat Motor",
     kode: "3020303004-000012",
     nup: "000012",
     kategori: "Kapal",
@@ -1819,7 +1847,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000012.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ardiansyah,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Yamaha F300 DET · Tipe: Yamaha F300 DET",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2025-12-31",
@@ -1835,8 +1863,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "Yamaha F300 DET",
-    tipe: "Yamaha F300 DET",
+    merk: "Yamaha",
+    tipe: "F300 DET",
     tanggalPerolehan: "2025-12-31",
     noPsp: "85/MK/KNL.1501/2026",
     tanggalPsp: "2026-06-29",
@@ -1851,7 +1879,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-030",
-    nama: "Out Boat Motor Yamaha F300 DET",
+    nama: "Out Boat Motor",
     kode: "3020303004-000013",
     nup: "000013",
     kategori: "Kapal",
@@ -1861,7 +1889,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303004-000013.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.hasril,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Yamaha F300 DET · Tipe: Yamaha F300 DET",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2025-12-31",
@@ -1877,8 +1905,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303004",
-    merk: "Yamaha F300 DET",
-    tipe: "Yamaha F300 DET",
+    merk: "Yamaha",
+    tipe: "F300 DET",
     tanggalPerolehan: "2025-12-31",
     noPsp: "85/MK/KNL.1501/2026",
     tanggalPsp: "2026-06-29",
@@ -1893,7 +1921,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-031",
-    nama: "Kapal SAR Kelas II Kapal Penyelamatan (Rescue Boat)",
+    nama: "Kapal SAR Kelas II",
     kode: "3020303037-000001",
     nup: "000001",
     kategori: "Kapal",
@@ -1903,7 +1931,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303037-000001.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.fajar,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Kapal Penyelamatan (Rescue Boat) · Tipe: Kapal Penyelamatan (Rescue Boat)",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2021-12-01",
@@ -1919,8 +1947,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303037",
-    merk: "Kapal Penyelamatan (Rescue Boat)",
-    tipe: "Kapal Penyelamatan (Rescue Boat)",
+    merk: "",
+    tipe: "",
     tanggalPerolehan: "2021-12-01",
     noPsp: "65/KM.6/KNL.1501/2024",
     tanggalPsp: "2024-07-16",
@@ -1935,7 +1963,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-032",
-    nama: "Rigid Inflatable Boat (RIB) Kelas I Vektor RIB 1100",
+    nama: "Rigid Inflatable Boat (RIB) Kelas I",
     kode: "3020303040-000002",
     nup: "000002",
     kategori: "Kapal",
@@ -1945,7 +1973,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303040-000002.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.hasril,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Rigid Inflatable Boat (RIB) Kelas I · Tipe: Vektor RIB 1100 · No. Polisi: RIB 02",
+    keterangan: "Digunakan sendiri untuk operasional · No. Polisi: RIB 02",
     riwayat: [
       {
         tanggal: "2021-06-04",
@@ -1961,8 +1989,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303040",
-    merk: "Rigid Inflatable Boat (RIB) Kelas I",
-    tipe: "Vektor RIB 1100",
+    merk: "Vektor",
+    tipe: "RIB 1100",
     noPolisi: "RIB 02",
     tanggalPerolehan: "2021-06-04",
     noPsp: "65/KM.6/KNL.1501/2024",
@@ -1978,7 +2006,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-033",
-    nama: "Rigid Inflatable Boat (RIB) Kelas I Sea First",
+    nama: "Rigid Inflatable Boat (RIB) Kelas I",
     kode: "3020303040-000006",
     nup: "000006",
     kategori: "Kapal",
@@ -1988,7 +2016,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303040-000006.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ahmadAidid,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: Sea First · Tipe: Sea First",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2025-12-31",
@@ -2005,7 +2033,7 @@ export const asetList: Aset[] = [
     ],
     kodeBarang: "3020303040",
     merk: "Sea First",
-    tipe: "Sea First",
+    tipe: "",
     tanggalPerolehan: "2025-12-31",
     noPsp: "85/MK/KNL.1501/2026",
     tanggalPsp: "2026-06-29",
@@ -2020,7 +2048,7 @@ export const asetList: Aset[] = [
   },
   {
     id: "ast-034",
-    nama: "Rigid Inflatable Boat (RIB) Kelas I RIGID BOUYANCY BOAT (RBB) SAR RESCUE BOAT",
+    nama: "Rigid Inflatable Boat (RIB) Kelas I",
     kode: "3020303040-000007",
     nup: "000007",
     kategori: "Kapal",
@@ -2030,7 +2058,7 @@ export const asetList: Aset[] = [
     gambar: "/asets/3020303040-000007.jpg",
     kondisi: "Baik",
     penanggungJawab: PJ_ASET.ardiansyah,
-    keterangan: "Digunakan sendiri untuk operasional · Merk: RIGID BOUYANCY BOAT (RBB) SAR RESCUE BOAT · Tipe: RIGID BOUYANCY BOAT (RBB) SAR RESCUE BOAT",
+    keterangan: "Digunakan sendiri untuk operasional",
     riwayat: [
       {
         tanggal: "2025-12-31",
@@ -2046,8 +2074,8 @@ export const asetList: Aset[] = [
       },
     ],
     kodeBarang: "3020303040",
-    merk: "RIGID BOUYANCY BOAT (RBB) SAR RESCUE BOAT",
-    tipe: "RIGID BOUYANCY BOAT (RBB) SAR RESCUE BOAT",
+    merk: "",
+    tipe: "",
     tanggalPerolehan: "2025-12-31",
     noPsp: "85/MK/KNL.1501/2026",
     tanggalPsp: "2026-06-29",
@@ -3955,7 +3983,25 @@ export type InputAset = Pick<
   | "kondisi"
   | "penanggungJawab"
   | "keterangan"
+  | "merk"
+  | "tipe"
 >;
+
+/**
+ * Bagian "model" dari nama aset, tersusun dari `merk` dan `tipe` yang
+ * keduanya opsional — mis. "Toyota · Corolla Altis 1.8 GAT" atau
+ * "Yamaha · ENDURO". Bila keduanya kosong mengembalikan string kosong
+ * sehingga pemanggil dapat menyembunyikan subtitle.
+ */
+export function labelModelAset(
+  aset: Pick<Aset, "merk" | "tipe"> | null | undefined
+): string {
+  if (!aset) return "";
+  return [aset.merk, aset.tipe]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
+}
 
 /** Kode aset sudah dipakai aset lain? `exceptId` dipakai saat edit. */
 export function isKodeAsetTerpakai(kode: string, exceptId?: string): boolean {
@@ -3972,16 +4018,21 @@ export function isKodeAsetTerpakai(kode: string, exceptId?: string): boolean {
  * NUP `000001` boleh dipakai bersama oleh Sedan (3020101001) dan Kapal SAR
  * (3020303037). Karena itu pengecekan dibatasi pada kelompok kode barang yang
  * sama. Aset lama tanpa `kodeBarang` dibandingkan sesama aset tanpa kode barang.
+ *
+ * Pembandingan tidak sensitif pada nol depan (input "6" tetap tertangkap
+ * sebagai "000006" — lihat {@link nupTampil}).
  */
 export function isNupAsetTerpakai(
   nup: string,
   exceptId?: string,
   kodeBarang?: string
 ): boolean {
+  const target = nupTampil(nup);
+  if (!target) return false;
   return asetList.some(
     (a) =>
       a.id !== exceptId &&
-      a.nup === nup &&
+      nupTampil(a.nup) === target &&
       (a.kodeBarang ?? "") === (kodeBarang ?? "")
   );
 }

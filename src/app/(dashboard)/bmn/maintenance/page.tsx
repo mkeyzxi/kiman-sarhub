@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
-import { formatTanggal } from "@/components/shared/mock-data";
+import { formatTanggal, labelModelAset } from "@/components/shared/mock-data";
 import { useTicketsCombined } from "@/components/shared/ticket-store";
 import { useAsets, useSupabaseUsers } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
@@ -228,12 +228,16 @@ export default function TiketMaintenancePage() {
                 header: "Aset",
                 render: (row) => {
                   const aset = asetById.get(row.asetId);
+                  const model = labelModelAset(aset);
                   return (
                     <div className="flex min-w-0 items-center gap-2">
                       <Package className="h-4 w-4 shrink-0 text-slate-400" />
                       <div className="min-w-0">
                         <p className="truncate text-sm text-slate-700">{aset?.nama ?? "-"}</p>
-                        <p className="truncate text-xs text-slate-400">{aset?.kode}</p>
+                        <p className="truncate text-xs text-slate-400">
+                          {model ? `${model} · ` : ""}
+                          {aset?.kode}
+                        </p>
                       </div>
                     </div>
                   );
@@ -336,6 +340,11 @@ export default function TiketMaintenancePage() {
                         <span className="flex items-center gap-1">
                           <Package className="h-3 w-3" />
                           {aset?.nama}
+                          {labelModelAset(aset) && (
+                            <span className="text-slate-500">
+                              · {labelModelAset(aset)}
+                            </span>
+                          )}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />

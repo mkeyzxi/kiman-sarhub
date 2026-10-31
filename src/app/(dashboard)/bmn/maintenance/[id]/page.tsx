@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   formatTanggal,
+  labelModelAset,
   type TingkatKeparahan,
   type StatusTicket,
   type StatusBeritaAcara,
@@ -205,6 +206,11 @@ export default function DetailTiketPage() {
                   <p className="text-sm font-medium text-slate-800">
                     {aset.nama}
                   </p>
+                  {labelModelAset(aset) && (
+                    <p className="text-xs text-slate-400">
+                      {labelModelAset(aset)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wider text-slate-500">

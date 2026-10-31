@@ -20,7 +20,9 @@ import { Card } from "@/components/ui/card";
 import {
   STATUS_ASET,
   STATUS_ASET_VARIANT,
- 
+  labelModelAset,
+  nupTampil,
+
 } from "@/components/shared/mock-data";
 import { useAsets } from "@/components/shared/use-supabase-data";
 import {
@@ -56,7 +58,8 @@ export default function MasterDataBMNPage() {
       aset.nup.includes(searchQuery) ||
       (aset.kodeBarang ?? "").toLowerCase().includes(q) ||
       (aset.noPolisi ?? "").toLowerCase().includes(q) ||
-      (aset.merk ?? "").toLowerCase().includes(q);
+      (aset.merk ?? "").toLowerCase().includes(q) ||
+      (aset.tipe ?? "").toLowerCase().includes(q);
     const matchStatus = statusFilter === "Semua" || aset.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -171,7 +174,13 @@ export default function MasterDataBMNPage() {
           data={filteredAset}
           getKey={(row) => row.id}
           cardTitle={(row) => row.nama}
-          cardSubtitle={(row) => `${row.kode} \u00b7 NUP ${row.nup} \u00b7 ${row.kategori}`}
+          cardSubtitle={(row) => {
+            const model = labelModelAset(row);
+            const nup = nupTampil(row.nup) ? `NUP ${nupTampil(row.nup)}` : "";
+            return [model, row.kode, nup, row.kategori]
+              .filter(Boolean)
+              .join(" · ");
+          }}
           cardBadge={(row) => (
             <Badge variant={STATUS_ASET_VARIANT[row.status]}>{row.status}</Badge>
           )}
@@ -188,13 +197,23 @@ export default function MasterDataBMNPage() {
             {
               key: "nup",
               header: "NUP",
-              render: (row) => row.nup,
+              render: (row) => nupTampil(row.nup),
               cellClassName: "font-mono text-xs text-slate-600",
             },
             {
               key: "nama",
               header: "Nama Aset",
-              render: (row) => row.nama,
+              render: (row) => {
+                const model = labelModelAset(row);
+                return (
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-800">{row.nama}</p>
+                    {model && (
+                      <p className="truncate text-xs text-slate-400">{model}</p>
+                    )}
+                  </div>
+                );
+              },
               cellClassName: "font-medium text-slate-800",
               hideOnCard: true,
             },
