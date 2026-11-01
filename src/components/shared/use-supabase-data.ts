@@ -53,6 +53,52 @@ import {
 /** Nama tabel yang terdaftar di `Database["public"]["Tables"]`. */
 type TableName = keyof Database["public"]["Tables"];
 
+// ─── Data hidup: menyembuhkan tampilan usang ─────────────────────────────────
+
+interface OpsiDataHidup {
+  /** Fetch berulang yang aman dipanggil (`fetch_` dari hook). */
+  ambil: () => void;
+  /** True bila data pertama sudah termuat — mencegah fetch dobel saat pasang. */
+  siap: () => boolean;
+}
+
+/**
+ * Pembaruan hidup: ambil ulang data saat window kembali fokus, saat tab
+ * kembali terlihat, dan tiap 60 detik selama tab terbuka.
+ *
+ * Tanpa ini, perubahan yang terjadi dari halaman lain (mis. aset kembali
+ * "Standby" setelah tiket maintenance selesai) tidak pernah dibaca halaman
+ * dashboard yang masih terpasang — pengguna melihat badge usang sampai
+ * browser dimuat ulang.
+ */
+function gunakanDataHidup(opsi: OpsiDataHidup): void {
+  // Tahan callback terbaru di ref supaya listener tidak perlu dipasang ulang.
+  const konsisten = useRef(opsi);
+  konsisten.current = opsi;
+  useEffect(() => {
+    const layak = () =>
+      typeof document !== "undefined" &&
+      document.visibilityState === "visible" &&
+      konsisten.current.siap();
+    const saatFokus = () => {
+      if (layak()) konsisten.current.ambil();
+    };
+    const saatTabDilihat = () => {
+      if (layak()) konsisten.current.ambil();
+    };
+    const detak = setInterval(() => {
+      if (layak()) konsisten.current.ambil();
+    }, 60_000);
+    window.addEventListener("focus", saatFokus);
+    document.addEventListener("visibilitychange", saatTabDilihat);
+    return () => {
+      clearInterval(detak);
+      window.removeEventListener("focus", saatFokus);
+      document.removeEventListener("visibilitychange", saatTabDilihat);
+    };
+  }, []);
+}
+
 export interface SupabaseQueryResult<M> {
   data: M[];
   loading: boolean;
@@ -204,6 +250,13 @@ export function useAsets(): SupabaseQueryResult<AsetMapped> {
     () => (asetRows !== null ? mapAsets(asetRows, riwRows) : []),
     [asetRows, riwRows]
   );
+
+  // Data hidup — hanya setelah ambil pertama selesai (tidak dobel saat pasang).
+  const sudahDimuat = useRef(false);
+  useEffect(() => {
+    if (asetRows !== null) sudahDimuat.current = true;
+  }, [asetRows]);
+  gunakanDataHidup({ ambil: fetch_, siap: () => sudahDimuat.current });
 
   const refetch = useCallback(() => {
     setLoading(true);
@@ -606,4 +659,184 @@ export function useKartuPenanggungJawab(): SupabaseQueryResult<KartuPJ> {
   }, [usersQ, asetsQ, baQ, ewQ]);
 
   return { data: cards, loading, error, refetch };
+}
+
+// ─── AUDIT KEPATUHAN (dihitung dari jejak nyata database) ────────────────────
+
+export interface BarisAuditKepatuhan {
+  /** NIP personel. */
+  personelId: string;
+  nama: string;
+  /** Role/ jabatan token dari DB users. */
+  jabatan: string;
+  /**
+   * "Telat Kembali" — aset rusak yang masih dipegang personel (penanggung
+   * jawabnya) DAN tidak ada berita acara apapun untuk aset itu: unit
+   * seharusnya diserahkan ke unit service via BA, tapi ditarik terus.
+   */
+  telatKembali: number;
+  /**
+   * "Abaikan Checklist" — checklist miliknya (pemeriksa) yang tanggalnya
+   * SUDAH LEWAT dari hari ini namun masih "Belum Lengkap".
+   */
+  abaikanChecklist: number;
+  /** Untuk kartu "Pelanggaran Bulan Ini": subset bulan berjalan. */
+  telatBulanIni: number;
+  abaikanBulanIni: number;
+  /** 100 dikurangi hukuman per pelanggaran (lihat konstanta di bawah). */
+  skorKepatuhan: number;
+  /** Kalimat singkat tiap pelanggaran — untuk kolom rincian. */
+  rincian: string[];
+}
+
+/** Bobot hukuman skor per jenis pelanggaran. */
+const BOBOT_TELAT_KEMBALI = 12;
+const BOBOT_ABAIKAN_CHECKLIST = 8;
+/** Selisih tanggal disimpan ISO "yyyy-mm-dd" → hitung selisih hari. */
+const SATU_HARI_MS = 86_400_000;
+
+const clampSkor = (n: number) => Math.max(0, Math.min(100, n));
+
+/**
+ * Ringkasan kartu statistik halaman audit — dihitung dari baris per personel.
+ */
+export function hitungRingkasanAudit(rows: BarisAuditKepatuhan[]): {
+  totalPersonel: number;
+  rataSkor: number;
+  pelanggaranBulanIni: number;
+} {
+  const totalPersonel = rows.length;
+  const rataSkor =
+    totalPersonel === 0
+      ? 0
+      : Math.round(rows.reduce((s, r) => s + r.skorKepatuhan, 0) / totalPersonel);
+  const pelanggaranBulanIni = rows.reduce(
+    (s, r) => s + r.telatBulanIni + r.abaikanBulanIni,
+    0
+  );
+  return { totalPersonel, rataSkor, pelanggaranBulanIni };
+}
+
+/**
+ * Audit kepatuhan otomatis: rangkai `users` × `asets` × `checklist_harian` ×
+ * `berita_acara`, lalu hitung pelanggaran per personel:
+ *
+ *   • Telat Kembali     = aset rusak dipegang TANPA berita acara
+ *                         (unit belum "dikembalikan" ke unit service).
+ *   • Abaikan Checklist = checklist lewat tanggal masih "Belum Lengkap".
+ *
+ * Skor kepatuhan = 100 − bobot × jumlah pelanggaran (dipotok 0–100).
+ * Semua dari database — tidak ada seed mock.
+ */
+export function useAuditKepatuhan(): SupabaseQueryResult<BarisAuditKepatuhan> {
+  const usersQ = useSupabaseTable<UserRow, UserInfo>(
+    "users",
+    "*",
+    (rows) => rows.map(mapUser)
+  );
+  const asetsQ = useAsets();
+  const checklistQ = useSupabaseTable<ChecklistHarianRow, ChecklistMapped>(
+    "checklist_harian",
+    "*",
+    mapChecklists,
+    { col: "tanggal", ascending: false }
+  );
+  const baQ = useSupabaseTable<BeritaAcaraRow, BeritaAcaraMapped>(
+    "berita_acara",
+    "*",
+    mapBeritaAcara,
+    { col: "tanggal_buat", ascending: false }
+  );
+
+  const loading =
+    usersQ.loading || asetsQ.loading || checklistQ.loading || baQ.loading;
+  const error =
+    usersQ.error ?? asetsQ.error ?? checklistQ.error ?? baQ.error;
+
+  const data = useMemo<BarisAuditKepatuhan[]>(() => {
+    if (loading) return [];
+    const hariIni = new Date().toISOString().slice(0, 10);
+    const awalBulan = hariIni.slice(0, 8) + "01";
+    // Aset yang sudah "dikembalikan via berita acara" (status apa pun).
+    const asetSudahDilaporkan = new Set(
+      baQ.data.map((b) => b.asetId).filter(Boolean) as string[]
+    );
+    const lewatHari = (tanggal: string) =>
+      Math.max(
+        0,
+        Math.round(
+          (new Date(hariIni).getTime() - new Date(tanggal).getTime()) /
+            SATU_HARI_MS
+        )
+      );
+
+    const rows: BarisAuditKepatuhan[] = usersQ.data
+      .filter((u) => u.aktif && u.nip)
+      .map((u) => {
+        const nip = u.nip;
+        // 1) Telat kembali — aset rusak dipegang tanpa laporan BA.
+        const asetTelat = asetsQ.data.filter(
+          (a) =>
+            a.penanggungJawab === nip &&
+            (a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat") &&
+            !asetSudahDilaporkan.has(a.id)
+        );
+        // 2) Abaikan checklist — lewat tanggal & masih belum lengkap.
+        const ckLewat = checklistQ.data.filter(
+          (c) =>
+            c.pemeriksaId === nip &&
+            c.status === "Belum Lengkap" &&
+            !!c.tanggal &&
+            c.tanggal < hariIni
+        );
+        const telat = asetTelat.length;
+        const abaikan = ckLewat.length;
+        const rincian: string[] = [
+          ...asetTelat.map(
+            (a) =>
+              `Unit ${a.kode ? a.kode + " · " : ""}${a.nama} rusak (${a.kondisi}) — belum diserahkan lewat berita acara`
+          ),
+          ...ckLewat.map(
+            (c) =>
+              `Checklist ${c.tanggal} · ${c.unit} — lewat ${lewatHari(c.tanggal)} hari, masih Belum Lengkap`
+          ),
+        ];
+        const abaikanBulanIni = ckLewat.filter((c) => c.tanggal >= awalBulan)
+          .length;
+        return {
+          personelId: nip,
+          nama: u.nama,
+          jabatan: u.role,
+          telatKembali: telat,
+          abaikanChecklist: abaikan,
+          telatBulanIni: telat, // pelanggaran masih berjalan → masuk bulan ini
+          abaikanBulanIni,
+          skorKepatuhan: clampSkor(
+            100 -
+              telat * BOBOT_TELAT_KEMBALI -
+              abaikan * BOBOT_ABAIKAN_CHECKLIST
+          ),
+          rincian,
+        };
+      });
+
+    // Skor tertinggi dulu; seri → pelanggaran sedikit dulu; seri → nama naik.
+    return rows.sort(
+      (a, b) =>
+        b.skorKepatuhan - a.skorKepatuhan ||
+        a.telatKembali +
+          a.abaikanChecklist -
+          (b.telatKembali + b.abaikanChecklist) ||
+        a.nama.localeCompare(b.nama)
+    );
+  }, [usersQ.data, asetsQ.data, checklistQ.data, baQ.data, loading]);
+
+  const refetch = useCallback(() => {
+    usersQ.refetch();
+    asetsQ.refetch();
+    checklistQ.refetch();
+    baQ.refetch();
+  }, [usersQ, asetsQ, checklistQ, baQ]);
+
+  return { data, loading, error, refetch };
 }

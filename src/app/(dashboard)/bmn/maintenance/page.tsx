@@ -318,7 +318,7 @@ export default function TiketMaintenancePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-rose-500" />
-            Tikit Prioritas Tinggi
+            Tiket Prioritas Tinggi
           </CardTitle>
         </CardHeader>
         <CardContent>

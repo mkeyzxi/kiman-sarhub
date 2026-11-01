@@ -288,6 +288,15 @@ export default function ChecklistPerawatanPage() {
   const totalChecklist = checklistHarianList.length;
   const checklistLengkap = checklistHarianList.filter((c) => c.status === "Lengkap").length;
   const checklistBelumLengkap = checklistHarianList.filter((c) => c.status === "Belum Lengkap").length;
+  // "Minggu ini" dihitung nyata dari database: sejak Senin pekan berjalan.
+  const sekarang = new Date();
+  const geserKeSenin = (sekarang.getDay() + 6) % 7; // Senin = 0 … Minggu = 6
+  const hariSenin = new Date(sekarang);
+  hariSenin.setDate(hariSenin.getDate() - geserKeSenin);
+  const awalMinggu = hariSenin.toISOString().slice(0, 10);
+  const checklistMingguIni = checklistHarianList.filter(
+    (c) => c.tanggal && c.tanggal >= awalMinggu
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -336,7 +345,7 @@ export default function ChecklistPerawatanPage() {
           icon={ClipboardCheck}
           iconBg="bg-primary-light"
           iconColor="text-primary"
-          subText="Minggu ini"
+          subText={`${checklistMingguIni} minggu ini`}
         />
         <StatCard
           label="Lengkap"
