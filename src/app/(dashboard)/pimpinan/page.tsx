@@ -19,10 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
-  complianceRanking,
   formatTanggal,
   hitungReadinessStats,
-  getUserById,
   STATUS_ASET_VARIANT,
   STATUS_ASET_STANDBY,
   type StatusAset,
@@ -32,6 +30,7 @@ import {
   useNotifications,
   useActivityLog,
   useRiwayatOperasi,
+  useAuditKepatuhan,
 } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
@@ -63,7 +62,25 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 export default function PimpinanPage() {
   const [asetFilter, setAsetFilter] = useState<"Semua" | "Standby" | "Belum Lengkap">("Semua");
   // Data master dari Supabase.
-  const { data: asetList, loading, error, refetch } = useAsets();
+  const {
+    data: asetList,
+    loading: asetLoading,
+    error: asetError,
+    refetch: muatUlangAsets,
+  } = useAsets();
+  // Kepatuhan personel — dihitung otomatis dari database (sama dengan /audit).
+  const {
+    data: kepatuhanList,
+    loading: kepatuhanLoading,
+    error: kepatuhanError,
+    refetch: muatUlangKepatuhan,
+  } = useAuditKepatuhan();
+  const loading = asetLoading || kepatuhanLoading;
+  const error = asetError ?? kepatuhanError;
+  const refetch = () => {
+    muatUlangAsets();
+    muatUlangKepatuhan();
+  };
   const { data: notifikasiList } = useNotifications();
   const { data: logAktivitas } = useActivityLog();
   const { data: riwayatOperasi } = useRiwayatOperasi();
@@ -82,10 +99,8 @@ export default function PimpinanPage() {
     return true;
   });
 
-  // Diurutkan dari skor tertinggi, dengan peringkat yang sudah dilampirkan.
-  const ranking = [...complianceRanking]
-    .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
-    .map((item, i) => ({ ...item, rank: i + 1 }));
+  // Peringkat dihitung di hook (skor tertinggi dulu) — lampirkan nomor rank.
+  const ranking = kepatuhanList.map((item, i) => ({ ...item, rank: i + 1 }));
 
   if (loading) {
     return <DataLoading label="Memuat dashboard pimpinan…" />;
@@ -295,7 +310,7 @@ export default function PimpinanPage() {
             data={ranking}
             getKey={(row) => row.personelId}
             cardTitle={(row) => row.nama}
-            cardSubtitle={(row) => getUserById(row.personelId)?.role ?? "-"}
+            cardSubtitle={(row) => row.jabatan}
             cardBadge={(row) => (
               <Badge
                 variant={
@@ -346,7 +361,7 @@ export default function PimpinanPage() {
                 key: "role",
                 header: "Jabatan",
                 render: (row) => (
-                  <Badge variant="outline">{getUserById(row.personelId)?.role ?? "-"}</Badge>
+                  <Badge variant="outline">{row.jabatan}</Badge>
                 ),
                 hideOnCard: true,
               },
@@ -508,7 +523,9 @@ export default function PimpinanPage() {
         <CardContent>
           <div className="space-y-3">
             {logAktivitas.slice(0, 8).map((log) => {
-              const user = log.userId ? getUserById(log.userId) : undefined;
+              const user = log.userId
+                ? kepatuhanList.find((k) => k.personelId === log.userId)
+                : undefined;
               return (
                 <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
                   <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center shrink-0">

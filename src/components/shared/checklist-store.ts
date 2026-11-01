@@ -13,10 +13,12 @@ import {
  * Penyimpanan checklist harian:
  *
  * - **Tulis**: INSERT ke Supabase `checklist_harian` (Tahap 4).
- * - **Baca**: gabungan mock seed + in-memory sesi + data Supabase.
+ * - **Baca**: data Supabase + tulisan sesi berjalan (in-memory).
+ *   SEED MOCK sengaja tidak digabung lagi supaya daftar & statistik
+ *   (`Total/Lengkap/Belum Lengkap`) selalu nyata dari database.
  *
- * Saat Supabase belum aktif / offline, tulis tetap masuk ke in-memory
- * supaya UI tidak hangus; baca tetap jalan dari mock seed.
+ * Bila Supabase gagal saat menulis, tulis tetap masuk in-memory supaya
+ * UI tidak hangus; baca murni mengikuti database.
  */
 
 // ── In-memory store (fallback / sesi berjalan) ──────────────────────────────
@@ -27,17 +29,13 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-/** ID checklist berikutnya (berurutan dari seed + memori). */
+/**
+ * ID checklist baru — berbasis waktu unik (bentuk selaras `ba-…`).
+ * Tanpa menyentuh seed/DB: kalaupun memori hangus antar sesi, ID tetap
+ * unik sehingga tidak menabrak primary key saat INSERT ke database.
+ */
 function nextChecklistId(): string {
-  const semua = [...checklistHarianList, ...memory];
-  const nomorNomor = semua
-    .map((c) => {
-      const digits = c.id.replace(/\D/g, "");
-      return Number(digits);
-    })
-    .filter((n) => Number.isFinite(n));
-  const maks = nomorNomor.length > 0 ? Math.max(...nomorNomor) : 0;
-  return `chk-${String(maks + 1).padStart(3, "0")}`;
+  return `chk-${Date.now()}`;
 }
 
 export interface InputChecklist {
@@ -216,11 +214,12 @@ export function useChecklistsCombined(): {
     };
   }, [fetch_]);
 
-  // Gabungan: in-memory dulu (paling baru), lalu Supabase, lalu mock seed
-  // — dedup oleh id.
+  // Gabungan: in-memory dulu (paling baru), lalu Supabase — dedup oleh id.
+  // Seed mock TIDAK digabung: halaman & statistik harus mencerminkan isi
+  // database (tanpa data contoh statis yang tidak nyata).
   const seen = new Set<string>();
   const data: ChecklistHarian[] = [];
-  for (const c of [...memoryData, ...(supaRows ?? []), ...checklistHarianList]) {
+  for (const c of [...memoryData, ...(supaRows ?? [])]) {
     if (!seen.has(c.id)) {
       seen.add(c.id);
       data.push(c);

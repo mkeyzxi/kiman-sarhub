@@ -76,9 +76,9 @@ export default function BeritaAcaraPage() {
     useChecklistsCombined();
   const checklist = checklistList.find((c) => c.id === checklistId);
 
-  // Aset terkait: dari `asetId` checklist (Supabase), fallback cari nama unit.
+  // Aset terkait: HARUS dari asetId checklist (jangan cari nama — unit kembar bisa salah).
   const { data: asetDb } = useAsetById(checklist?.asetId || undefined);
-  const aset = asetDb ?? (checklist ? cariAsetDmUnit(checklist.unit) : undefined);
+  const aset = asetDb;
 
   // ── State form ───────────────────────────────────────────────────────────
   const [baId, setBaId] = useState("");

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { ewsTickets, type EWSTicket, type TingkatKeparahan, type StatusTicket } from "./mock-data";
+import { type EWSTicket, type TingkatKeparahan, type StatusTicket } from "./mock-data";
 
 /**
  * Store tiket EWS:
@@ -15,7 +15,7 @@ import { ewsTickets, type EWSTicket, type TingkatKeparahan, type StatusTicket } 
  * Supabase gagal/offline → tetap masuk in-memory (UI tidak hangus).
  */
 
-let tickets: EWSTicket[] = [...ewsTickets];
+let tickets: EWSTicket[] = [];
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -31,7 +31,7 @@ function subscribe(listener: () => void) {
 
 /** Dipakai saat render di server / saat snapshot diambil. */
 function getServerSnapshot(): EWSTicket[] {
-  return ewsTickets;
+  return [];
 }
 
 export function useTickets(): EWSTicket[] {
@@ -107,10 +107,11 @@ export function useTicketsCombined(): {
     };
   }, [fetch_]);
 
-  // Gabungan: in-memory dulu, lalu Supabase (yang id-nya belum ada), lalu seed
+  // Gabungan: in-memory dulu (sesi berjalan), lalu Supabase.
+  // Seed mock ewsTickets DIBUANG — hanya database + sesi yang ditampilkan.
   const seen = new Set<string>();
   const data: EWSTicket[] = [];
-  for (const t of [...memoryData, ...(supaData ?? []), ...ewsTickets]) {
+  for (const t of [...memoryData, ...(supaData ?? [])]) {
     if (!seen.has(t.id)) {
       seen.add(t.id);
       data.push(t);
@@ -152,10 +153,33 @@ function toSupabaseRow(t: EWSTicket) {
 async function persistInsert(t: EWSTicket): Promise<void> {
   try {
     const supa = getSupabaseBrowserClient();
-    await supa.from("ews_tickets").insert(toSupabaseRow(t));
-  } catch {
-    // Offline / Supabase belum dikonfigurasi — abaikan, data in-memory.
+    const res = await supa.from("ews_tickets").insert(toSupabaseRow(t));
+    if (res.error) {
+      // Jangan senyap: INSERT gagal (RLS/FK/konflik) wajib terlihat —
+      // tiket yang gagal tersimpan membuat penyambungan BA (tiket_id FK)
+      // menabrak konstraint "Referensi tidak valid".
+      console.error(
+        "[ews_tickets] INSERT tiket gagal:",
+        res.error.message,
+        res.error.details ?? "",
+        res.error.hint ?? ""
+      );
+    }
+  } catch (e) {
+    console.error("[ews_tickets] INSERT tiket gagal (jaringan):", e);
   }
+}
+
+/** Susun objek tiket baru (status "Menunggu", tanggal hari ini). */
+function buatTiketBaru(data: TicketBaru): EWSTicket {
+  const hariIni = new Date().toISOString().slice(0, 10);
+  return {
+    ...data,
+    id: `ews-${String(tickets.length + 1).padStart(3, "0")}`,
+    status: "Menunggu",
+    tanggalBuat: hariIni,
+    tanggalUpdate: hariIni,
+  };
 }
 
 async function persistUpdate(id: string, t: EWSTicket): Promise<void> {
@@ -168,20 +192,37 @@ async function persistUpdate(id: string, t: EWSTicket): Promise<void> {
 }
 
 export function addTicket(data: TicketBaru): EWSTicket {
-  const hariIni = new Date().toISOString().slice(0, 10);
-  const tiket: EWSTicket = {
-    ...data,
-    id: `ews-${String(tickets.length + 1).padStart(3, "0")}`,
-    status: "Menunggu",
-    tanggalBuat: hariIni,
-    tanggalUpdate: hariIni,
-  };
-
+  const tiket = buatTiketBaru(data);
   tickets = [tiket, ...tickets];
   emit();
-  // Persist ke Supabase (fire-and-forget, silent).
+  // Persist ke Supabase (fire-and-forget; error dicatat ke console).
   void persistInsert(tiket);
   return tiket;
+}
+
+/**
+ * Buat tiket + TULIS Supabase dengan jaminan tersimpan — versi async yang
+ * di-`await` form BMN sebelum tiket disambungkan ke berita acara: bila
+ * INSERT ditolak (RLS/FK), error melempar ke form dan tiket di-revert dari
+ * in-memory. Tanpa ini, UPDATE `berita_acara.tiket_id` berjalan walau tiket
+ * belum ada di database → FK violation ("Referensi tidak valid").
+ */
+export async function tambahTiketSupabase(data: TicketBaru): Promise<EWSTicket> {
+  const tiket = buatTiketBaru(data);
+  tickets = [tiket, ...tickets];
+  emit();
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { error } = await supa.from("ews_tickets").insert(toSupabaseRow(tiket));
+    if (error) throw new Error(error.message);
+    return tiket;
+  } catch (e) {
+    // Gagal tersimpan → cabut dari in-memory agar UI & penomoran jujur.
+    tickets = tickets.filter((x) => x.id !== tiket.id);
+    emit();
+    const raw = e instanceof Error ? e.message : String(e);
+    throw new Error(`Tiket gagal disimpan: ${raw}`);
+  }
 }
 
 export function updateTicketStatus(id: string, status: EWSTicket["status"]): void {

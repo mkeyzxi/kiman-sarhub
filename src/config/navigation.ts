@@ -29,6 +29,8 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: number;
+  /** Key untuk badge dinamis dari BadgeProvider. */
+  badgeKey?: "maintenance" | "beritaAcara";
 }
 
 export interface NavGroup {

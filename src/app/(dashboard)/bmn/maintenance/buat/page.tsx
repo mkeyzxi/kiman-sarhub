@@ -10,8 +10,9 @@ import { Card } from "@/components/ui/card";
 import {
   type TingkatKeparahan,
   labelModelAset,
+  type EWSTicket,
 } from "@/components/shared/mock-data";
-import { addTicket } from "@/components/shared/ticket-store";
+import { tambahTiketSupabase } from "@/components/shared/ticket-store";
 import {
   updateBeritaAcaraStatus,
 } from "@/components/shared/db-writes";
@@ -133,13 +134,24 @@ function BuatTiketForm() {
     }
     setMenyimpan(true);
     setGagal(null);
-    const tiket = addTicket({
-      asetId: formData.asetId,
-      judul: formData.judul,
-      deskripsi: formData.deskripsi,
-      tingkatKeparahan: formData.tingkatKeparahan,
-      assignedTo: assignedToEfektif,
-    });
+    // Tulis tiket dulu sampai PASTI tersimpan di database sebelum
+    // disambungkan ke berita acara — jika INSERT ditolak (RLS/konflik),
+    // tampilkan error dan berhenti: tanpa ini, UPDATE tiket_id pada BA
+    // menabrak FK karena tiket belum ada → "Referensi tidak valid".
+    let tiket: EWSTicket;
+    try {
+      tiket = await tambahTiketSupabase({
+        asetId: formData.asetId,
+        judul: formData.judul,
+        deskripsi: formData.deskripsi,
+        tingkatKeparahan: formData.tingkatKeparahan,
+        assignedTo: assignedToEfektif,
+      });
+    } catch (e) {
+      setGagal(e instanceof Error ? e.message : "Gagal menyimpan tiket");
+      setMenyimpan(false);
+      return;
+    }
 
     // Sambungkan tiket ke berita acara yang jadi dasarnya (status BA tetap
     // "Disetujui" — hanya tiket_id yang diisi) supaya kartu BA tampil di

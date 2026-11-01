@@ -4,10 +4,12 @@ import { Users, TrendingUp, AlertOctagon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
+import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
-  complianceRanking,
-  getUserById,
-} from "@/components/shared/mock-data";
+  useAuditKepatuhan,
+  hitungRingkasanAudit,
+  type BarisAuditKepatuhan,
+} from "@/components/shared/use-supabase-data";
 
 function getSkorColor(skor: number): string {
   if (skor >= 90) return "text-emerald-600";
@@ -23,21 +25,20 @@ function getSkorBadgeVariant(
   return "danger";
 }
 
-export default function AuditPage() {
-  const totalPersonel = complianceRanking.length;
-  const rataSkor = Math.round(
-    complianceRanking.reduce((sum, p) => sum + p.skorKepatuhan, 0) /
-      totalPersonel
-  );
-  const pelanggaran = complianceRanking.reduce(
-    (sum, p) => sum + p.telatKembali + p.abaikanChecklist,
-    0
-  );
+interface BarisRanking extends BarisAuditKepatuhan {
+  rank: number;
+}
 
-  // Diurutkan dari skor tertinggi, dengan peringkat yang sudah dilampirkan.
-  const ranking = [...complianceRanking]
-    .sort((a, b) => b.skorKepatuhan - a.skorKepatuhan)
-    .map((item, i) => ({ ...item, rank: i + 1 }));
+export default function AuditPage() {
+  const { data, loading, error, refetch } = useAuditKepatuhan();
+  const { totalPersonel, rataSkor, pelanggaranBulanIni } =
+    hitungRingkasanAudit(data);
+
+  // Peringkat sudah tertata di hook (skor tertinggi dulu) — lampirkan rank.
+  const ranking: BarisRanking[] = data.map((item, i) => ({
+    ...item,
+    rank: i + 1,
+  }));
 
   const stats = [
     {
@@ -56,12 +57,25 @@ export default function AuditPage() {
     },
     {
       label: "Pelanggaran Bulan Ini",
-      value: pelanggaran,
+      value: pelanggaranBulanIni,
       icon: AlertOctagon,
       iconBg: "bg-rose-50",
       iconColor: "text-rose-600",
     },
   ];
+
+  if (loading) {
+    return <DataLoading label="Memuat audit kepatuhan…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat data kepatuhan dari database"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -70,6 +84,11 @@ export default function AuditPage() {
         <h1 className="text-2xl font-bold text-slate-800">Audit Kepatuhan</h1>
         <p className="text-sm text-slate-500 mt-1">
           Evaluasi kepatuhan personel terhadap prosedur operasional SAR
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
+          Telat Kembali = unit rusak masih dipegang tanpa berita acara ·
+          Abaikan Checklist = pemeriksaan lewat waktunya dan masih Belum
+          Lengkap. Semua dihitung otomatis dari data.
         </p>
       </div>
 
@@ -98,7 +117,7 @@ export default function AuditPage() {
           data={ranking}
           getKey={(row) => row.personelId}
           cardTitle={(row) => row.nama}
-          cardSubtitle={(row) => getUserById(row.personelId)?.role ?? "-"}
+          cardSubtitle={(row) => row.jabatan}
           cardBadge={(row) => (
             <Badge variant={getSkorBadgeVariant(row.skorKepatuhan)}>
               <span className={getSkorColor(row.skorKepatuhan)}>
@@ -139,11 +158,9 @@ export default function AuditPage() {
               hideOnCard: true,
             },
             {
-              key: "role",
+              key: "jabatan",
               header: "Jabatan",
-              render: (row) => (
-                <Badge variant="outline">{getUserById(row.personelId)?.role ?? "-"}</Badge>
-              ),
+              render: (row) => <Badge variant="outline">{row.jabatan}</Badge>,
               hideOnCard: true,
             },
             {
@@ -175,6 +192,23 @@ export default function AuditPage() {
               ),
               headClassName: "text-center",
               cellClassName: "text-center",
+            },
+            {
+              key: "rincian",
+              header: "Keterangan Pelanggaran",
+              render: (row) =>
+                row.rincian.length > 0 ? (
+                  <ul className="space-y-1 text-xs text-slate-600">
+                    {row.rincian.map((teks, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <AlertOctagon className="h-3.5 w-3.5 shrink-0 text-rose-500 mt-0.5" />
+                        <span>{teks}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="text-xs text-slate-400">—</span>
+                ),
             },
             {
               key: "skorKepatuhan",
