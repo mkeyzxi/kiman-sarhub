@@ -367,7 +367,7 @@ export default function PimpinanPage() {
               },
               {
                 key: "telatKembali",
-                header: "Telat Kembali",
+                header: "Aset Rusak Belum Dilaporkan",
                 render: (row) => (
                   <span
                     className={cn(
@@ -383,7 +383,7 @@ export default function PimpinanPage() {
               },
               {
                 key: "abaikanChecklist",
-                header: "Abaikan Checklist",
+                header: "Checklist Belum Dilengkapi",
                 render: (row) => (
                   <span
                     className={cn(

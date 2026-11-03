@@ -2515,8 +2515,11 @@ export const checklistTemplates: ChecklistTemplate[] = [
  * Kelompokkan item template berdasarkan kategori/bagian yang relevan.
  * Pemetaan mengikuti urutan item pada form fisik (dokumentasi_utuh.md Bagian 5).
  * `upto` adalah indeks item terakhir (1-based) pada bagian tersebut.
+ *
+ * Diekspor supaya halaman yang menampilkan instance checklist (item JSONB)
+ * bisa mengelompokkan item tanpa kategori mengikuti bagian yang sama.
  */
-const BAGIAN_TEMPLATE: Record<string, ReadonlyArray<{ nama: string; upto: number }>> = {
+export const BAGIAN_TEMPLATE: Record<string, ReadonlyArray<{ nama: string; upto: number }>> = {
   "arm-motor-mingguan": [
     { nama: "Bagian 1: Pemeriksaan Utama", upto: 12 },
     { nama: "Bagian 2: Kelistrikan & Perlengkapan", upto: 19 },

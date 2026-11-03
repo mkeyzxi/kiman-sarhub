@@ -26,6 +26,8 @@ import type {
   ChecklistTemplateRow,
   ChecklistItemRow,
   UserRow,
+  PengisianBbmRow,
+  CatatanPerbaikanRow,
 } from "@/types/supabase";
 import {
   mapAsets,
@@ -38,6 +40,8 @@ import {
   mapBeritaAcara,
   mapAntreanVerifikasi,
   mapChecklistTemplates,
+  mapPengisianBBM,
+  mapCatatanPerbaikan,
   type AsetMapped,
   type LogbookMapped,
   type ChecklistMapped,
@@ -48,6 +52,8 @@ import {
   type BeritaAcaraMapped,
   type AntreanVerifikasiMapped,
   type ChecklistTemplateMapped,
+  type PengisianBbmMapped,
+  type CatatanPerbaikanMapped,
 } from "@/components/shared/supabase-mock-mapper";
 
 /** Nama tabel yang terdaftar di `Database["public"]["Tables"]`. */
@@ -413,6 +419,26 @@ export function useEwsTickets(): SupabaseQueryResult<EwsTicketMapped> {
   );
 }
 
+/** Riwayat pengisian BBM (tabel pendukung dashboard operator). */
+export function usePengisianBBM(): SupabaseQueryResult<PengisianBbmMapped> {
+  return useSupabaseTable<PengisianBbmRow, PengisianBbmMapped>(
+    "pengisian_bbm",
+    "*",
+    mapPengisianBBM,
+    { col: "tanggal", ascending: false }
+  );
+}
+
+/** Catatan perbaikan sarana darat (tabel pendukung dashboard operator). */
+export function useCatatanPerbaikan(): SupabaseQueryResult<CatatanPerbaikanMapped> {
+  return useSupabaseTable<CatatanPerbaikanRow, CatatanPerbaikanMapped>(
+    "catatan_perbaikan",
+    "*",
+    mapCatatanPerbaikan,
+    { col: "tanggal", ascending: false }
+  );
+}
+
 export function useNotifications(): SupabaseQueryResult<NotifikasiMapped> {
   return useSupabaseTable<NotificationRow, NotifikasiMapped>(
     "notifications",
@@ -661,7 +687,7 @@ export function useKartuPenanggungJawab(): SupabaseQueryResult<KartuPJ> {
   return { data: cards, loading, error, refetch };
 }
 
-// ─── AUDIT KEPATUHAN (dihitung dari jejak nyata database) ────────────────────
+// ─── AUDIT KEPATUHAN (penilaian bulanan — recovery tiap tanggal 1) ───────────
 
 export interface BarisAuditKepatuhan {
   /** NIP personel. */
@@ -670,20 +696,30 @@ export interface BarisAuditKepatuhan {
   /** Role/ jabatan token dari DB users. */
   jabatan: string;
   /**
-   * "Telat Kembali" — aset rusak yang masih dipegang personel (penanggung
-   * jawabnya) DAN tidak ada berita acara apapun untuk aset itu: unit
-   * seharusnya diserahkan ke unit service via BA, tapi ditarik terus.
+   * "Aset Rusak Belum Dilaporkan" PADA PERIODE TERPILIH:
+   *  • Bulan berjalan → aset rusak yang masih dipegang personel (penanggung
+   *    jawabnya) TANPA berita acara apa pun: unit seharusnya diserahkan ke
+   *    unit service via BA, tapi ditarik terus (pelanggaran berjalan).
+   *  • Bulan lampau   → aset rusak yang baru pertama kali dilaporkan lewat
+   *    berita acara SETELAH bulan itu berakhir — selama bulan itu unit masih
+   *    tertahan pada personel.
    */
   telatKembali: number;
   /**
-   * "Abaikan Checklist" — checklist miliknya (pemeriksa) yang tanggalnya
-   * SUDAH LEWAT dari hari ini namun masih "Belum Lengkap".
+   * "Checklist Belum Dilengkapi" PADA PERIODE TERPILIH — checklist miliknya (pemeriksa)
+   * yang tanggalnya berada di bulan tersebut, sudah lewat, dan statusnya
+   * masih "Belum Lengkap".
    */
   abaikanChecklist: number;
-  /** Untuk kartu "Pelanggaran Bulan Ini": subset bulan berjalan. */
+  /** Ringkas pelanggaran periode terpilih — untuk kartu statistik. */
   telatBulanIni: number;
   abaikanBulanIni: number;
-  /** 100 dikurangi hukuman per pelanggaran (lihat konstanta di bawah). */
+  /**
+   * 100 − bobot × pelanggaran PADA PERIODE TERPILIH saja (dipotok 0–100).
+   * Karena hanya pelanggaran bulan itu yang dihitung, setiap tanggal 1 skor
+   * otomatis "recovery" kembali ke 100 — pelanggaran bulan sebelumnya tidak
+   * mendatangkan hukuman ke bulan baru.
+   */
   skorKepatuhan: number;
   /** Kalimat singkat tiap pelanggaran — untuk kolom rincian. */
   rincian: string[];
@@ -698,7 +734,8 @@ const SATU_HARI_MS = 86_400_000;
 const clampSkor = (n: number) => Math.max(0, Math.min(100, n));
 
 /**
- * Ringkasan kartu statistik halaman audit — dihitung dari baris per personel.
+ * Ringkasan kartu statistik halaman audit — dihitung dari baris per personel
+ * pada periode (bulan) terpilih.
  */
 export function hitungRingkasanAudit(rows: BarisAuditKepatuhan[]): {
   totalPersonel: number;
@@ -717,18 +754,52 @@ export function hitungRingkasanAudit(rows: BarisAuditKepatuhan[]): {
   return { totalPersonel, rataSkor, pelanggaranBulanIni };
 }
 
+/** Hasil `useAuditKepatuhan` — plus daftar periode siap pakai untuk filter. */
+export interface HasilAuditKepatuhan
+  extends SupabaseQueryResult<BarisAuditKepatuhan> {
+  /**
+   * Semua periode ("yyyy-mm") yang punya jejak checklist/berita acara, plus
+   * bulan berjalan. Terurut terbaru di atas — langsung jadi isi dropdown.
+   */
+  opsiPeriode: string[];
+}
+
+/** Nama bulan Indonesia — untuk label periode "2026-11" → "November 2026". */
+const BULAN_ID = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
+  "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+/** "yyyy-mm" → "November 2026" — label periode untuk dropdown/kartu halaman. */
+export function labelPeriode(periode: string): string {
+  const nomorBulan = Number(periode.slice(5, 7)) - 1;
+  const nama = BULAN_ID[nomorBulan] ?? `Bulan ${periode.slice(5, 7)}`;
+  return `${nama} ${periode.slice(0, 4)}`;
+}
+
 /**
- * Audit kepatuhan otomatis: rangkai `users` × `asets` × `checklist_harian` ×
- * `berita_acara`, lalu hitung pelanggaran per personel:
+ * Audit kepatuhan otomatis per BULAN: rangkai `users` × `asets` ×
+ * `checklist_harian` × `berita_acara`, lalu hitung pelanggaran per personel
+ * PADA BULAN `periode` ("yyyy-mm"; kosong = bulan berjalan):
  *
- *   • Telat Kembali     = aset rusak dipegang TANPA berita acara
- *                         (unit belum "dikembalikan" ke unit service).
- *   • Abaikan Checklist = checklist lewat tanggal masih "Belum Lengkap".
+ *   • Aset Rusak Belum Dilaporkan = bulan berjalan: aset rusak masih dipegang TANPA
+ *                                   berita acara (unit belum "dikembalikan" ke unit
+ *                                   service). Bulan lampau: aset rusak yang berita
+ *                                   acaranya baru dibuat SETELAH bulan itu — selama
+ *                                   bulan itu unit masih tertahan pada personel.
+ *   • Checklist Belum Dilengkapi  = checklist bertanggal di bulan itu, sudah lewat,
+ *                                   dan masih "Belum Lengkap".
  *
- * Skor kepatuhan = 100 − bobot × jumlah pelanggaran (dipotok 0–100).
+ * Skor kepatuhan bulan itu = 100 − bobot × pelanggaran bulan itu saja
+ * (dipotok 0–100). Karena pelanggaran bulan lampau tidak ikut, skor otomatis
+ * "recovery" setiap tanggal 1: personel mulai bulan baru dengan angka bersih,
+ * pemulihan penuh bila bulan itu bersih. Pelanggaran yang masih berlangsung
+ * (unit rusak masih dipegang tanpa BA) tetap tampil sebagai pelanggaran
+ * berjalan pada bulan berjalan.
+ *
  * Semua dari database — tidak ada seed mock.
  */
-export function useAuditKepatuhan(): SupabaseQueryResult<BarisAuditKepatuhan> {
+export function useAuditKepatuhan(periode?: string): HasilAuditKepatuhan {
   const usersQ = useSupabaseTable<UserRow, UserInfo>(
     "users",
     "*",
@@ -756,11 +827,37 @@ export function useAuditKepatuhan(): SupabaseQueryResult<BarisAuditKepatuhan> {
   const data = useMemo<BarisAuditKepatuhan[]>(() => {
     if (loading) return [];
     const hariIni = new Date().toISOString().slice(0, 10);
-    const awalBulan = hariIni.slice(0, 8) + "01";
-    // Aset yang sudah "dikembalikan via berita acara" (status apa pun).
-    const asetSudahDilaporkan = new Set(
-      baQ.data.map((b) => b.asetId).filter(Boolean) as string[]
-    );
+    const bulanSekarang = hariIni.slice(0, 7);
+    const periodeAktif = periode || bulanSekarang;
+    const mulaiPeriode = `${periodeAktif}-01`;
+    const sedangBerjalan = periodeAktif === bulanSekarang;
+    // Akhir periode: bulan berjalan berhenti di hari ini (checklist esok tak
+    // dihitung); bulan lampau sampai tanggal terakhir bulannya — format ISO
+    // "yyyy-mm-dd" agar bisa dibandingkan sebagai string tanggal.
+    const akhirPeriode = sedangBerjalan
+      ? hariIni
+      : new Date(
+          Date.UTC(
+            Number(periodeAktif.slice(0, 4)),
+            Number(periodeAktif.slice(5, 7)),
+            0
+          )
+        )
+          .toISOString()
+          .slice(0, 10);
+    const dalamPeriode = (t: string) => t >= mulaiPeriode && t <= akhirPeriode;
+
+    // BA pertama (tertua) per aset = tanggal unit mulai "diserahkan" lewat
+    // berita acara — sesudah tanggal ini unit tak lagi dipegang tanpa laporan.
+    const baPertamaPerAset = new Map<string, string>();
+    for (const b of baQ.data) {
+      const tanggalBA = b.tanggalBuat || b.tanggal;
+      if (!b.asetId || !tanggalBA) continue;
+      const sebelumnya = baPertamaPerAset.get(b.asetId);
+      if (!sebelumnya || tanggalBA < sebelumnya)
+        baPertamaPerAset.set(b.asetId, tanggalBA);
+    }
+
     const lewatHari = (tanggal: string) =>
       Math.max(
         0,
@@ -774,43 +871,52 @@ export function useAuditKepatuhan(): SupabaseQueryResult<BarisAuditKepatuhan> {
       .filter((u) => u.aktif && u.nip)
       .map((u) => {
         const nip = u.nip;
-        // 1) Telat kembali — aset rusak dipegang tanpa laporan BA.
-        const asetTelat = asetsQ.data.filter(
-          (a) =>
-            a.penanggungJawab === nip &&
-            (a.kondisi === "Rusak Ringan" || a.kondisi === "Rusak Berat") &&
-            !asetSudahDilaporkan.has(a.id)
-        );
-        // 2) Abaikan checklist — lewat tanggal & masih belum lengkap.
+        // 1) Aset Rusak Belum Dilaporkan — aset rusak yang masih tertahan pada periode ini.
+        const asetTelat = asetsQ.data.filter((a) => {
+          if (a.penanggungJawab !== nip) return false;
+          if (a.kondisi !== "Rusak Ringan" && a.kondisi !== "Rusak Berat")
+            return false;
+          const baPertama = baPertamaPerAset.get(a.id);
+          if (sedangBerjalan) {
+            // Pelanggaran berjalan: sampai hari ini belum pernah diserahkan.
+            return !baPertama;
+          }
+          // Bulan lampau: pada akhir bulan itu unit masih tertahan — berita
+          // acara pemulihannya baru dibuat setelah bulan tersebut.
+          return !!baPertama && baPertama > akhirPeriode;
+        });
+        // 2) Checklist Belum Dilengkapi — bertanggal di periode ini, lewat, belum lengkap.
         const ckLewat = checklistQ.data.filter(
           (c) =>
             c.pemeriksaId === nip &&
             c.status === "Belum Lengkap" &&
             !!c.tanggal &&
-            c.tanggal < hariIni
+            dalamPeriode(c.tanggal) &&
+            c.tanggal <= hariIni
         );
         const telat = asetTelat.length;
         const abaikan = ckLewat.length;
         const rincian: string[] = [
-          ...asetTelat.map(
-            (a) =>
-              `Unit ${a.kode ? a.kode + " · " : ""}${a.nama} rusak (${a.kondisi}) — belum diserahkan lewat berita acara`
-          ),
+          ...asetTelat.map((a) => {
+            const baPertama = baPertamaPerAset.get(a.id);
+            return sedangBerjalan
+              ? `Unit ${a.kode ? a.kode + " · " : ""}${a.nama} rusak (${a.kondisi}) — belum diserahkan lewat berita acara`
+              : `Unit ${a.kode ? a.kode + " · " : ""}${a.nama} rusak (${a.kondisi}) — pada ${labelPeriode(periodeAktif)} masih tertahan, baru diserahkan lewat berita acara tanggal ${baPertama}`;
+          }),
           ...ckLewat.map(
             (c) =>
               `Checklist ${c.tanggal} · ${c.unit} — lewat ${lewatHari(c.tanggal)} hari, masih Belum Lengkap`
           ),
         ];
-        const abaikanBulanIni = ckLewat.filter((c) => c.tanggal >= awalBulan)
-          .length;
         return {
           personelId: nip,
           nama: u.nama,
           jabatan: u.role,
           telatKembali: telat,
           abaikanChecklist: abaikan,
-          telatBulanIni: telat, // pelanggaran masih berjalan → masuk bulan ini
-          abaikanBulanIni,
+          // Semua pelanggaran di atas memang terjadi dalam periode terpilih.
+          telatBulanIni: telat,
+          abaikanBulanIni: abaikan,
           skorKepatuhan: clampSkor(
             100 -
               telat * BOBOT_TELAT_KEMBALI -
@@ -829,7 +935,24 @@ export function useAuditKepatuhan(): SupabaseQueryResult<BarisAuditKepatuhan> {
           (b.telatKembali + b.abaikanChecklist) ||
         a.nama.localeCompare(b.nama)
     );
-  }, [usersQ.data, asetsQ.data, checklistQ.data, baQ.data, loading]);
+    // `periode` menentukan bulan target perhitungan — wajib jadi dep.
+  }, [usersQ.data, asetsQ.data, checklistQ.data, baQ.data, loading, periode]);
+
+  // Opsi filter periode: bulan berjalan selalu ada + setiap bulan yang punya
+  // jejak checklist/berita acara sampai hari ini; terbaru di atas.
+  const opsiPeriode = useMemo(() => {
+    const hariIni = new Date().toISOString().slice(0, 10);
+    const kumpulan = new Set<string>([hariIni.slice(0, 7)]);
+    for (const c of checklistQ.data)
+      if (c.tanggal && c.tanggal <= hariIni)
+        kumpulan.add(c.tanggal.slice(0, 7));
+    for (const b of baQ.data) {
+      const tanggalBA = b.tanggalBuat || b.tanggal;
+      if (tanggalBA && tanggalBA <= hariIni)
+        kumpulan.add(tanggalBA.slice(0, 7));
+    }
+    return [...kumpulan].sort().reverse();
+  }, [checklistQ.data, baQ.data]);
 
   const refetch = useCallback(() => {
     usersQ.refetch();
@@ -838,5 +961,5 @@ export function useAuditKepatuhan(): SupabaseQueryResult<BarisAuditKepatuhan> {
     baQ.refetch();
   }, [usersQ, asetsQ, checklistQ, baQ]);
 
-  return { data, loading, error, refetch };
+  return { data, loading, error, refetch, opsiPeriode };
 }

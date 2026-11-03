@@ -22,6 +22,8 @@ import type {
   AntreanVerifikasiRow,
   ChecklistTemplateRow,
   ChecklistItemRow,
+  PengisianBbmRow,
+  CatatanPerbaikanRow,
 } from "@/types/supabase";
 import type { BarisKendala } from "@/components/shared/mock-data";
 
@@ -145,6 +147,7 @@ export interface LogbookMapped {
   enduranceAkhir?: string;
   kmSebelum?: string;
   kmSesudah?: string;
+  kecepatanRata?: string;
   status: string;
   catatan: string;
   tanggalSimpan?: string;
@@ -169,6 +172,7 @@ export function mapLogbooks(rows: LogbookPerjalananRow[]): LogbookMapped[] {
     enduranceAkhir: r.endurance_akhir || undefined,
     kmSebelum: r.km_sebelum || undefined,
     kmSesudah: r.km_sesudah || undefined,
+    kecepatanRata: r.kecepatan_rata || undefined,
     status: r.status,
     catatan: r.catatan,
     tanggalSimpan: r.tanggal_simpan ?? undefined,
@@ -380,6 +384,48 @@ export function mapAntreanVerifikasi(rows: AntreanVerifikasiRow[]): AntreanVerif
     tanggalBuat: r.tanggal_buat ?? undefined,
     createdBy: r.created_by ?? undefined,
     catatanRevisi: r.catatan_revisi,
+  }));
+}
+
+// ─── PENGISIAN BBM ────────────────────────────────────────────────────────────
+export interface PengisianBbmMapped {
+  id: string;
+  asetId?: string;
+  tanggal: string;
+  sisaSebelum?: string;
+  penambahan?: string;
+  saldoAkhir?: string;
+  keterangan?: string;
+}
+
+export function mapPengisianBBM(rows: PengisianBbmRow[]): PengisianBbmMapped[] {
+  return rows.map((r) => ({
+    id: r.id,
+    asetId: r.aset_id ?? undefined,
+    tanggal: r.tanggal,
+    sisaSebelum: r.sisa_sebelum ?? undefined,
+    penambahan: r.penambahan ?? undefined,
+    saldoAkhir: r.saldo_akhir ?? undefined,
+    keterangan: r.keterangan ?? undefined,
+  }));
+}
+
+// ─── CATATAN PERBAIKAN ────────────────────────────────────────────────────────
+export interface CatatanPerbaikanMapped {
+  id: string;
+  asetId?: string;
+  tanggal: string;
+  detailPekerjaan: string;
+  pelaksana?: string;
+}
+
+export function mapCatatanPerbaikan(rows: CatatanPerbaikanRow[]): CatatanPerbaikanMapped[] {
+  return rows.map((r) => ({
+    id: r.id,
+    asetId: r.aset_id ?? undefined,
+    tanggal: r.tanggal,
+    detailPekerjaan: r.detail_pekerjaan,
+    pelaksana: r.pelaksana ?? undefined,
   }));
 }
 

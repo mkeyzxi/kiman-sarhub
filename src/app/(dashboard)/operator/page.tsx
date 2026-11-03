@@ -15,274 +15,38 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  catatanPerbaikanDarat,
-  pengisianBBM_RIB02,
+  BAGIAN_TEMPLATE,
   STATUS_ASET_VARIANT,
+  formatEndurance,
+  formatMenit,
   labelModelAset,
   type Aset,
-  type StatusAsetBadgeVariant,
 } from "@/components/shared/mock-data";
 import { beritaAcaraByAset } from "@/components/shared/berita-acara-store";
-import { useAsets } from "@/components/shared/use-supabase-data";
+import {
+  useAsets,
+  useLogbooks,
+  useChecklists,
+  useChecklistTemplates,
+  usePengisianBBM,
+  useCatatanPerbaikan,
+} from "@/components/shared/use-supabase-data";
+import type {
+  AsetMapped,
+  CatatanPerbaikanMapped,
+  ChecklistMapped,
+  ChecklistTemplateMapped,
+  LogbookMapped,
+  PengisianBbmMapped,
+} from "@/components/shared/supabase-mock-mapper";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   ResponsiveTable,
   type ResponsiveField,
 } from "@/components/shared/responsive-table";
 
-// ─── Data Logbook Kapal ──────────────────────────────────────────────────────
-const jurnalRIB = [
-  {
-    id: "rib-01",
-    nama: "RIB Kelas I Vektor RIB 1100",
-    tahun: "2009",
-    status: "Standby",
-    kondisi: "Baik",
-    endurance: "85%",
-    waktu: "2 Jam 30 Menit",
-    pemanasan: [
-      { no: 1, kegiatan: "Pemanasan mesin", waktu: "15 menit", rute: "Dermaga - Perairan Mamuju", berangkat: "08:00", kembali: "08:15", keterangan: "" },
-      { no: 2, kegiatan: "Uji fungsi mesin", waktu: "10 menit", rute: "Perairan Mamuju", berangkat: "08:20", kembali: "08:30", keterangan: "" },
-    ],
-    pengecekan: [
-      { no: 1, item: "Tali Tros", status: "Baik", keterangan: "" },
-      { no: 2, item: "Lunas", status: "Baik", keterangan: "" },
-      { no: 3, item: "Ban Pelampung", status: "Baik", keterangan: "" },
-      { no: 4, item: "Deck", status: "Baik", keterangan: "" },
-      { no: 5, item: "Transom (Stand Mesin)", status: "Baik", keterangan: "" },
-      { no: 6, item: "Starting Engine", status: "Baik", keterangan: "" },
-      { no: 7, item: "Kap Mesin Kanan", status: "Baik", keterangan: "" },
-      { no: 8, item: "Kap Mesin Kiri", status: "Baik", keterangan: "" },
-      { no: 9, item: "Kaburator", status: "Baik", keterangan: "" },
-      { no: 10, item: "Selang BBM", status: "Baik", keterangan: "" },
-      { no: 11, item: "Busi", status: "Baik", keterangan: "" },
-      { no: 12, item: "Dinamo Stater", status: "Baik", keterangan: "" },
-      { no: 13, item: "Dinamo Strom", status: "Baik", keterangan: "" },
-      { no: 14, item: "Hydraulic Mesin", status: "Baik", keterangan: "" },
-      { no: 15, item: "Aki/Baterai", status: "Baik", keterangan: "" },
-      { no: 16, item: "GPS Furuno", status: "Baik", keterangan: "" },
-      { no: 17, item: "GPS Tracking", status: "Baik", keterangan: "" },
-    ],
-  },
-  {
-    id: "rib-02",
-    nama: "RIB Kelas I Sea First",
-    tahun: "2021",
-    status: "Standby",
-    kondisi: "Baik",
-    endurance: "92%",
-    waktu: "3 Jam 15 Menit",
-    pemanasan: [
-      { no: 1, kegiatan: "Pemanasan mesin", waktu: "20 menit", rute: "Dermaga - Perairan Mamuju", berangkat: "08:00", kembali: "08:20", keterangan: "" },
-      { no: 2, kegiatan: "Uji fungsi mesin", waktu: "15 menit", rute: "Perairan Mamuju", berangkat: "08:25", kembali: "08:40", keterangan: "" },
-    ],
-    pengecekan: [
-      { no: 1, item: "Tali Tros", status: "Baik", keterangan: "" },
-      { no: 2, item: "Lunas", status: "Baik", keterangan: "" },
-      { no: 3, item: "Ban Pelampung", status: "Baik", keterangan: "" },
-      { no: 4, item: "Deck", status: "Baik", keterangan: "" },
-      { no: 5, item: "Transom (Stand Mesin)", status: "Baik", keterangan: "" },
-      { no: 6, item: "Starting Engine", status: "Baik", keterangan: "" },
-      { no: 7, item: "Kap Mesin Kanan", status: "Baik", keterangan: "" },
-      { no: 8, item: "Kap Mesin Kiri", status: "Baik", keterangan: "" },
-      { no: 9, item: "Kaburator", status: "Baik", keterangan: "" },
-      { no: 10, item: "Selang BBM", status: "Baik", keterangan: "" },
-      { no: 11, item: "Busi", status: "Baik", keterangan: "" },
-      { no: 12, item: "Dinamo Stater", status: "Baik", keterangan: "" },
-      { no: 13, item: "Dinamo Strom", status: "Baik", keterangan: "" },
-      { no: 14, item: "Hydraulic Mesin", status: "Baik", keterangan: "" },
-      { no: 15, item: "Aki/Baterai", status: "Baik", keterangan: "" },
-      { no: 16, item: "GPS Furuno", status: "Baik", keterangan: "" },
-      { no: 17, item: "GPS Tracking", status: "Baik", keterangan: "" },
-    ],
-  },
-];
+// ─── Helper dasar ────────────────────────────────────────────────────────────
 
-// ─── Data Logbook Kapal ──────────────────────────────────────────────────────
-const logbookKapal = [
-  {
-    id: "log-01",
-    namaKapal: "Kapal SAR Kelas II",
-    noLambung: "-",
-    tanggal: "2026-10-08",
-    bbm: "82.64%",
-    endurance: "76 Jam",
-    kecepatan: "12 Knot",
-    statusSiap: "Ya",
-    pangkalan: "Dermaga Mamuju",
-    runningHours: "1.245 Jam",
-    ceklist: [
-      { no: 1, item: "Alat Navigasi", status: "Baik", keterangan: "Radar, GPS, AIS, Kompas Magnet, Echo Sounder" },
-      { no: 2, item: "Alat Komunikasi", status: "Baik", keterangan: "Radio VHF/HF dan seluruh perangkat komunikasi berfungsi normal" },
-      { no: 3, item: "Persentase BBM", status: "Baik", keterangan: "Sisa bahan bakar 82.64% (Standar minimum 30%)" },
-      { no: 4, item: "Endurance", status: "Baik", keterangan: "Sisa endurance 76 jam (Standar minimum 24 jam)" },
-      { no: 5, item: "Kecepatan Rata", status: "Baik", keterangan: "Kecepatan rata-rata 12 knot" },
-    ],
-    jurnalOlahGerak: [
-      { jamStart: "08:00", jamStop: "10:00", rute: "Dermaga - Perairan Mamuju", kecepatan: "12 Knot", endurance: "76 Jam", bbm: "82.64%", nahkoda: "Ansaruddin" },
-      { jamStart: "10:30", jamStop: "12:30", rute: "Perairan Mamuju - Pantai Karampuang", kecepatan: "10 Knot", endurance: "74 Jam", bbm: "78.50%", nahkoda: "Fajar Farial" },
-    ],
-  },
-];
-
-// ─── Data Logbook Sarana Darat ───────────────────────────────────────────────
-const logbookDarat = [
-  {
-    id: "dar-01",
-    jenisKendaraan: "Rescue Truck ISUZU",
-    noPolisi: "DC 8982",
-    tahun: "2018",
-    tipe: "Truk Rescue",
-    km: "45.230",
-    bbm: "75%",
-    jenisUnit: "Mobil",
-    periode: "Mingguan",  // Ubah dari Harian ke Mingguan
-    riwayatPenggunaan: [
-      { no: 1, tanggal: "Minggu ke-40 (01-07 Oct 2026)", dari: "Kantor", ke: "Desa Binanga", bbmSebelum: "80%", bbmSesudah: "65%", kmSebelum: "45.200", kmSesudah: "45.230", catatan: "Operasi evakuasi pasca banjir" },
-      { no: 2, tanggal: "Minggu ke-39 (23-29 Sep 2026)", dari: "Kantor", ke: "Bandara", bbmSebelum: "90%", bbmSesudah: "80%", kmSebelum: "45.150", kmSesudah: "45.200", catatan: "Antar jemput tim SAR" },
-      { no: 3, tanggal: "Minggu ke-38 (16-22 Sep 2026)", dari: "Kantor", ke: "Pelabuhan", bbmSebelum: "85%", bbmSesudah: "70%", kmSebelum: "45.100", kmSesudah: "45.150", catatan: "Patroli pantai" },
-    ],
-    pemeriksaanHarian: [
-      { kategori: "A. Menjungkitkan Kabin", items: [
-        { item: "Oli Mesin", status: "Baik", keterangan: "" },
-        { item: "Oli Power Steering", status: "Baik", keterangan: "" },
-        { item: "Fan Belt", status: "Baik", keterangan: "" },
-        { item: "Tutup Radiator", status: "Baik", keterangan: "" },
-      ]},
-      { kategori: "B. Dalam Kabin", items: [
-        { item: "Level Minyak Rem / Kopling", status: "Baik", keterangan: "" },
-        { item: "Radio Komunikasi", status: "Baik", keterangan: "" },
-        { item: "Seat Belt (Sabuk Pengaman)", status: "Baik", keterangan: "" },
-        { item: "Sirine & Lightbar", status: "Baik", keterangan: "" },
-        { item: "Gerak Bebas Pedal Rem", status: "Baik", keterangan: "" },
-        { item: "Gerak Bebas Kopling", status: "Baik", keterangan: "" },
-        { item: "Gerak Bebas Pedal Gas", status: "Baik", keterangan: "" },
-        { item: "Instrumen Indikator", status: "Baik", keterangan: "" },
-        { item: "Kemudahan Start Engine", status: "Baik", keterangan: "" },
-        { item: "Langkah Tuas Rem Parkir", status: "Baik", keterangan: "" },
-        { item: "Sapuan Wiper", status: "Baik", keterangan: "" },
-        { item: "Kaca Spion Dalam", status: "Baik", keterangan: "" },
-        { item: "Level Cairan Washer", status: "Baik", keterangan: "" },
-        { item: "Gerak Bebas Kemudi", status: "Baik", keterangan: "" },
-        { item: "Klakson", status: "Baik", keterangan: "" },
-        { item: "Power Window / Door Lock", status: "Baik", keterangan: "" },
-        { item: "Kunci Roda & Toolkit", status: "Baik", keterangan: "" },
-      ]},
-      { kategori: "C. Keliling Kendaraan", items: [
-        { item: "Lampu-Lampu", status: "Baik", keterangan: "" },
-        { item: "Pegas Suspensi / Kaki-Kaki / Per Daun", status: "Baik", keterangan: "" },
-        { item: "Kebocoran / Tetesan Fluid", status: "Baik", keterangan: "" },
-        { item: "Kondisi Kaca-Kaca", status: "Baik", keterangan: "" },
-        { item: "Wiper", status: "Baik", keterangan: "" },
-        { item: "Saringan Bahan Bakar", status: "Baik", keterangan: "" },
-        { item: "Rolling Door Compartment", status: "Baik", keterangan: "" },
-        { item: "Engsel Pintu-Pintu", status: "Baik", keterangan: "" },
-        { item: "Kunci Pintu-Pintu", status: "Baik", keterangan: "" },
-        { item: "Towing", status: "Baik", keterangan: "" },
-      ]},
-      { kategori: "D. Roda dan Ban", items: [
-        { item: "Tekanan Ban", status: "Baik", keterangan: "" },
-        { item: "Tapak dan Dinding Ban", status: "Baik", keterangan: "" },
-        { item: "Keausan Ban", status: "Baik", keterangan: "" },
-        { item: "Pemasangan Velg", status: "Baik", keterangan: "" },
-      ]},
-    ],
-    pemeriksaanMingguan: [
-      { kategori: "1. Performa / Fungsi Sistem", items: [
-        { item: "Kerja AC", status: "Baik", keterangan: "" },
-        { item: "Kerja Rem", status: "Baik", keterangan: "" },
-        { item: "Kerja Kopling", status: "Baik", keterangan: "" },
-        { item: "Kerja Pedal Gas", status: "Baik", keterangan: "" },
-        { item: "Kerja Kaki-Kaki", status: "Baik", keterangan: "" },
-        { item: "Kerja Sistem 4WD", status: "Baik", keterangan: "" },
-      ]},
-      { kategori: "2. Keliling Kendaraan (Mingguan)", items: [
-        { item: "Kaca Depan", status: "Baik", keterangan: "" },
-        { item: "Spion Luar", status: "Baik", keterangan: "" },
-        { item: "Flooding Light System", status: "Baik", keterangan: "" },
-        { item: "Lampu-Lampu", status: "Baik", keterangan: "" },
-        { item: "Level Cairan Pendingin", status: "Baik", keterangan: "" },
-        { item: "APAR", status: "Baik", keterangan: "" },
-        { item: "Plat Nopol", status: "Baik", keterangan: "" },
-        { item: "Ban Cadangan", status: "Baik", keterangan: "" },
-        { item: "Kebersihan Kendaraan", status: "Baik", keterangan: "" },
-        { item: "Jok / Tempat Duduk", status: "Baik", keterangan: "" },
-        { item: "Kaca Film", status: "Baik", keterangan: "" },
-      ]},
-    ],
-    pemeriksaanBulanan: [
-      { kategori: "C. Pemeriksaan Bulanan", items: [
-        { item: "Winch", status: "Baik", keterangan: "" },
-      ]},
-    ],
-    itemTambahan: [
-      { item: "PengecekanWAP radio HT regu lapangan", status: "Baik", keterangan: "" },
-    ],
-  },
-  {
-    id: "dar-02",
-    jenisKendaraan: "RESCUE MOTORCYCLE",
-    noPolisi: "B 3184 PKQ",
-    tahun: "-",
-    tipe: "Trail",
-    km: "-",
-    bbm: "85%",
-    jenisUnit: "Motor",
-    riwayatPenggunaan: [
-      { no: 1, tanggal: "2026-10-07", dari: "Kantor", ke: "Desa Binanga", bbmSebelum: "70%", bbmSesudah: "60%", kmSebelum: "15.300", kmSesudah: "15.400", catatan: "Patroli pantai koordinat dengan tim darat" },
-      { no: 2, tanggal: "2026-10-06", dari: "Kantor", ke: "Bandara", bbmSebelum: "80%", bbmSesudah: "75%", kmSebelum: "15.200", kmSesudah: "15.300", catatan: "Diterima tugas evakuasi ringan" },
-    ],
-    pemeriksaanHarian: [
-      { kategori: "Bagian 1", items: [
-        { item: "Level Oli Mesin", status: "Rusak Ringan", keterangan: "" },
-        { item: "Kondisi Ban", status: "Baik", keterangan: "" },
-        { item: "Tekanan Ban", status: "Baik", keterangan: "" },
-        { item: "Keausan", status: "Baik", keterangan: "" },
-        { item: "Rantai Penggerak", status: "Baik", keterangan: "" },
-        { item: "Baut Mur dan Pengencangan", status: "Baik", keterangan: "" },
-        { item: "Stang (Bergerak Lancar)", status: "Baik", keterangan: "" },
-        { item: "Level Minyak Rem", status: "Baik", keterangan: "" },
-        { item: "Kampas Rem", status: "Baik", keterangan: "" },
-        { item: "Kerja Gas", status: "Baik", keterangan: "" },
-        { item: "Tuas Kopling", status: "Baik", keterangan: "" },
-        { item: "Klakson", status: "Baik", keterangan: "" },
-      ]},
-      { kategori: "Bagian 2", items: [
-        { item: "Lampu Depan", status: "Baik", keterangan: "" },
-        { item: "Lampu Belakang/Rem", status: "Baik", keterangan: "" },
-        { item: "Lampu Sein", status: "Rusak Ringan", keterangan: "" },
-        { item: "Engine Stop Switch", status: "Baik", keterangan: "" },
-        { item: "Standar Samping", status: "Baik", keterangan: "" },
-        { item: "Indikator Spedometer", status: "Baik", keterangan: "" },
-        { item: "Kaca Spion", status: "Baik", keterangan: "" },
-      ]},
-    ],
-    pemeriksaanMingguan: [
-      { kategori: "Pemeriksaan Mingguan", items: [
-        { item: "Level Oli Mesin", status: "Baik", keterangan: "" },
-        { item: "Rantai Penggerak", status: "Baik", keterangan: "" },
-        { item: "Kampas Rem", status: "Baik", keterangan: "" },
-        { item: "Tekanan Ban", status: "Baik", keterangan: "" },
-        { item: "Lampu-Lampu", status: "Baik", keterangan: "" },
-        { item: "Klakson", status: "Baik", keterangan: "" },
-        { item: "Kerja Gas", status: "Baik", keterangan: "" },
-      ]},
-    ],
-    pemeriksaanBulanan: [
-      { kategori: "Pemeriksaan Bulanan", items: [
-        { item: "Baut Mur dan Pengencangan", status: "Baik", keterangan: "" },
-        { item: "Kondisi Rantai", status: "Baik", keterangan: "" },
-        { item: "Kampas Rem", status: "Baik", keterangan: "" },
-      ]},
-    ],
-    itemTambahan: [
-      { item: "Engine Stop Switch", status: "Baik", keterangan: "" },
-      { item: "Standar Samping", status: "Baik", keterangan: "" },
-    ],
-  },
-];
-
-// ─── Komponen ────────────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -294,7 +58,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 /** Badge kondisi untuk item ceklist: Baik / Rusak Ringan / Rusak Berat. */
 function StatusBadge({ status }: { status: string }) {
   const variant =
-    status === "Baik" ? "success" : status === "Rusak Ringan" ? "warning" : status === "Rusak Berat" ? "danger" : "outline";
+    status === "Baik"
+      ? "success"
+      : status === "Rusak Ringan"
+        ? "warning"
+        : status === "Rusak Berat"
+          ? "danger"
+          : "outline";
   return (
     <Badge variant={variant} className="text-xs">
       {status}
@@ -302,8 +72,181 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Data Kondisi Armada (turunan dari asetList & logbook) ─────────────────
-// Sumber tunggal: asetList (mock-data). Status "Standby" = siap operasional.
+/** Badge status aset dari master data (Standby / Sedang digunakan / …). */
+function BadgeStatusAset({ status }: { status: string }) {
+  const variant = STATUS_ASET_VARIANT[status as keyof typeof STATUS_ASET_VARIANT] ?? "outline";
+  return (
+    <Badge variant={variant} className="text-xs">
+      {status}
+    </Badge>
+  );
+}
+
+/** Nama tampilan unit: nama aset + merk·tipe, no. polisi dalam kurung. */
+function namaUnit(aset: AsetMapped): string {
+  const inti = [aset.nama, labelModelAset(aset)].filter(Boolean).join(" · ");
+  return aset.noPolisi ? `${inti} (${aset.noPolisi})` : inti;
+}
+
+/** Tahun pengadaan unit dari tanggal perolehan. */
+function tahunUnit(aset: AsetMapped): string {
+  return aset.tanggalPerolehan ? aset.tanggalPerolehan.slice(0, 4) : "-";
+}
+
+/** "45312" → "45.312"; teks lain ditampilkan apa adanya. */
+function formatAngka(nilai?: string): string {
+  if (!nilai) return "-";
+  return /^\d+$/.test(nilai) ? Number(nilai).toLocaleString("id-ID") : nilai;
+}
+
+/** "08:00" → menit; null bila tidak bisa dibaca. */
+function jamKeMenit(jam?: string | null): number | null {
+  if (!jam) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(jam.trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** Durasi perjalanan dari jam berangkat → kembali, mis. "2 Jam 30 Menit". */
+function durasiPerjalanan(berangkat?: string | null, kembali?: string | null): string {
+  const a = jamKeMenit(berangkat);
+  const b = jamKeMenit(kembali);
+  if (a === null || b === null || b < a) return "-";
+  return formatMenit(b - a);
+}
+
+/** Pecah "Kantor - Desa Binanga" → { dari, ke }. */
+function pecahRute(rute: string): { dari: string; ke: string } {
+  const bag = rute.split(" - ").map((b) => b.trim());
+  return { dari: bag[0] || rute, ke: bag.length > 1 ? bag[bag.length - 1] : "-" };
+}
+
+function urutkanPerjalanan(trips: LogbookMapped[]): LogbookMapped[] {
+  return [...trips].sort((a, b) => {
+    return (
+      b.tanggal.localeCompare(a.tanggal) ||
+      (b.jamBerangkat || "").localeCompare(a.jamBerangkat || "")
+    );
+  });
+}
+
+/**
+ * Cocokkan catatan logbook_perjalanan dengan sebuah aset master:
+ * - darat  → kategori sama + no. polisi muncul di `jenis_unit`
+ * - RIB    → kategori_unit "RIB" + merk unit muncul di `jenis_unit`
+ * - kapal  → kategori_unit "Kapal" + nama aset muncul di `jenis_unit`
+ */
+function perjalananUnit(logs: LogbookMapped[], aset: AsetMapped): LogbookMapped[] {
+  if (aset.kategori === "Mobil" || aset.kategori === "Motor") {
+    return logs.filter(
+      (l) =>
+        l.kategoriUnit === aset.kategori &&
+        !!aset.noPolisi &&
+        l.jenisUnit.includes(aset.noPolisi)
+    );
+  }
+  if (aset.kategori === "Kapal") {
+    if (aset.nama.toLowerCase().includes("rib")) {
+      return logs.filter(
+        (l) => l.kategoriUnit === "RIB" && !!aset.merk && l.jenisUnit.includes(aset.merk)
+      );
+    }
+    return logs.filter(
+      (l) => l.kategoriUnit === "Kapal" && l.jenisUnit.includes(aset.nama)
+    );
+  }
+  return [];
+}
+
+// ─── Item ceklist dari instance checklist_harian (JSONB) ─────────────────────
+
+type ItemCeklist = {
+  label: string;
+  wajib: boolean;
+  kondisi: string;
+  keterangan: string;
+  kategori?: string;
+};
+
+/** Baca array `items` JSONB instance checklist → bentuk aman untuk render. */
+function bacaItemsCek(instance?: ChecklistMapped): ItemCeklist[] {
+  const mentah = instance?.items;
+  if (!Array.isArray(mentah)) return [];
+  return (mentah as Record<string, unknown>[])
+    .filter((i) => typeof i.label === "string")
+    .map((i) => ({
+      label: String(i.label),
+      wajib: i.wajib !== false,
+      kondisi: typeof i.kondisi === "string" && i.kondisi ? i.kondisi : "Belum Diperiksa",
+      keterangan: typeof i.keterangan === "string" ? i.keterangan : "",
+      kategori: typeof i.kategori === "string" && i.kategori ? i.kategori : undefined,
+    }));
+}
+
+type KelompokBagian = { nama: string; items: ItemCeklist[] };
+
+/**
+ * Kelompokkan item calendar instance ke bagian form fisik.
+ * 1) kalau item punya `kategori` (dari seed) → pakai itu;
+ * 2) kalau tidak → ikuti urutan template lewat `BAGIAN_TEMPLATE`;
+ * 3) kalau dua di atas kosong → satu grup dengan nama template.
+ */
+function kelompokkanItems(
+  instance: ChecklistMapped | undefined,
+  template: ChecklistTemplateMapped | undefined
+): KelompokBagian[] {
+  const semua = bacaItemsCek(instance);
+  if (semua.length === 0) return [];
+
+  if (semua.some((i) => i.kategori)) {
+    const urutan: string[] = [];
+    const byKategori = new Map<string, ItemCeklist[]>();
+    for (const i of semua) {
+      const k = i.kategori ?? "Lainnya";
+      if (!byKategori.has(k)) {
+        byKategori.set(k, []);
+        urutan.push(k);
+      }
+      byKategori.get(k)!.push(i);
+    }
+    return urutan.map((nama) => ({ nama, items: byKategori.get(nama)! }));
+  }
+
+  const bagian = template ? BAGIAN_TEMPLATE[template.id] : undefined;
+  if (bagian) {
+    let dari = 0;
+    return bagian.map((b) => {
+      const items = semua.slice(dari, b.upto);
+      dari = b.upto;
+      return { nama: b.nama, items };
+    });
+  }
+
+  return [{ nama: template?.nama ?? "Item Pemeriksaan", items: semua }];
+}
+
+/** Item pemeliharaan RIB = item template ke-8 s/d 24 (di luar pemanasan/jam/BBM). */
+function itemPemeliharaanRIB(
+  instance: ChecklistMapped | undefined,
+  template: ChecklistTemplateMapped | undefined
+): ItemCeklist[] {
+  if (!template) return [];
+  const semua = bacaItemsCek(instance);
+  const semuaPemeliharaan = template.items.slice(7);
+  return semuaPemeliharaan.map((lbl) => {
+    const ketemu = semua.find((i) => i.label === lbl.label);
+    return {
+      label: lbl.label,
+      wajib: lbl.wajib,
+      kondisi: ketemu?.kondisi ?? "Belum Diperiksa",
+      keterangan: ketemu?.keterangan ?? "",
+    };
+  });
+}
+
+// ─── Data Kondisi Armada (turunan dari master aset) ─────────────────────────
+// Sumber tunggal: useAsets (Supabase). Status "Standby" = siap operasional,
+// status "Sedang digunakan" = unit sedang dipakai (logbook berjalan).
+
 type UnitArmada = {
   id: string;
   nama: string;
@@ -313,14 +256,9 @@ type UnitArmada = {
   rusak: boolean;
 };
 
-/** Unit armada diturunkan langsung dari master aset (real data BMN). */
 type JenisArmadaDashboard = "darat" | "air";
 
-/**
- * Susun daftar unit armada dengan status live dari {@link asetList}.
- * - `darat`: kategori Mobil & Motor
- * - `air`: kategori Kapal (kapal, RIB, RBB, dan mesin tempel)
- */
+/** Susun daftar unit armada dengan status live dari master aset. */
 function susunUnitArmada(
   jenis: JenisArmadaDashboard,
   asets: Aset[]
@@ -331,24 +269,17 @@ function susunUnitArmada(
         ? a.kategori === "Mobil" || a.kategori === "Motor"
         : a.kategori === "Kapal"
     )
-    .map((aset) => {
-      // Nama = jenis aset + model (merk · tipe) terpisah; no. polisi
-      // tetap dalam tanda kurung bila ada.
-      const namaInti = [aset.nama, labelModelAset(aset)]
-        .filter(Boolean)
-        .join(" · ");
-      return {
-        id: aset.id,
-        nama: aset.noPolisi ? `${namaInti} (${aset.noPolisi})` : namaInti,
-        status: aset.status,
-        kondisi: aset.kondisi,
-        lokasi: aset.lokasi,
-        rusak:
-          aset.kondisi !== "Baik" ||
-          aset.status === "Rusak Berat" ||
-          aset.status === "Rusak Ringan",
-      };
-    });
+    .map((aset) => ({
+      id: aset.id,
+      nama: namaUnit(aset),
+      status: aset.status,
+      kondisi: aset.kondisi,
+      lokasi: aset.lokasi,
+      rusak:
+        aset.kondisi !== "Baik" ||
+        aset.status === "Rusak Berat" ||
+        aset.status === "Rusak Ringan",
+    }));
 }
 
 /** Catatan terakhir pada riwayat aset (paling baru). */
@@ -356,7 +287,6 @@ function keteranganTerakhir(aset: Aset): string {
   if (aset.riwayat.length === 0) return "-";
   let terbaru = aset.riwayat[0];
   for (const r of aset.riwayat) {
-    // Riwayat tersusun dari yang terbaru; tanggal sama → ambil yang terakhir.
     if (r.tanggal >= terbaru.tanggal) terbaru = r;
   }
   return terbaru.keterangan;
@@ -368,8 +298,8 @@ function beritaAcaraAset(asetId: string) {
 }
 
 /**
- * Kartu kondisi armada: ringkasan di atas (angka standby vs tidak standby),
- * rincian unit di bawah. Mudah dipindai: satu baris per unit.
+ * Kartu kondisi armada: unit dikelompokkan Standby / Sedang digunakan /
+ * Tidak Standby — langsung dari status master aset di database.
  */
 function KondisiArmadaCard({
   judul,
@@ -387,7 +317,10 @@ function KondisiArmadaCard({
   subtitle?: string;
 }) {
   const standby = units.filter((u) => u.status === "Standby");
-  const tidakStandby = units.filter((u) => u.status !== "Standby");
+  const dipakai = units.filter((u) => u.status === "Sedang digunakan");
+  const tidakStandby = units.filter(
+    (u) => u.status !== "Standby" && u.status !== "Sedang digunakan"
+  );
 
   return (
     <Card>
@@ -426,6 +359,26 @@ function KondisiArmadaCard({
           )}
         </div>
 
+        {/* Unit sedang dipakai */}
+        {dipakai.length > 0 && (
+          <div className="border-t border-slate-100 pt-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-sky-600">
+              <Clock className="h-3.5 w-3.5" />
+              Sedang Digunakan
+            </p>
+            <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+              {dipakai.map((u) => (
+                <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="text-slate-700">{u.nama}</span>
+                  <Badge variant="default" className="text-xs">
+                    Sedang digunakan
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Unit tidak standby */}
         {tidakStandby.length > 0 && (
           <div className="border-t border-slate-100 pt-3">
@@ -437,7 +390,7 @@ function KondisiArmadaCard({
               {tidakStandby.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-slate-700">{u.nama}</span>
-                  <Badge variant={(STATUS_ASET_VARIANT as Record<string, StatusAsetBadgeVariant>)[u.status] ?? "outline"} className="text-xs">
+                  <Badge variant={STATUS_ASET_VARIANT[u.status as keyof typeof STATUS_ASET_VARIANT] ?? "outline"} className="text-xs">
                     {u.status}
                   </Badge>
                 </li>
@@ -450,21 +403,20 @@ function KondisiArmadaCard({
   );
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
-type ItemCeklist = { item: string; status: string; keterangan?: string };
+// ─── Field tabel ceklist ─────────────────────────────────────────────────────
 
 const CEKLIST_FIELDS: ResponsiveField<ItemCeklist>[] = [
   {
-    key: "item",
+    key: "label",
     header: "Item Pemeriksaan",
-    render: (row) => row.item,
+    render: (row) => row.label,
     cellClassName: "text-slate-700",
     hideOnCard: true,
   },
   {
-    key: "status",
+    key: "kondisi",
     header: "Kondisi",
-    render: (row) => <StatusBadge status={row.status} />,
+    render: (row) => <StatusBadge status={row.kondisi} />,
     headClassName: "w-28 text-center",
     cellClassName: "text-center",
   },
@@ -477,13 +429,733 @@ const CEKLIST_FIELDS: ResponsiveField<ItemCeklist>[] = [
   },
 ];
 
+// ─── Kartu: Jurnal RIB ───────────────────────────────────────────────────────
+
+function KartuJurnalRIBUnit({
+  aset,
+  template,
+  instance,
+  trips,
+  pengisian,
+}: {
+  aset: AsetMapped;
+  template?: ChecklistTemplateMapped;
+  instance?: ChecklistMapped;
+  trips: LogbookMapped[];
+  pengisian: PengisianBbmMapped[];
+}) {
+  const tripSelesai = urutkanPerjalanan(trips).filter((t) => t.status === "Selesai");
+  const tripInfo = tripSelesai[0];
+  const pemeliharaan = itemPemeliharaanRIB(instance, template);
+  const pengisianTerakhir = pengisian[0];
+
+  const barisPengisian = [
+    { no: 1, label: "Sisa Kemarin", liter: "-", persen: pengisianTerakhir?.sisaSebelum ?? "-" },
+    { no: 2, label: "Penambahan", liter: pengisianTerakhir?.penambahan ?? "-", persen: "-" },
+    { no: 3, label: "Saldo Akhir", liter: "-", persen: pengisianTerakhir?.saldoAkhir ?? "-" },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Ship className="h-5 w-5 text-primary" />
+            Jurnal {namaUnit(aset)}
+          </CardTitle>
+          <BadgeStatusAset status={aset.status} />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Info RIB */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
+          <div>
+            <p className="text-xs text-slate-500">Jenis Unit</p>
+            <p className="font-medium text-slate-800">{namaUnit(aset)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Tahun Pengadaan</p>
+            <p className="font-medium text-slate-800">{tahunUnit(aset)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Sisa Endurance</p>
+            <p className="font-medium text-slate-800">
+              {tripInfo ? formatEndurance(tripInfo.enduranceAkhir ?? tripInfo.enduranceAwal) : "-"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Waktu Operasi Terakhir</p>
+            <p className="font-medium text-slate-800">
+              {tripInfo ? durasiPerjalanan(tripInfo.jamBerangkat, tripInfo.jamKembali) : "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* A. Pemeliharaan — dari instance checklist arm-rib-pemeliharaan */}
+        <div>
+          <SectionTitle>
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            A. Pemeliharaan
+          </SectionTitle>
+          <ResponsiveTable
+            data={pemeliharaan}
+            getKey={(item) => item.label}
+            cardTitle={(item) => item.label}
+            cardBadge={(item) => <StatusBadge status={item.kondisi} />}
+            cardPreviewCount={0}
+            detailLabel="Lihat detail pengecekan"
+            emptyMessage="Belum ada data pengecekan — buat checklist RIB di menu Ceklist Harian."
+            fields={CEKLIST_FIELDS}
+          />
+        </div>
+
+        {/* B. Pemanasan Mesin dan Pengoperasian Alut — dari logbook_perjalanan */}
+        <div>
+          <SectionTitle>
+            <Clock className="h-5 w-5 text-primary" />
+            B. Pemanasan Mesin dan Pengoperasian Alut
+          </SectionTitle>
+          <ResponsiveTable
+            data={urutkanPerjalanan(trips).slice(0, 3)}
+            getKey={(item) => item.id}
+            cardTitle={(item) => item.tujuan || item.rute}
+            cardSubtitle={(row) => `${row.jamBerangkat || "–"} - ${row.jamKembali || "–"}`}
+            cardPreviewCount={2}
+            detailLabel="Lihat detail pemanasan"
+            emptyMessage="Belum ada data pemanasan."
+            fields={[
+              {
+                key: "tujuan",
+                header: "Kegiatan",
+                render: (item) => item.tujuan || "Pengoperasian alut",
+                cellClassName: "text-slate-700",
+                hideOnCard: true,
+              },
+              {
+                key: "waktu",
+                header: "Waktu",
+                render: (item) =>
+                  item.jamKembali
+                    ? durasiPerjalanan(item.jamBerangkat, item.jamKembali)
+                    : item.status === "Sedang Digunakan"
+                      ? "Berlangsung"
+                      : "-",
+                headClassName: "w-24",
+                cellClassName: "text-slate-600",
+              },
+              {
+                key: "rute",
+                header: "Tujuan (Rute)",
+                render: (item) => item.rute,
+                cellClassName: "text-slate-600",
+              },
+              {
+                key: "berangkat",
+                header: "Berangkat",
+                render: (item) => item.jamBerangkat || "-",
+                headClassName: "w-20",
+                cellClassName: "font-mono text-sm",
+              },
+              {
+                key: "kembali",
+                header: "Kembali",
+                render: (item) => item.jamKembali || "-",
+                headClassName: "w-20",
+                cellClassName: "font-mono text-sm",
+              },
+              {
+                key: "keterangan",
+                header: "Keterangan",
+                render: (item) => item.catatan || "-",
+                cellClassName: "text-slate-600 text-xs",
+                hideBelowLg: true,
+              },
+            ]}
+          />
+        </div>
+
+        {/* C. Pengisian BBM — dari tabel pengisian_bbm (unit ber-roda "RIB 02") */}
+        {pengisian.length > 0 && (
+          <div>
+            <SectionTitle>
+              <Wrench className="h-5 w-5 text-primary" />
+              C. Pengisian BBM
+            </SectionTitle>
+            <ResponsiveTable
+              data={barisPengisian}
+              getKey={(item) => item.no}
+              cardTitle={(item) => item.label}
+              cardBadge={(item) => (
+                <Badge
+                  variant={item.label === "Saldo Akhir" ? "primary" : "outline"}
+                  className="text-xs"
+                >
+                  {item.persen !== "-" ? item.persen : item.liter}
+                </Badge>
+              )}
+              cardPreviewCount={1}
+              detailLabel="Lihat detail pengisian"
+              fields={[
+                {
+                  key: "label",
+                  header: "Pengisian BBM",
+                  render: (item) => item.label,
+                  cellClassName: "text-slate-700",
+                  hideOnCard: true,
+                },
+                {
+                  key: "liter",
+                  header: "Liter",
+                  render: (item) => item.liter,
+                  headClassName: "w-24 text-center",
+                  cellClassName: "text-center",
+                },
+                {
+                  key: "persen",
+                  header: "Persen (%)",
+                  render: (item) => item.persen,
+                  headClassName: "w-24 text-center",
+                  cellClassName: "text-center",
+                },
+              ]}
+            />
+            {pengisianTerakhir?.keterangan && (
+              <p className="mt-2 text-xs text-slate-500">{pengisianTerakhir.keterangan}</p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Kartu: Logbook Kapal ────────────────────────────────────────────────────
+
+function KartuLogbookKapal({
+  aset,
+  instance,
+  trips,
+}: {
+  aset: AsetMapped;
+  instance?: ChecklistMapped;
+  trips: LogbookMapped[];
+}) {
+  const semua = urutkanPerjalanan(trips);
+  const tripSelesai = semua.filter((t) => t.status === "Selesai");
+  const tripInfo = tripSelesai[0];
+
+  const ceklistItems = bacaItemsCek(instance);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Ship className="h-5 w-5 text-primary" />
+            Logbook Harian {aset.nama}
+          </CardTitle>
+          <BadgeStatusAset status={aset.status} />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* I. Informasi Operasional Kapal */}
+        <div>
+          <SectionTitle>
+            <Ship className="h-5 w-5 text-primary" />
+            I. Informasi Operasional Kapal
+          </SectionTitle>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
+            <div>
+              <p className="text-xs text-slate-500">Nama Kapal</p>
+              <p className="font-medium text-slate-800">{aset.nama}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">No. Lambung</p>
+              <p className="font-medium text-slate-800">{aset.noPolisi ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Tanggal</p>
+              <p className="font-medium text-slate-800">{tripInfo?.tanggal ?? instance?.tanggal ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">BBM</p>
+              <p className="font-medium text-slate-800">
+                {tripInfo?.bbmSesudah ?? tripInfo?.bbmSebelum ?? "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Endurance</p>
+              <p className="font-medium text-slate-800">
+                {tripInfo ? formatEndurance(tripInfo.enduranceAkhir ?? tripInfo.enduranceAwal) : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Kecepatan Rata-rata</p>
+              <p className="font-medium text-slate-800">{tripInfo?.kecepatanRata ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Pangkalan</p>
+              <p className="font-medium text-slate-800">{aset.lokasi || "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Running Hours</p>
+              {/* Belum ada kolom running hours di database — tampilkan "-" */}
+              <p className="font-medium text-slate-800">-</p>
+            </div>
+          </div>
+        </div>
+
+        {/* II. Ceklist Harian Kapal — instance arm-kapalar-harian */}
+        <div>
+          <SectionTitle>
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            II. Ceklist Harian Kapal
+          </SectionTitle>
+          <ResponsiveTable
+            data={ceklistItems}
+            getKey={(item) => item.label}
+            cardTitle={(item) => item.label}
+            cardSubtitle={(item) => item.keterangan || "-"}
+            cardBadge={(item) => <StatusBadge status={item.kondisi} />}
+            cardPreviewCount={0}
+            detailLabel="Lihat detail ceklist"
+            emptyMessage="Belum ada ceklist kapal — buat checklist di menu Ceklist Harian."
+            fields={[
+              {
+                key: "label",
+                header: "Item Pemeriksaan",
+                render: (item) => item.label,
+                cellClassName: "text-slate-700",
+              },
+              {
+                key: "kondisi",
+                header: "Kondisi",
+                render: (item) => <StatusBadge status={item.kondisi} />,
+                headClassName: "w-28 text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "keterangan",
+                header: "Keterangan",
+                render: (item) => item.keterangan || "-",
+                cellClassName: "text-slate-600 text-xs",
+                hideBelowLg: true,
+              },
+            ]}
+          />
+        </div>
+
+        {/* III. Jurnal Olah Gerak Harian — dari logbook_perjalanan */}
+        <div>
+          <SectionTitle>
+            <FileText className="h-5 w-5 text-primary" />
+            III. Jurnal Olah Gerak Harian
+          </SectionTitle>
+          <ResponsiveTable
+            data={semua}
+            getKey={(item) => item.id}
+            cardTitle={(item) => item.rute}
+            cardSubtitle={(row) => `${row.jamBerangkat || "–"} - ${row.jamKembali || "–"}`}
+            cardPreviewCount={4}
+            detailLabel="Lihat detail perjalanan"
+            emptyMessage="Belum ada jurnal olah gerak."
+            fields={[
+              {
+                key: "tanggal",
+                header: "Tanggal",
+                render: (item) => item.tanggal,
+                cellClassName: "text-slate-600 text-xs",
+                hideBelowXl: true,
+              },
+              {
+                key: "jamStart",
+                header: "Jam Start",
+                render: (item) => item.jamBerangkat || "-",
+                cellClassName: "font-mono text-sm",
+                hideOnCard: true,
+              },
+              {
+                key: "jamStop",
+                header: "Jam Stop",
+                render: (item) => item.jamKembali || "-",
+                cellClassName: "font-mono text-sm",
+                hideOnCard: true,
+              },
+              {
+                key: "rute",
+                header: "Rute / Lokasi Patroli",
+                render: (item) => item.rute,
+                cellClassName: "text-slate-700",
+                hideOnCard: true,
+              },
+              {
+                key: "kecepatan",
+                header: "Kecepatan",
+                render: (item) => item.kecepatanRata ?? "-",
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "endurance",
+                header: "Sisa Endurance",
+                render: (item) =>
+                  item.enduranceAkhir ? formatEndurance(item.enduranceAkhir) : "-",
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "bbm",
+                header: "Sisa BBM",
+                render: (item) =>
+                  item.bbmSesudah ?? (item.status === "Sedang Digunakan" ? `${item.bbmSebelum} (belum kembali)` : "-"),
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "nahkoda",
+                header: "Nahkoda",
+                render: (item) => item.nahkoda,
+                cellClassName: "text-slate-700",
+              },
+            ]}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Kartu: Logbook Sarana Darat (Mobil / Motor) ─────────────────────────────
+
+function KartuLogbookDarat({
+  aset,
+  trips,
+  catatanPerbaikan,
+  instances,
+  templateById,
+}: {
+  aset: AsetMapped;
+  trips: LogbookMapped[];
+  catatanPerbaikan: CatatanPerbaikanMapped[];
+  instances: ChecklistMapped[];
+  templateById: Map<string, ChecklistTemplateMapped>;
+}) {
+  const semua = urutkanPerjalanan(trips);
+  const tripSelesai = semua.filter((t) => t.status === "Selesai");
+  const tripInfo = tripSelesai[0];
+  const kmTerakhir =
+    tripInfo?.kmSesudah ?? tripInfo?.kmSebelum ?? semua[0]?.kmSebelum ?? undefined;
+  const bbmTerakhir =
+    semua[0]?.bbmSesudah ?? semua[0]?.bbmSebelum ?? undefined;
+
+  const instancesAset = instances.filter((c) => c.asetId === aset.id);
+  const instanceHarian = instancesAset.find((c) => templateById.get(c.templateId ?? "")?.periode === "Harian");
+  const instanceMingguan = instancesAset.find((c) => templateById.get(c.templateId ?? "")?.periode === "Mingguan");
+  const instanceBulanan = instancesAset.find((c) => templateById.get(c.templateId ?? "")?.periode === "Bulanan");
+
+  const itemTambahan = instancesAset
+    .flatMap((c) => bacaItemsCek(c))
+    .filter((i) => i.kategori === "Item Tambahan");
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            {aset.kategori === "Mobil" ? (
+              <Car className="h-5 w-5 text-primary" />
+            ) : (
+              <Bike className="h-5 w-5 text-primary" />
+            )}
+            Logbook {namaUnit(aset)}
+          </CardTitle>
+          <BadgeStatusAset status={aset.status} />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* I. Informasi Kendaraan */}
+        <div>
+          <SectionTitle>
+            {aset.kategori === "Mobil" ? (
+              <Car className="h-5 w-5 text-primary" />
+            ) : (
+              <Bike className="h-5 w-5 text-primary" />
+            )}
+            I. Informasi Kendaraan
+          </SectionTitle>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
+            <div>
+              <p className="text-xs text-slate-500">Jenis Kendaraan</p>
+              <p className="font-medium text-slate-800">{aset.nama}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">No. Polisi</p>
+              <p className="font-medium text-slate-800">{aset.noPolisi ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Tahun Pengadaan</p>
+              <p className="font-medium text-slate-800">{tahunUnit(aset)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Merk / Tipe</p>
+              <p className="font-medium text-slate-800">{labelModelAset(aset) || "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Kilometer (KM)</p>
+              <p className="font-medium text-slate-800">{formatAngka(kmTerakhir)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">BBM</p>
+              <p className="font-medium text-slate-800">{bbmTerakhir ?? "-"}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* II. Riwayat Penggunaan — dari logbook_perjalanan */}
+        <div>
+          <SectionTitle>
+            <FileText className="h-5 w-5 text-primary" />
+            II. Riwayat Penggunaan
+          </SectionTitle>
+          <ResponsiveTable
+            data={semua}
+            getKey={(item) => item.id}
+            cardTitle={(item) => {
+              const r = pecahRute(item.rute);
+              return `${r.dari} \u2192 ${r.ke}`;
+            }}
+            cardSubtitle={(item) => item.tanggal}
+            cardPreviewCount={4}
+            detailLabel="Lihat detail perjalanan"
+            emptyMessage="Belum ada riwayat penggunaan."
+            fields={[
+              {
+                key: "tanggal",
+                header: "Tanggal",
+                render: (item) => item.tanggal,
+                cellClassName: "text-slate-700",
+              },
+              {
+                key: "dari",
+                header: "Dari",
+                render: (item) => pecahRute(item.rute).dari,
+                cellClassName: "text-slate-700",
+                hideOnCard: true,
+              },
+              {
+                key: "ke",
+                header: "Ke",
+                render: (item) => pecahRute(item.rute).ke,
+                cellClassName: "text-slate-700",
+                hideOnCard: true,
+              },
+              {
+                key: "bbmSebelum",
+                header: "BBM Sebelum",
+                render: (item) => item.bbmSebelum || "-",
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "bbmSesudah",
+                header: "BBM Sesudah",
+                render: (item) => item.bbmSesudah || "-",
+                headClassName: "text-center",
+                cellClassName: "text-center",
+              },
+              {
+                key: "kmSebelum",
+                header: "KM Sebelum",
+                render: (item) => formatAngka(item.kmSebelum),
+                headClassName: "text-center",
+                cellClassName: "text-center font-mono text-sm",
+              },
+              {
+                key: "kmSesudah",
+                header: "KM Sesudah",
+                render: (item) => formatAngka(item.kmSesudah),
+                headClassName: "text-center",
+                cellClassName: "text-center font-mono text-sm",
+              },
+              {
+                key: "catatan",
+                header: "Catatan",
+                render: (item) => item.catatan || "-",
+                cellClassName: "text-slate-600",
+                hideBelowLg: true,
+              },
+            ]}
+          />
+        </div>
+
+        {/* III. Catatan Penggantian, Perbaikan, dan Overhaul — dari catatan_perbaikan */}
+        <div>
+          <SectionTitle>
+            <Wrench className="h-5 w-5 text-primary" />
+            III. Catatan Penggantian, Perbaikan, dan Overhaul
+          </SectionTitle>
+          <ResponsiveTable
+            data={catatanPerbaikan.filter((c) => c.asetId === aset.id)}
+            getKey={(item) => item.id}
+            cardTitle={(item) => item.detailPekerjaan}
+            cardSubtitle={(item) => item.tanggal}
+            cardPreviewCount={1}
+            detailLabel="Lihat detail pekerjaan"
+            emptyMessage="Belum ada catatan perbaikan."
+            fields={[
+              {
+                key: "tanggal",
+                header: "Tanggal",
+                render: (item) => item.tanggal,
+                cellClassName: "text-slate-700",
+                hideOnCard: true,
+              },
+              {
+                key: "detailPekerjaan",
+                header: "Detail Pelaksanaan Pekerjaan",
+                render: (item) => item.detailPekerjaan,
+                cellClassName: "text-slate-700",
+                hideOnCard: true,
+              },
+              {
+                key: "pelaksana",
+                header: "Pelaksana",
+                render: (item) => item.pelaksana || "-",
+                cellClassName: "text-slate-600",
+              },
+            ]}
+          />
+        </div>
+
+        {/* IV. Ceklist Perawatan Harian — instance per periode Harian */}
+        <div>
+          <SectionTitle>
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            IV. Ceklist Perawatan Harian
+          </SectionTitle>
+          {instanceHarian ? (
+            <div className="space-y-4">
+              {kelompokkanItems(instanceHarian, templateById.get(instanceHarian.templateId ?? "")).map(
+                (kelompok) => (
+                  <div key={kelompok.nama}>
+                    <h3 className="mb-2 text-sm font-semibold text-slate-700">{kelompok.nama}</h3>
+                    <ResponsiveTable
+                      data={kelompok.items}
+                      getKey={(item) => kelompok.nama + item.label}
+                      cardTitle={(item) => item.label}
+                      cardBadge={(item) => <StatusBadge status={item.kondisi} />}
+                      cardPreviewCount={0}
+                      detailLabel="Lihat detail item"
+                      emptyMessage="Belum ada item pemeriksaan."
+                      fields={CEKLIST_FIELDS}
+                    />
+                  </div>
+                )
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">Belum ada checklist harian untuk unit ini.</p>
+          )}
+        </div>
+
+        {/* V. Ceklist Perawatan Mingguan & Bulanan */}
+        <div>
+          <SectionTitle>
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            V. Ceklist Perawatan Mingguan &amp; Bulanan
+          </SectionTitle>
+          {[instanceMingguan, instanceBulanan].every((i) => !i) ? (
+            <p className="text-sm text-slate-400">
+              Belum ada checklist mingguan/bulanan untuk unit ini.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {[instanceMingguan, instanceBulanan].map((instance) =>
+                instance
+                  ? kelompokkanItems(instance, templateById.get(instance.templateId ?? "")).map(
+                      (kelompok) => (
+                        <div key={`${instance.id}-${kelompok.nama}`}>
+                          <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                            {kelompok.nama}
+                          </h3>
+                          <ResponsiveTable
+                            data={kelompok.items}
+                            getKey={(item) => instance.id + kelompok.nama + item.label}
+                            cardTitle={(item) => item.label}
+                            cardBadge={(item) => <StatusBadge status={item.kondisi} />}
+                            cardPreviewCount={0}
+                            detailLabel="Lihat detail item"
+                            emptyMessage="Belum ada item pemeriksaan."
+                            fields={CEKLIST_FIELDS}
+                          />
+                        </div>
+                      )
+                    )
+                  : null
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* VI. Item Tambahan (Jika Ada) */}
+        <div>
+          <SectionTitle>
+            <Wrench className="h-5 w-5 text-primary" />
+            VI. Item Tambahan (Jika Ada)
+          </SectionTitle>
+          <ResponsiveTable
+            data={itemTambahan}
+            getKey={(item) => item.label}
+            cardTitle={(item) => item.label}
+            cardBadge={(item) => <StatusBadge status={item.kondisi} />}
+            cardPreviewCount={0}
+            detailLabel="Lihat detail item"
+            emptyMessage="Tidak ada item tambahan."
+            fields={CEKLIST_FIELDS}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
+
 export default function OperatorPage() {
   const [activeTab, setActiveTab] = useState<"rib" | "kapal" | "mobil" | "motor">("rib");
   const [armadaFilter, setArmadaFilter] = useState<"Semua" | "Mobil" | "Motor" | "Kapal">("Semua");
 
-  // Data master aset dari Supabase.
-  const { data: asetList, loading, error, refetch } = useAsets();
+  // Data hidup dari Supabase.
+  const asetQuery = useAsets();
+  const logbookQuery = useLogbooks();
+  const ceklistQuery = useChecklists();
+  const templateQuery = useChecklistTemplates();
+  const pengisianQuery = usePengisianBBM();
+  const perbaikanQuery = useCatatanPerbaikan();
+
+  const loading =
+    asetQuery.loading ||
+    logbookQuery.loading ||
+    ceklistQuery.loading ||
+    templateQuery.loading ||
+    pengisianQuery.loading ||
+    perbaikanQuery.loading;
+  const error =
+    asetQuery.error ??
+    logbookQuery.error ??
+    ceklistQuery.error ??
+    templateQuery.error ??
+    pengisianQuery.error ??
+    perbaikanQuery.error;
+
+  const refetchSemua = () => {
+    asetQuery.refetch();
+    logbookQuery.refetch();
+    ceklistQuery.refetch();
+    templateQuery.refetch();
+    pengisianQuery.refetch();
+    perbaikanQuery.refetch();
+  };
 
   if (loading) {
     return <DataLoading label="Memuat dashboard operasional…" />;
@@ -492,11 +1164,16 @@ export default function OperatorPage() {
     return (
       <DataError
         error={error}
-        onRetry={refetch}
+        onRetry={refetchSemua}
         label="Gagal memuat data dari database"
       />
     );
   }
+
+  const asetList = asetQuery.data;
+  const templateById = new Map(
+    templateQuery.data.map((t) => [t.id as string, t] as const)
+  );
 
   // ── Status live dari master aset ──────────────────────────────────────────
   // Dihitung saat render supaya keputusan Pengelola BMN (setujui → aset
@@ -516,8 +1193,6 @@ export default function OperatorPage() {
     })
     .map((aset) => {
       const ba = beritaAcaraAset(aset.id);
-      // Status operasional aset yang ditampilkan (bukan kondisi fisik):
-      // setelah BA disetujui aset menjadi "Maintenance" di tempat service.
       const keterangan =
         ba?.status === "Disetujui"
           ? `Berita acara disetujui — ${ba.keterangan || "dikirim ke tempat service"}`
@@ -525,7 +1200,31 @@ export default function OperatorPage() {
       return { id: aset.id, nama: aset.nama, kondisi: aset.status, keterangan };
     });
 
-  // `armada` menentukan journal mana yang terlihat untuk tiap jenis armada
+  const unitPunyaData = (aset: AsetMapped): boolean =>
+    perjalananUnit(logbookQuery.data, aset).length > 0 ||
+    ceklistQuery.data.some((c) => c.asetId === aset.id) ||
+    pengisianQuery.data.some((p) => p.asetId === aset.id);
+
+  /** Unit yang tampil di sebuah tab: harus punya data logbook/ceklist/BBM. */
+  function unitsTab(jenis: "rib" | "kapal" | "mobil" | "motor"): AsetMapped[] {
+    return asetList.filter((aset) => {
+      if (jenis === "mobil" || jenis === "motor") {
+        if (aset.kategori !== (jenis === "mobil" ? "Mobil" : "Motor")) return false;
+      } else if (aset.kategori !== "Kapal") {
+        return false;
+      } else if (jenis === "rib" && !aset.nama.toLowerCase().includes("rib")) {
+        return false;
+      } else if (jenis === "kapal" && !aset.nama.toLowerCase().includes("kapal")) {
+        return false;
+      }
+      return unitPunyaData(aset);
+    });
+  }
+
+  const templatesFor = (instance?: ChecklistMapped) =>
+    instance ? templateById.get(instance.templateId ?? "") : undefined;
+
+  // `armada` menentukan tab mana yang terlihat untuk tiap jenis armada
   const tabs = [
     { id: "rib" as const, label: "Jurnal RIB", icon: Ship, armada: ["Kapal"] },
     { id: "kapal" as const, label: "Logbook Kapal", icon: ClipboardCheck, armada: ["Kapal"] },
@@ -538,10 +1237,17 @@ export default function OperatorPage() {
   );
 
   // Jika filter armada menyembunyikan tab yang sedang aktif, tampilkan tab
-  // valid pertama tanpa memicu setState di dalam effect.
+  // valid pertama tanpa memicu setState di dalam render.
   const tabAktif = visibleTabs.some((tab) => tab.id === activeTab)
     ? activeTab
     : (visibleTabs[0]?.id ?? "rib");
+
+  // Blok ringkas "Pengisian BBM Terakhir — RIB 02".
+  const asetRIB02 = asetList.find((a) => a.noPolisi === "RIB 02");
+  const daftarPengisianRIB02 = asetRIB02
+    ? pengisianQuery.data.filter((p) => p.asetId === asetRIB02.id)
+    : [];
+  const pengisianRIB02 = daftarPengisianRIB02[0];
 
   return (
     <div className="space-y-6">
@@ -549,7 +1255,7 @@ export default function OperatorPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Dashboard Operasional</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Monitor kondisi armada & logbook kapal dan sarana darat
+          Monitor kondisi armada &amp; logbook kapal dan sarana darat
         </p>
       </div>
 
@@ -577,7 +1283,7 @@ export default function OperatorPage() {
         )}
       </div>
 
-      {/* Perlu Perawatan — pengganti kartu BBM Rata-rata */}
+      {/* Perlu Perawatan — aset rusak/maintenance dari status master DB */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -616,28 +1322,28 @@ export default function OperatorPage() {
             )}
           </div>
 
-          {/* Pengisian BBM terakhir (RIB 02) */}
+          {/* Pengisian BBM terakhir (RIB 02) — dari tabel pengisian_bbm */}
           <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm">
             <p className="mb-2 font-medium text-slate-700">
-              Pengisian BBM Terakhir — RIB 02
+              Pengisian BBM Terakhir{asetRIB02 ? ` — ${asetRIB02.noPolisi}` : ""}
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="rounded-lg bg-white p-2 text-center border border-slate-200">
                 <p className="text-xs text-slate-500">Sisa Kemarin</p>
                 <p className="font-semibold text-slate-800">
-                  {pengisianBBM_RIB02.sisaKemarin}
+                  {pengisianRIB02?.sisaSebelum ?? "-"}
                 </p>
               </div>
               <div className="rounded-lg bg-white p-2 text-center border border-slate-200">
                 <p className="text-xs text-slate-500">Penambahan</p>
                 <p className="font-semibold text-slate-800">
-                  {pengisianBBM_RIB02.penambahan}
+                  {pengisianRIB02?.penambahan ?? "-"}
                 </p>
               </div>
               <div className="rounded-lg bg-white p-2 text-center border border-slate-200">
                 <p className="text-xs text-slate-500">Saldo Akhir</p>
                 <p className="font-semibold text-slate-800">
-                  {pengisianBBM_RIB02.saldoAkhir}
+                  {pengisianRIB02?.saldoAkhir ?? "-"}
                 </p>
               </div>
             </div>
@@ -666,9 +1372,7 @@ export default function OperatorPage() {
         </div>
       </div>
 
-      {/* Tabs — difilter berdasarkan armada yang dipilih.
-          `flex-wrap` supaya semua tab terlihat tanpa perlu digeser
-          horizontal di layar sempit. */}
+      {/* Tabs — difilter berdasarkan armada yang dipilih */}
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex flex-wrap gap-1">
           {visibleTabs.map((tab) => (
@@ -690,10 +1394,11 @@ export default function OperatorPage() {
       </div>
 
       {/* Empty state — armada tidak punya jurnal */}
-      {visibleTabs.length === 0 && (
+      {unitsTab(tabAktif).length === 0 && (
         <Card className="p-10 text-center">
           <p className="text-sm text-slate-500">
-            Belum ada jurnal/logbook untuk armada {armadaFilter}.
+            Belum ada data logbook/ceklist untuk armada{" "}
+            {armadaFilter === "Semua" ? "ini" : armadaFilter} di database.
           </p>
         </Card>
       )}
@@ -701,620 +1406,52 @@ export default function OperatorPage() {
       {/* Tab Content */}
       {tabAktif === "rib" && (
         <div className="space-y-6">
-          {jurnalRIB.map((rib) => (
-            <Card key={rib.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Ship className="h-5 w-5 text-primary" />
-                    Jurnal {rib.nama}
-                  </CardTitle>
-                  <Badge variant="success">{rib.status}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Info RIB */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
-                  <div>
-                    <p className="text-xs text-slate-500">Jenis Unit</p>
-                    <p className="font-medium text-slate-800">{rib.nama}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Tahun Pembuatan</p>
-                    <p className="font-medium text-slate-800">{rib.tahun}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Endurance</p>
-                    <p className="font-medium text-slate-800">{rib.endurance}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Waktu Operasi</p>
-                    <p className="font-medium text-slate-800">{rib.waktu}</p>
-                  </div>
-                </div>
-
-                {/* Tabel Pengecekan dengan Gradasi Kerusakan */}
-                <div>
-                  <SectionTitle>
-                    <ClipboardCheck className="h-5 w-5 text-primary" />
-                    A. Pemeliharaan
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={rib.pengecekan}
-                    getKey={(item) => item.no}
-                    cardTitle={(item) => item.item}
-                    cardBadge={(item) => <StatusBadge status={item.status} />}
-                    cardPreviewCount={0}
-                    detailLabel="Lihat detail pengecekan"
-                    emptyMessage="Belum ada data pengecekan."
-                    fields={CEKLIST_FIELDS}
-                  />
-                </div>
-
-                {/* Tabel Pemanasan */}
-                <div>
-                  <SectionTitle>
-                    <Clock className="h-5 w-5 text-primary" />
-                    B. Pemanasan Mesin dan Pengoperasian Alut
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={rib.pemanasan}
-                    getKey={(item) => item.no}
-                    cardTitle={(item) => item.kegiatan}
-                    cardSubtitle={(row) => `${row.berangkat} - ${row.kembali}`}
-                    cardPreviewCount={2}
-                    detailLabel="Lihat detail pemanasan"
-                    emptyMessage="Belum ada data pemanasan."
-                    fields={[
-                      {
-                        key: "no",
-                        header: "No",
-                        render: (item) => item.no,
-                        headClassName: "w-10 text-center",
-                        cellClassName: "text-center text-slate-500",
-                        hideBelowXl: true,
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "kegiatan",
-                        header: "Kegiatan Pemanasan",
-                        render: (item) => item.kegiatan,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "waktu",
-                        header: "Waktu",
-                        render: (item) => item.waktu,
-                        headClassName: "w-24",
-                        cellClassName: "text-slate-600",
-                      },
-                      {
-                        key: "rute",
-                        header: "Tujuan (Rute)",
-                        render: (item) => item.rute,
-                        cellClassName: "text-slate-600",
-                      },
-                      {
-                        key: "berangkat",
-                        header: "Berangkat",
-                        render: (item) => item.berangkat,
-                        headClassName: "w-20",
-                        cellClassName: "font-mono text-sm",
-                      },
-                      {
-                        key: "kembali",
-                        header: "Kembali",
-                        render: (item) => item.kembali,
-                        headClassName: "w-20",
-                        cellClassName: "font-mono text-sm",
-                      },
-                      {
-                        key: "keterangan",
-                        header: "Keterangan",
-                        render: (item) => item.keterangan || "-",
-                        cellClassName: "text-slate-600 text-xs",
-                        hideBelowLg: true,
-                      },
-                    ]}
-                  />
-                </div>
-
-                {/* Tabel Pengisian BBM (RIB 02) */}
-                {rib.id === "rib-02" && (
-                  <div>
-                    <SectionTitle>
-                      <Wrench className="h-5 w-5 text-primary" />
-                      C. Pengisian BBM
-                    </SectionTitle>
-                    <ResponsiveTable
-                      data={[
-                        { no: 1, label: "Sisa Kemarin", liter: "-", persen: "45%" },
-                        { no: 2, label: "Penambahan", liter: "30 Liter", persen: "-" },
-                        { no: 3, label: "Saldo Akhir", liter: "-", persen: "75%" },
-                      ]}
-                      getKey={(item) => item.no}
-                      cardTitle={(item) => item.label}
-                      cardBadge={(item) => (
-                        <Badge variant={item.label === "Saldo Akhir" ? "primary" : "outline"} className="text-xs">
-                          {item.persen}
-                        </Badge>
-                      )}
-                      cardPreviewCount={1}
-                      detailLabel="Lihat detail pengisian"
-                      fields={[
-                        {
-                          key: "no",
-                          header: "No",
-                          render: (item) => item.no,
-                          headClassName: "w-8 text-center",
-                          cellClassName: "text-center text-slate-500",
-                          hideOnCard: true,
-                        },
-                        {
-                          key: "label",
-                          header: "Pengisian BBM",
-                          render: (item) => item.label,
-                          cellClassName: "text-slate-700",
-                          hideOnCard: true,
-                        },
-                        {
-                          key: "liter",
-                          header: "Liter",
-                          render: (item) => item.liter,
-                          headClassName: "w-24 text-center",
-                          cellClassName: "text-center",
-                        },
-                        {
-                          key: "persen",
-                          header: "Persen (%)",
-                          render: (item) => item.persen,
-                          headClassName: "w-24 text-center",
-                          cellClassName: "text-center",
-                        },
-                      ]}
-                    />
-                  </div>
-                )}
-
-                {/* Catatan */}
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800">
-                    <strong>Catatan:</strong> Semua unit RIB dalam kondisi siap operasional. 
-                    Pengecekan dilakukan sesuai prosedur standar operasional SAR.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {unitsTab("rib").map((aset) => {
+            const trips = urutkanPerjalanan(perjalananUnit(logbookQuery.data, aset));
+            const instance = ceklistQuery.data.find((c) => c.asetId === aset.id);
+            const pengisian = pengisianQuery.data.filter((p) => p.asetId === aset.id);
+            return (
+              <KartuJurnalRIBUnit
+                key={aset.id}
+                aset={aset}
+                template={templatesFor(instance)}
+                instance={instance}
+                trips={trips}
+                pengisian={pengisian}
+              />
+            );
+          })}
         </div>
       )}
 
       {tabAktif === "kapal" && (
         <div className="space-y-6">
-          {logbookKapal.map((kapal) => (
-            <Card key={kapal.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Ship className="h-5 w-5 text-primary" />
-                    Logbook Harian {kapal.namaKapal}
-                  </CardTitle>
-                  <Badge variant="success">Siap Layar</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Info Operasional */}
-                <div>
-                  <SectionTitle>
-                    <Ship className="h-5 w-5 text-primary" />
-                    I. Informasi Operasional Kapal
-                  </SectionTitle>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
-                    <div>
-                      <p className="text-xs text-slate-500">Nama Kapal</p>
-                      <p className="font-medium text-slate-800">{kapal.namaKapal}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">No. Lambung</p>
-                      <p className="font-medium text-slate-800">{kapal.noLambung}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Tanggal</p>
-                      <p className="font-medium text-slate-800">{kapal.tanggal}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">BBM</p>
-                      <p className="font-medium text-slate-800">{kapal.bbm}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Endurance</p>
-                      <p className="font-medium text-slate-800">{kapal.endurance}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Kecepatan Rata-rata</p>
-                      <p className="font-medium text-slate-800">{kapal.kecepatan}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Pangkalan</p>
-                      <p className="font-medium text-slate-800">{kapal.pangkalan}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Running Hours</p>
-                      <p className="font-medium text-slate-800">{kapal.runningHours}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ceklist Harian Kapal — otomatis jadi kartu di layar kecil */}
-                <div>
-                  <SectionTitle>
-                    <ClipboardCheck className="h-5 w-5 text-primary" />
-                    II. Ceklist Harian Kapal
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={kapal.ceklist}
-                    getKey={(item) => item.no}
-                    cardTitle={(item) => item.item}
-                    cardSubtitle={(item) => item.keterangan || "-"}
-                    cardBadge={(item) => <StatusBadge status={item.status} />}
-                    cardPreviewCount={0}
-                    detailLabel="Lihat detail ceklist"
-                    emptyMessage="Belum ada ceklist kapal."
-                    fields={[
-                      {
-                        key: "no",
-                        header: "No",
-                        render: (item) => item.no,
-                        headClassName: "w-10 text-center",
-                        cellClassName: "text-center text-slate-500",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "item",
-                        header: "Item Pemeriksaan",
-                        render: (item) => item.item,
-                        cellClassName: "text-slate-700",
-                      },
-                      {
-                        key: "status",
-                        header: "Kondisi",
-                        render: (item) => <StatusBadge status={item.status} />,
-                        headClassName: "w-28 text-center",
-                        cellClassName: "text-center",
-                      },
-                      {
-                        key: "keterangan",
-                        header: "Keterangan",
-                        render: (item) => item.keterangan || "-",
-                        cellClassName: "text-slate-600 text-xs",
-                        hideBelowLg: true,
-                      },
-                    ]}
-                  />
-                </div>
-
-                {/* Jurnal Olah Gerak — otomatis jadi kartu di layar kecil */}
-                <div>
-                  <SectionTitle>
-                    <FileText className="h-5 w-5 text-primary" />
-                    III. Jurnal Olah Gerak Harian
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={kapal.jurnalOlahGerak}
-                    getKey={(item) => item.jamStart}
-                    cardTitle={(item) => item.rute}
-                    cardSubtitle={(row) => `${row.jamStart} - ${row.jamStop}`}
-                    cardPreviewCount={4}
-                    detailLabel="Lihat detail perjalanan"
-                    emptyMessage="Belum ada jurnal olah gerak."
-                    fields={[
-                      {
-                        key: "jamStart",
-                        header: "Jam Start",
-                        render: (item) => item.jamStart,
-                        cellClassName: "font-mono text-sm",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "jamStop",
-                        header: "Jam Stop",
-                        render: (item) => item.jamStop,
-                        cellClassName: "font-mono text-sm",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "rute",
-                        header: "Rute / Lokasi Patroli",
-                        render: (item) => item.rute,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "kecepatan",
-                        header: "Kecepatan",
-                        render: (item) => item.kecepatan,
-                        headClassName: "text-center",
-                        cellClassName: "text-center",
-                      },
-                      {
-                        key: "endurance",
-                        header: "Sisa Endurance",
-                        render: (item) => item.endurance,
-                        headClassName: "text-center",
-                        cellClassName: "text-center",
-                      },
-                      {
-                        key: "bbm",
-                        header: "Sisa BBM",
-                        render: (item) => item.bbm,
-                        headClassName: "text-center",
-                        cellClassName: "text-center",
-                      },
-                      {
-                        key: "nahkoda",
-                        header: "Nahkoda",
-                        render: (item) => item.nahkoda,
-                        cellClassName: "text-slate-700",
-                      },
-                    ]}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {unitsTab("kapal").map((aset) => {
+            const trips = urutkanPerjalanan(perjalananUnit(logbookQuery.data, aset));
+            const instance = ceklistQuery.data.find((c) => c.asetId === aset.id);
+            return (
+              <KartuLogbookKapal
+                key={aset.id}
+                aset={aset}
+                instance={instance}
+                trips={trips}
+              />
+            );
+          })}
         </div>
       )}
 
       {(tabAktif === "mobil" || tabAktif === "motor") && (
         <div className="space-y-6">
-          {logbookDarat
-            .filter((kendaraan) => kendaraan.jenisUnit === (tabAktif === "mobil" ? "Mobil" : "Motor"))
-            .map((kendaraan) => (
-            <Card key={kendaraan.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    {tabAktif === "mobil" ? <Car className="h-5 w-5 text-primary" /> : <Bike className="h-5 w-5 text-primary" />}
-                    Logbook {kendaraan.jenisKendaraan}
-                  </CardTitle>
-                  <Badge variant="success">Siap Operasional</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Info Kendaraan */}
-                <div>
-                  <SectionTitle>
-                    {tabAktif === "mobil" ? <Car className="h-5 w-5 text-primary" /> : <Bike className="h-5 w-5 text-primary" />}
-                    I. Informasi Kendaraan
-                  </SectionTitle>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
-                    <div>
-                      <p className="text-xs text-slate-500">Jenis Kendaraan</p>
-                      <p className="font-medium text-slate-800">{kendaraan.jenisKendaraan}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">No. Polisi</p>
-                      <p className="font-medium text-slate-800">{kendaraan.noPolisi}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Tahun Pengadaan</p>
-                      <p className="font-medium text-slate-800">{kendaraan.tahun}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Tipe</p>
-                      <p className="font-medium text-slate-800">{kendaraan.tipe}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Kilometer (KM)</p>
-                      <p className="font-medium text-slate-800">{kendaraan.km}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">BBM</p>
-                      <p className="font-medium text-slate-800">{kendaraan.bbm}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Riwayat Penggunaan — otomatis jadi kartu di layar kecil */}
-                <div>
-                  <SectionTitle>
-                    <FileText className="h-5 w-5 text-primary" />
-                    II. Riwayat Penggunaan
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={kendaraan.riwayatPenggunaan}
-                    getKey={(item) => item.no}
-                    cardTitle={(item) => `${item.dari} \u2192 ${item.ke}`}
-                    cardSubtitle={(item) => item.tanggal}
-                    cardPreviewCount={4}
-                    detailLabel="Lihat detail perjalanan"
-                    emptyMessage="Belum ada riwayat penggunaan."
-                    fields={[
-                      {
-                        key: "no",
-                        header: "No",
-                        render: (item) => item.no,
-                        headClassName: "w-8 text-center",
-                        cellClassName: "text-center text-slate-500",
-                        hideBelowXl: true,
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "tanggal",
-                        header: "Tanggal",
-                        render: (item) => item.tanggal,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "dari",
-                        header: "Dari",
-                        render: (item) => item.dari,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "ke",
-                        header: "Ke",
-                        render: (item) => item.ke,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "bbmSebelum",
-                        header: "BBM Sebelum",
-                        render: (item) => item.bbmSebelum,
-                        headClassName: "text-center",
-                        cellClassName: "text-center",
-                      },
-                      {
-                        key: "bbmSesudah",
-                        header: "BBM Sesudah",
-                        render: (item) => item.bbmSesudah,
-                        headClassName: "text-center",
-                        cellClassName: "text-center",
-                      },
-                      {
-                        key: "kmSebelum",
-                        header: "KM Sebelum",
-                        render: (item) => item.kmSebelum,
-                        headClassName: "text-center",
-                        cellClassName: "text-center font-mono text-sm",
-                      },
-                      {
-                        key: "kmSesudah",
-                        header: "KM Sesudah",
-                        render: (item) => item.kmSesudah,
-                        headClassName: "text-center",
-                        cellClassName: "text-center font-mono text-sm",
-                      },
-                      {
-                        key: "catatan",
-                        header: "Catatan",
-                        render: (item) => item.catatan,
-                        cellClassName: "text-slate-600",
-                        hideBelowLg: true,
-                      },
-                    ]}
-                  />
-                </div>
-
-                {/* Catatan Penggantian/Perbaikan — otomatis jadi kartu di layar kecil */}
-                <div>
-                  <SectionTitle>
-                    <Wrench className="h-5 w-5 text-primary" />
-                    III. Catatan Penggantian, Perbaikan, dan Overhaul
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={catatanPerbaikanDarat}
-                    getKey={(item) => `${item.tanggal}-${item.pelaksana}`}
-                    cardTitle={(item) => item.detailPekerjaan}
-                    cardSubtitle={(item) => item.tanggal}
-                    cardPreviewCount={1}
-                    detailLabel="Lihat detail pekerjaan"
-                    emptyMessage="Belum ada catatan perbaikan."
-                    fields={[
-                      {
-                        key: "tanggal",
-                        header: "Tanggal",
-                        render: (item) => item.tanggal,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "detailPekerjaan",
-                        header: "Detail Pelaksanaan Pekerjaan",
-                        render: (item) => item.detailPekerjaan,
-                        cellClassName: "text-slate-700",
-                        hideOnCard: true,
-                      },
-                      {
-                        key: "pelaksana",
-                        header: "Pelaksana",
-                        render: (item) => item.pelaksana,
-                        cellClassName: "text-slate-600",
-                      },
-                    ]}
-                  />
-                </div>
-
-                {/* Ceklist Perawatan - Harian */}
-                <div>
-                  <SectionTitle>
-                    <ClipboardCheck className="h-5 w-5 text-primary" />
-                    IV. Ceklist Perawatan Harian
-                  </SectionTitle>
-                  <div className="space-y-4">
-                    {kendaraan.pemeriksaanHarian.map((kategori) => (
-                      <div key={kategori.kategori}>
-                        <h3 className="mb-2 text-sm font-semibold text-slate-700">
-                          {kategori.kategori}
-                        </h3>
-                        <ResponsiveTable
-                          data={kategori.items}
-                          getKey={(item) => `${kategori.kategori}-${item.item}`}
-                          cardTitle={(item) => item.item}
-                          cardBadge={(item) => <StatusBadge status={item.status} />}
-                          cardPreviewCount={0}
-                          detailLabel="Lihat detail item"
-                          emptyMessage="Belum ada item pemeriksaan."
-                          fields={CEKLIST_FIELDS}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Ceklist Perawatan - Mingguan & Bulanan */}
-                <div>
-                  <SectionTitle>
-                    <ClipboardCheck className="h-5 w-5 text-primary" />
-                    V. Ceklist Perawatan Mingguan & Bulanan
-                  </SectionTitle>
-                  <div className="space-y-4">
-                    {[
-                      ...kendaraan.pemeriksaanMingguan,
-                      ...kendaraan.pemeriksaanBulanan,
-                    ].map((kategori) => (
-                      <div key={kategori.kategori}>
-                        <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                          {kategori.kategori}
-                        </h3>
-                        <ResponsiveTable
-                          data={kategori.items}
-                          getKey={(item) => `${kategori.kategori}-${item.item}`}
-                          cardTitle={(item) => item.item}
-                          cardBadge={(item) => <StatusBadge status={item.status} />}
-                          cardPreviewCount={0}
-                          detailLabel="Lihat detail item"
-                          emptyMessage="Belum ada item pemeriksaan."
-                          fields={CEKLIST_FIELDS}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Item Tambahan — otomatis jadi kartu di layar kecil */}
-                <div>
-                  <SectionTitle>
-                    <Wrench className="h-5 w-5 text-primary" />
-                    VI. Item Tambahan (Jika Ada)
-                  </SectionTitle>
-                  <ResponsiveTable
-                    data={kendaraan.itemTambahan}
-                    getKey={(item) => item.item}
-                    cardTitle={(item) => item.item}
-                    cardBadge={(item) => <StatusBadge status={item.status} />}
-                    cardPreviewCount={0}
-                    detailLabel="Lihat detail item"
-                    emptyMessage="Tidak ada item tambahan."
-                    fields={CEKLIST_FIELDS}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          {unitsTab(tabAktif).map((aset) => (
+            <KartuLogbookDarat
+              key={aset.id}
+              aset={aset}
+              trips={perjalananUnit(logbookQuery.data, aset)}
+              catatanPerbaikan={perbaikanQuery.data}
+              instances={ceklistQuery.data}
+              templateById={templateById}
+            />
           ))}
         </div>
       )}
