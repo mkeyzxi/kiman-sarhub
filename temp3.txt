@@ -1,0 +1,12 @@
+﻿        <CardContent>
+          {baList.length === 0 ? (
+            <DataEmpty
+              message={
+                data.length === 0
+                  ? "Belum ada berita acara di database. Berita acara dibuat operator dari checklist yang berisi kerusakan â†’ tombol \u201CSerahkan ke BMN\u201D."
+                  : "Tidak ada berita acara yang cocok dengan pencarian/filter."
+              }
+            />
+          ) : (
+            <ResponsiveTable<BeritaAcaraMapped>
+              data={paginatedBA}

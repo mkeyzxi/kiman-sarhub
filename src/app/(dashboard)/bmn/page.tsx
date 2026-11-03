@@ -16,7 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { Card } from "@/components/ui/card";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import {
   STATUS_ASET,
   STATUS_ASET_VARIANT,
@@ -34,28 +37,20 @@ import {
 export default function MasterDataBMNPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  
+  // Debounce search query
+  const debouncedSearch = useDebounce(searchQuery, 300);
+  
   // Aset dari Supabase.
   const { data: asetList, loading, error, refetch } = useAsets();
 
-  if (loading) {
-    return <DataLoading label="Memuat master aset BMN…" />;
-  }
-  if (error) {
-    return (
-      <DataError
-        error={error}
-        onRetry={refetch}
-        label="Gagal memuat master aset dari database"
-      />
-    );
-  }
-
+  // Filter aset dengan debounced search
   const filteredAset = asetList.filter((aset) => {
-    const q = searchQuery.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     const matchSearch =
       aset.nama.toLowerCase().includes(q) ||
       aset.kode.toLowerCase().includes(q) ||
-      aset.nup.includes(searchQuery) ||
+      aset.nup.includes(debouncedSearch) ||
       (aset.kodeBarang ?? "").toLowerCase().includes(q) ||
       (aset.noPolisi ?? "").toLowerCase().includes(q) ||
       (aset.merk ?? "").toLowerCase().includes(q) ||
@@ -63,6 +58,13 @@ export default function MasterDataBMNPage() {
     const matchStatus = statusFilter === "Semua" || aset.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  // Pagination - panggil sebelum early return
+  const pagination = usePagination(filteredAset.length, 20);
+  const paginatedAset = filteredAset.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
 
   const totalAset = asetList.length;
   const hitung = (status: string) =>
@@ -98,6 +100,20 @@ export default function MasterDataBMNPage() {
       iconColor: "text-rose-600",
     },
   ];
+
+  // Early return setelah semua hooks
+  if (loading) {
+    return <DataLoading label="Memuat master aset BMN…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat master aset dari database"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -171,7 +187,7 @@ export default function MasterDataBMNPage() {
       {/* Table — otomatis menjadi kartu di layar kecil */}
       <Card>
         <ResponsiveTable
-          data={filteredAset}
+          data={paginatedAset}
           getKey={(row) => row.id}
           cardTitle={(row) => row.nama}
           cardSubtitle={(row) => {
@@ -264,6 +280,25 @@ export default function MasterDataBMNPage() {
             },
           ]}
         />
+        
+        {/* Pagination Controls */}
+        {filteredAset.length > 0 && (
+          <div className="p-4 border-t border-slate-100">
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              startItem={pagination.startItem}
+              endItem={pagination.endItem}
+              hasPrevious={pagination.hasPrevious}
+              hasNext={pagination.hasNext}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -1,0 +1,21 @@
+﻿                {
+                  key: "aset",
+                  header: "Aset",
+                  render: (ba) => (
+                    <div>
+                      <p className="font-medium text-slate-800">{ba.namaAset}</p>
+                      {ba.kodeAset && (
+                        <p className="font-mono text-xs text-slate-500">
+                          {ba.kodeAset}
+                        </p>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: "pengaju",
+                  header: "Diserahkan Oleh",
+                  render: (ba) => ba.pengajuNama ?? ba.pelapor ?? "-",
+                  hideBelowLg: true,
+                },
+                {

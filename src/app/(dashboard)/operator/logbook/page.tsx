@@ -18,7 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import {
   isArmadaLaut,
   formatEndurance,
@@ -84,6 +87,9 @@ export default function LogbookPerjalananPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
 
+  // Debounce search query untuk mengurangi re-render saat mengetik
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   // Data logbook dari Supabase.
   const {
     data: supabaseLogbooks,
@@ -96,6 +102,30 @@ export default function LogbookPerjalananPage() {
     supabaseLogbooks as unknown as LogbookPerjalanan[]
   );
 
+  // Filter berdasarkan search query yang sudah di-debounce dan status
+  const filteredLogbook = logbookPerjalananList.filter((log) => {
+    const matchSearch =
+      log.rute.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      log.tujuan.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      log.jenisUnit.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      log.nahkoda.toLowerCase().includes(debouncedSearch.toLowerCase());
+    const matchStatus = statusFilter === "Semua" || log.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  // Pagination untuk filtered data - HARUS dipanggil sebelum conditional return
+  const pagination = usePagination(filteredLogbook.length, 20);
+  const paginatedLogbook = filteredLogbook.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
+
+  const totalPerjalanan = logbookPerjalananList.length;
+  const perjalananSelesai = logbookPerjalananList.filter((l) => l.status === "Selesai").length;
+  const perjalananBerlangsung = logbookPerjalananList.filter((l) => l.status === "Sedang Digunakan").length;
+  const menungguPenggunaan = logbookPerjalananList.filter((l) => l.status === "Menunggu Penggunaan").length;
+
+  // Early return SETELAH semua hooks dipanggil
   if (loading) {
     return <DataLoading label="Memuat logbook perjalanan…" />;
   }
@@ -108,21 +138,6 @@ export default function LogbookPerjalananPage() {
       />
     );
   }
-
-  const filteredLogbook = logbookPerjalananList.filter((log) => {
-    const matchSearch =
-      log.rute.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.tujuan.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.jenisUnit.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.nahkoda.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchStatus = statusFilter === "Semua" || log.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  const totalPerjalanan = logbookPerjalananList.length;
-  const perjalananSelesai = logbookPerjalananList.filter((l) => l.status === "Selesai").length;
-  const perjalananBerlangsung = logbookPerjalananList.filter((l) => l.status === "Sedang Digunakan").length;
-  const menungguPenggunaan = logbookPerjalananList.filter((l) => l.status === "Menunggu Penggunaan").length;
 
   return (
     <div className="space-y-6">
@@ -204,7 +219,7 @@ export default function LogbookPerjalananPage() {
       <Card>
         <CardContent className="pt-0">
           <ResponsiveTable
-            data={filteredLogbook}
+            data={paginatedLogbook}
             getKey={(row) => row.id}
             cardTitle={(row) => row.rute}
             cardSubtitle={(row) => row.tujuan}
@@ -342,6 +357,25 @@ export default function LogbookPerjalananPage() {
               },
             ]}
           />
+          
+          {/* Pagination Controls */}
+          {filteredLogbook.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                startItem={pagination.startItem}
+                endItem={pagination.endItem}
+                hasPrevious={pagination.hasPrevious}
+                hasNext={pagination.hasNext}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

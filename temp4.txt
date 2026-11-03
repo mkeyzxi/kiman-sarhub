@@ -1,0 +1,13 @@
+﻿          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Daftar Berita Acara ({baList.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {baList.length === 0 ? (
+            <DataEmpty
+              message={
+                data.length === 0
+                  ? "Belum ada berita acara di database. Berita acara dibuat operator dari checklist yang berisi kerusakan â†’ tombol \u201CSerahkan ke BMN\u201D."
+                  : "Tidak ada berita acara yang cocok dengan pencarian/filter."
+              }

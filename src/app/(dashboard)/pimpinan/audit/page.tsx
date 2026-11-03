@@ -5,7 +5,10 @@ import { Users, TrendingUp, AlertOctagon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   useAuditKepatuhan,
@@ -40,6 +43,9 @@ export default function AuditPage() {
   const [periode, setPeriode] = useState(bulanSekarang);
   const [kategori, setKategori] = useState("Semua");
   const [cari, setCari] = useState("");
+  
+  // Debounce search
+  const debouncedCari = useDebounce(cari, 300);
 
   const { data, loading, error, refetch, opsiPeriode } =
     useAuditKepatuhan(periode);
@@ -48,7 +54,7 @@ export default function AuditPage() {
 
   // Filter kategori skor + pencarian nama/NIP, lalu peringkat dihitung ulang
   // untuk daftar yang tampil (urutan skor tetap dari hook).
-  const kataKunci = cari.trim().toLowerCase();
+  const kataKunci = debouncedCari.trim().toLowerCase();
   const cocokKategori = (skor: number) => {
     if (kategori === "baik") return skor >= 90;
     if (kategori === "cukup") return skor >= 75 && skor < 90;
@@ -67,6 +73,13 @@ export default function AuditPage() {
       ...item,
       rank: i + 1,
     }));
+
+  // Pagination - panggil sebelum early return
+  const pagination = usePagination(ranking.length, 20);
+  const paginatedRanking = ranking.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
 
   const labelPelanggaran =
     periode === bulanSekarang
@@ -97,6 +110,7 @@ export default function AuditPage() {
     },
   ];
 
+  // Early return setelah semua hooks
   if (loading) {
     return <DataLoading label="Memuat audit kepatuhan…" />;
   }
@@ -187,7 +201,7 @@ export default function AuditPage() {
       {/* Compliance Table */}
       <Card>
         <ResponsiveTable
-          data={ranking}
+          data={paginatedRanking}
           getKey={(row) => row.personelId}
           cardTitle={(row) => row.nama}
           cardSubtitle={(row) => row.jabatan}
@@ -302,6 +316,25 @@ export default function AuditPage() {
             },
           ]}
         />
+        
+        {/* Pagination Controls */}
+        {ranking.length > 0 && (
+          <div className="p-4 border-t border-slate-100">
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              startItem={pagination.startItem}
+              endItem={pagination.endItem}
+              hasPrevious={pagination.hasPrevious}
+              hasNext={pagination.hasNext}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </div>
+        )}
       </Card>
     </div>
   );

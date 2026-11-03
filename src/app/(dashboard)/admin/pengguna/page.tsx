@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { roleLabels, roleDescriptions } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import type { UserProfile } from "@/types/supabase";
@@ -51,6 +54,9 @@ export default function PenggunaPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Debounce search
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     fetchUsers();
@@ -72,7 +78,7 @@ export default function PenggunaPage() {
   }
 
   const filteredUsers = users.filter((user) => {
-    const q = searchQuery.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     const matchSearch =
       user.nama.toLowerCase().includes(q) ||
       (user.email || "").toLowerCase().includes(q) ||
@@ -80,6 +86,13 @@ export default function PenggunaPage() {
     const matchRole = roleFilter === "Semua" || user.role === roleFilter;
     return matchSearch && matchRole;
   });
+
+  // Pagination - panggil sebelum early return
+  const pagination = usePagination(filteredUsers.length, 20);
+  const paginatedUsers = filteredUsers.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
 
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.aktif).length;
@@ -113,6 +126,7 @@ export default function PenggunaPage() {
     },
   ];
 
+  // Early return setelah semua hooks
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -199,7 +213,7 @@ export default function PenggunaPage() {
         </CardHeader>
         <CardContent className="pt-0">
           <ResponsiveTable
-            data={filteredUsers}
+            data={paginatedUsers}
             getKey={(row) => row.id}
             cardTitle={(row) => row.nama}
             cardSubtitle={(row) => row.nip || row.email}
@@ -291,6 +305,25 @@ export default function PenggunaPage() {
               },
             ]}
           />
+          
+          {/* Pagination Controls */}
+          {filteredUsers.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                startItem={pagination.startItem}
+                endItem={pagination.endItem}
+                hasPrevious={pagination.hasPrevious}
+                hasNext={pagination.hasNext}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

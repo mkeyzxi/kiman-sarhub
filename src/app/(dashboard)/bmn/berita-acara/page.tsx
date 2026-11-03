@@ -14,7 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal } from "@/components/shared/mock-data";
 import { useBeritaAcara } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError, DataEmpty } from "@/components/shared/data-state";
@@ -62,11 +65,14 @@ export default function DaftarBeritaAcaraPage() {
   const { data, loading, error, refetch } = useBeritaAcara();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  
+  // Debounce search
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const baList = useMemo(
     () =>
       data.filter((ba) => {
-        const q = searchQuery.toLowerCase();
+        const q = debouncedSearch.toLowerCase();
         const matchQuery =
           q === "" ||
           ba.namaAset.toLowerCase().includes(q) ||
@@ -77,13 +83,21 @@ export default function DaftarBeritaAcaraPage() {
           statusFilter === "Semua" || ba.status === statusFilter;
         return matchQuery && matchStatus;
       }),
-    [data, searchQuery, statusFilter]
+    [data, debouncedSearch, statusFilter]
+  );
+
+  // Pagination - panggil sebelum early return
+  const pagination = usePagination(baList.length, 20);
+  const paginatedBA = useMemo(
+    () => baList.slice(pagination.startIndex, pagination.endIndex),
+    [baList, pagination.startIndex, pagination.endIndex]
   );
 
   const menungguNomor = data.filter((b) => b.status === "Diserahkan").length;
   const menungguAcc = data.filter((b) => b.status === "Diproses").length;
   const disetujui = data.filter((b) => b.status === "Disetujui").length;
 
+  // Early return setelah semua hooks
   if (loading) {
     return <DataLoading label="Memuat berita acara…" />;
   }
@@ -188,7 +202,7 @@ export default function DaftarBeritaAcaraPage() {
             />
           ) : (
             <ResponsiveTable<BeritaAcaraMapped>
-              data={baList}
+              data={paginatedBA}
               getKey={(ba) => ba.id}
               cardTitle={(ba) => ba.namaAset}
               cardSubtitle={(ba) =>
@@ -258,6 +272,25 @@ export default function DaftarBeritaAcaraPage() {
                 },
               ]}
             />
+          )}
+          
+          {/* Pagination Controls */}
+          {baList.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                startItem={pagination.startItem}
+                endItem={pagination.endItem}
+                hasPrevious={pagination.hasPrevious}
+                hasNext={pagination.hasNext}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

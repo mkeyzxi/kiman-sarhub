@@ -1,0 +1,20 @@
+﻿                  key: "pengaju",
+                  header: "Diserahkan Oleh",
+                  render: (ba) => ba.pengajuNama ?? ba.pelapor ?? "-",
+                  hideBelowLg: true,
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  render: (ba) => (
+                    <Badge variant={statusVariant[ba.status] ?? "default"}>
+                      {ba.status}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: "aksi",
+                  header: "Aksi",
+                  render: (ba) => (
+                    <Link href={`/bmn/berita-acara/${ba.id}`}>
+                      <Button variant="outline" size="sm">
