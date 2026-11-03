@@ -1,13 +1,16 @@
 "use client";
 
-import { Users, TrendingUp, AlertOctagon } from "lucide-react";
+import { useState } from "react";
+import { Users, TrendingUp, AlertOctagon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/input";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   useAuditKepatuhan,
   hitungRingkasanAudit,
+  labelPeriode,
   type BarisAuditKepatuhan,
 } from "@/components/shared/use-supabase-data";
 
@@ -30,15 +33,45 @@ interface BarisRanking extends BarisAuditKepatuhan {
 }
 
 export default function AuditPage() {
-  const { data, loading, error, refetch } = useAuditKepatuhan();
+  // Skor dinilai per bulan — default bulan berjalan, dan tiap tanggal 1 skor
+  // mulai lagi dari 100 (recovery otomatis). Dropdown periode untuk melihat
+  // bulan-bulan sebelumnya.
+  const bulanSekarang = new Date().toISOString().slice(0, 7);
+  const [periode, setPeriode] = useState(bulanSekarang);
+  const [kategori, setKategori] = useState("Semua");
+  const [cari, setCari] = useState("");
+
+  const { data, loading, error, refetch, opsiPeriode } =
+    useAuditKepatuhan(periode);
   const { totalPersonel, rataSkor, pelanggaranBulanIni } =
     hitungRingkasanAudit(data);
 
-  // Peringkat sudah tertata di hook (skor tertinggi dulu) — lampirkan rank.
-  const ranking: BarisRanking[] = data.map((item, i) => ({
-    ...item,
-    rank: i + 1,
-  }));
+  // Filter kategori skor + pencarian nama/NIP, lalu peringkat dihitung ulang
+  // untuk daftar yang tampil (urutan skor tetap dari hook).
+  const kataKunci = cari.trim().toLowerCase();
+  const cocokKategori = (skor: number) => {
+    if (kategori === "baik") return skor >= 90;
+    if (kategori === "cukup") return skor >= 75 && skor < 90;
+    if (kategori === "perlu") return skor < 75;
+    return true;
+  };
+  const ranking: BarisRanking[] = data
+    .filter((r) => cocokKategori(r.skorKepatuhan))
+    .filter(
+      (r) =>
+        kataKunci === "" ||
+        r.nama.toLowerCase().includes(kataKunci) ||
+        r.personelId.toLowerCase().includes(kataKunci)
+    )
+    .map((item, i) => ({
+      ...item,
+      rank: i + 1,
+    }));
+
+  const labelPelanggaran =
+    periode === bulanSekarang
+      ? "Pelanggaran Bulan Ini"
+      : `Pelanggaran ${labelPeriode(periode)}`;
 
   const stats = [
     {
@@ -56,7 +89,7 @@ export default function AuditPage() {
       iconColor: "text-emerald-600",
     },
     {
-      label: "Pelanggaran Bulan Ini",
+      label: labelPelanggaran,
       value: pelanggaranBulanIni,
       icon: AlertOctagon,
       iconBg: "bg-rose-50",
@@ -86,9 +119,12 @@ export default function AuditPage() {
           Evaluasi kepatuhan personel terhadap prosedur operasional SAR
         </p>
         <p className="text-xs text-slate-400 mt-1">
-          Telat Kembali = unit rusak masih dipegang tanpa berita acara ·
-          Abaikan Checklist = pemeriksaan lewat waktunya dan masih Belum
-          Lengkap. Semua dihitung otomatis dari data.
+          Skor dinilai per bulan — setiap tanggal 1 skor mulai lagi dari 100
+          (pelanggaran bulan sebelumnya tidak terbawa ke bulan baru; yang masih
+          berlangsung tetap dihitung di bulan berjalan). Aset Rusak Belum Dilaporkan = unit
+          rusak masih dipegang tanpa berita acara · Checklist Belum Dilengkapi =
+          pemeriksaan lewat waktunya dan masih Belum Lengkap. Semua dihitung
+          otomatis dari data.
         </p>
       </div>
 
@@ -111,6 +147,43 @@ export default function AuditPage() {
         ))}
       </div>
 
+      {/* Filter: cari personel · periode bulan · kategori skor */}
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Cari nama atau NIP personel…"
+              className="pl-9"
+              value={cari}
+              onChange={(e) => setCari(e.target.value)}
+            />
+          </div>
+          <Select
+            className="sm:w-56"
+            value={periode}
+            onChange={(e) => setPeriode(e.target.value)}
+          >
+            {opsiPeriode.map((p) => (
+              <option key={p} value={p}>
+                {p === bulanSekarang ? "Bulan ini · " : ""}
+                {labelPeriode(p)}
+              </option>
+            ))}
+          </Select>
+          <Select
+            className="sm:w-56"
+            value={kategori}
+            onChange={(e) => setKategori(e.target.value)}
+          >
+            <option value="Semua">Semua Kategori</option>
+            <option value="baik">Baik — skor 90 ke atas</option>
+            <option value="cukup">Cukup — skor 75–89</option>
+            <option value="perlu">Perlu Perbaikan — skor di bawah 75</option>
+          </Select>
+        </div>
+      </Card>
+
       {/* Compliance Table */}
       <Card>
         <ResponsiveTable
@@ -127,7 +200,11 @@ export default function AuditPage() {
           )}
           cardPreviewCount={2}
           detailLabel="Lihat detail kepatuhan"
-          emptyMessage="Belum ada data kepatuhan personel."
+          emptyMessage={
+            data.length === 0
+              ? "Belum ada data kepatuhan personel."
+              : "Tidak ada personel yang cocok dengan filter."
+          }
           fields={[
             {
               key: "rank",
@@ -165,7 +242,7 @@ export default function AuditPage() {
             },
             {
               key: "telatKembali",
-              header: "Telat Kembali",
+              header: "Aset Rusak Belum Dilaporkan",
               render: (row) => (
                 <span
                   className={`font-medium ${
@@ -180,7 +257,7 @@ export default function AuditPage() {
             },
             {
               key: "abaikanChecklist",
-              header: "Abaikan Checklist",
+              header: "Checklist Belum Dilengkapi",
               render: (row) => (
                 <span
                   className={`font-medium ${

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -68,11 +68,27 @@ function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
 /** Daftar unit berdasarkan kategori, diambil dari master aset real. */
 function getUnitOptions(
   kategori: FormLogbook["kategoriUnit"],
-  asets: Aset[]
+  asets: Aset[],
+  logbooks: any[]
 ): {
   value: string;
   label: string;
+  disabled: boolean;
 }[] {
+  // Daftar unit yang sedang digunakan atau menunggu penggunaan
+  const unitSedangDigunakan = new Set(
+    logbooks
+      .filter((l) => 
+        l.status === "Sedang Digunakan" || 
+        l.status === "Menunggu Penggunaan"
+      )
+      .map((l) => {
+        // Ambil kode unit dari jenisUnit (format bisa "Nama Unit (KODE)" atau "KODE")
+        const match = l.jenisUnit.match(/\(([^)]+)\)$/);
+        return match ? match[1] : l.jenisUnit.split(" ")[0];
+      })
+  );
+
   return asets
     .filter((a) => {
       if (kategori === "Mobil") return a.kategori === "Mobil";
@@ -85,10 +101,14 @@ function getUnitOptions(
       if (kategori === "Kapal") return !/RIB|RBB/i.test(a.nama);
       return false;
     })
-    .map((a) => ({
-      value: a.kode,
-      label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""} (${a.kode})`,
-    }));
+    .map((a) => {
+      const sedangDigunakan = unitSedangDigunakan.has(a.kode);
+      return {
+        value: a.kode,
+        label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""} (${a.kode})${sedangDigunakan ? " — Sedang Digunakan" : ""}`,
+        disabled: sedangDigunakan,
+      };
+    });
 }
 
 /**
@@ -141,12 +161,31 @@ export default function TambahLogbookPage() {
     {}
   );
   const [errorUmum, setErrorUmum] = useState<string | null>(null);
+  const defaultNahkodaSet = useRef(false);
+  const qrScanProcessed = useRef<string | null>(null);
+
+  // ─── SET DEFAULT NAHKODA KE USER LOGIN ────────────────────────────────────
+  useEffect(() => {
+    if (ses.nama && !defaultNahkodaSet.current) {
+      // Schedule update untuk menghindari synchronous setState
+      queueMicrotask(() => {
+        setFormData((prev) => {
+          if (!prev.nahkoda && !defaultNahkodaSet.current) {
+            defaultNahkodaSet.current = true;
+            return { ...prev, nahkoda: ses.nama };
+          }
+          return prev;
+        });
+      });
+    }
+  }, [ses.nama]);
 
   // ─── AUTO-FILL DARI QR CODE SCAN ──────────────────────────────────────────
   const paramUnit = searchParams.get("unit");
 
   useEffect(() => {
-    if (!paramUnit || loading) return;
+    if (!paramUnit || loading || qrScanProcessed.current === paramUnit) return;
+    
     // Cari aset berdasarkan kode dari query parameter
     const asetScan = asetList.find(
       (a) => a.kode === paramUnit || a.nama === paramUnit
@@ -174,18 +213,22 @@ export default function TambahLogbookPage() {
     );
     const bbmDefault = logbookUnit?.bbmSesudah || "100";
 
-    setFormData((prev) => ({
-      ...prev,
-      kategoriUnit: kategori,
-      jenisUnit: asetScan.kode,
-      nahkoda: ses.nama,
-      bbmSebelum: bbmDefault,
-    }));
+    // Mark as processed dan schedule update
+    qrScanProcessed.current = paramUnit;
+    queueMicrotask(() => {
+      setFormData((prev) => ({
+        ...prev,
+        kategoriUnit: kategori,
+        jenisUnit: asetScan.kode,
+        nahkoda: ses.nama,
+        bbmSebelum: bbmDefault,
+      }));
+    });
   }, [paramUnit, loading, asetList, logbooks, ses.nama]);
 
   const unitOptions = useMemo(
-    () => getUnitOptions(formData.kategoriUnit, asetList),
-    [formData.kategoriUnit, asetList]
+    () => getUnitOptions(formData.kategoriUnit, asetList, logbooks),
+    [formData.kategoriUnit, asetList, logbooks]
   );
 
   const laut = isArmadaLaut(formData.kategoriUnit);
@@ -214,12 +257,14 @@ export default function TambahLogbookPage() {
   };
 
   const handleKategoriChange = (kategori: FormLogbook["kategoriUnit"]) => {
-    const units = getUnitOptions(kategori, asetList);
+    const units = getUnitOptions(kategori, asetList, logbooks);
     const keDarat = kategori === "Mobil" || kategori === "Motor";
+    // Pilih unit pertama yang tidak disabled
+    const unitTersedia = units.find((u) => !u.disabled);
     setFormData((prev) => ({
       ...prev,
       kategoriUnit: kategori,
-      jenisUnit: units[0]?.value ?? "",
+      jenisUnit: unitTersedia?.value ?? "",
       kmSebelum: keDarat ? prev.kmSebelum : "",
       enduranceAwal: keDarat ? "" : prev.enduranceAwal,
     }));
@@ -452,7 +497,7 @@ export default function TambahLogbookPage() {
                 )}
                 {unitOptions.length > 0 && <option value="">Pilih unit</option>}
                 {unitOptions.map((u) => (
-                  <option key={u.value} value={u.value}>
+                  <option key={u.value} value={u.value} disabled={u.disabled}>
                     {u.label}
                   </option>
                 ))}

@@ -105,7 +105,7 @@ export default function MasterDataBMNPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Master Data BMN</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Kelola dan pantau seluruh aset BMN yang dimiliki
           </p>
         </div>
@@ -129,7 +129,7 @@ export default function MasterDataBMNPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-                <p className="text-sm text-slate-500">{stat.label}</p>
+                <p className="text-sm text-slate-600">{stat.label}</p>
               </div>
             </div>
           </Card>
@@ -140,7 +140,7 @@ export default function MasterDataBMNPage() {
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
             <Input
               placeholder="Cari nama, kode barang, NUP, atau nomor polisi..."
               className="pl-9"
@@ -209,7 +209,7 @@ export default function MasterDataBMNPage() {
                   <div className="min-w-0">
                     <p className="font-medium text-slate-800">{row.nama}</p>
                     {model && (
-                      <p className="truncate text-xs text-slate-400">{model}</p>
+                      <p className="truncate text-xs text-slate-600">{model}</p>
                     )}
                   </div>
                 );

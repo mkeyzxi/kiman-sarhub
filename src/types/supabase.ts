@@ -242,6 +242,8 @@ export type LogbookPerjalananRow = {
   km_sesudah: string;
   status: string;
   catatan: string;
+  /** Kolom opsional — ditambah lewat `scripts/seed-operator-dashboard.sql`. */
+  kecepatan_rata?: string | null;
   tanggal_simpan: string | null;
   tanggal_lengkap: string | null;
   created_at: string;
@@ -263,6 +265,39 @@ export type ChecklistHarianRow = {
   items: unknown;
   catatan: string;
   created_at: string;
+};
+
+// ─── Tabel pendukung Dashboard Operasional (seed-operator-dashboard.sql) ─────
+
+export type PengisianBbmRow = {
+  id: string;
+  aset_id: string | null;
+  tanggal: string;
+  /** Persen sisa BBM sebelum pengisian, mis. "45%". */
+  sisa_sebelum: string | null;
+  /** Banyak BBM yang ditambahkan, mis. "30 Liter". */
+  penambahan: string | null;
+  /** Persen saldo akhir setelah pengisian, mis. "75%". */
+  saldo_akhir: string | null;
+  keterangan: string | null;
+  created_at: string;
+};
+
+export type PengisianBbmInsert = Omit<PengisianBbmRow, "created_at"> & {
+  created_at?: string;
+};
+
+export type CatatanPerbaikanRow = {
+  id: string;
+  aset_id: string | null;
+  tanggal: string;
+  detail_pekerjaan: string;
+  pelaksana: string | null;
+  created_at: string;
+};
+
+export type CatatanPerbaikanInsert = Omit<CatatanPerbaikanRow, "created_at"> & {
+  created_at?: string;
 };
 
 export type BeritaAcaraRow = {
@@ -391,6 +426,34 @@ export type Database = {
         Insert: Omit<ChecklistHarianRow, "created_at">;
         Update: Partial<Omit<ChecklistHarianRow, "created_at">>;
         Relationships: [];
+      };
+      pengisian_bbm: {
+        Row: PengisianBbmRow;
+        Insert: PengisianBbmInsert;
+        Update: Partial<PengisianBbmInsert>;
+        Relationships: [
+          {
+            foreignKeyName: "pengisian_bbm_aset_id_fkey";
+            columns: ["aset_id"];
+            isOneToOne: false;
+            referencedRelation: "asets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      catatan_perbaikan: {
+        Row: CatatanPerbaikanRow;
+        Insert: CatatanPerbaikanInsert;
+        Update: Partial<CatatanPerbaikanInsert>;
+        Relationships: [
+          {
+            foreignKeyName: "catatan_perbaikan_aset_id_fkey";
+            columns: ["aset_id"];
+            isOneToOne: false;
+            referencedRelation: "asets";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       berita_acara: {
         Row: BeritaAcaraRow;
