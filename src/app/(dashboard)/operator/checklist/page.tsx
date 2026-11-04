@@ -18,6 +18,7 @@ import {
   Loader2,
   Clock,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -386,11 +387,23 @@ export default function ChecklistPerawatanPage() {
           <h2 className="text-lg font-semibold text-slate-800">
             Monitor Alur Kerusakan Kendaraan
           </h2>
-          {kartuSaya.length > 0 && (
-            <Badge variant="outline" className="text-xs">
-              {kartuSaya.length} alur milik Anda terpantau
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {kartuSaya.length > 0 && (
+              <Badge variant="outline" className="text-xs">
+                {kartuSaya.length} alur milik Anda terpantau
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => carduPJ.refetchKartu()}
+              disabled={carduPJ.loading}
+              className="h-8 px-2 text-xs"
+            >
+              <RefreshCw className={cn("mr-1 h-3.5 w-3.5", carduPJ.loading && "animate-spin")} />
+              Muat ulang
+            </Button>
+          </div>
         </div>
 
         {carduPJ.loading ? (

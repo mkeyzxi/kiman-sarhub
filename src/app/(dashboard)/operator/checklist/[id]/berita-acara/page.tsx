@@ -36,6 +36,7 @@ import {
   beritaAcaraByChecklist,
   beritaAcaraById,
   mulaiHidrasi,
+  setAsetBeritaAcara,
   simpanIsiBeritaAcaraSupabase,
   serahkanBeritaAcaraSupabase,
   tambahBeritaAcaraSupabase,
@@ -77,7 +78,13 @@ export default function BeritaAcaraPage() {
   const checklist = checklistList.find((c) => c.id === checklistId);
 
   // Aset terkait: HARUS dari asetId checklist (jangan cari nama — unit kembar bisa salah).
-  const { data: asetDb } = useAsetById(checklist?.asetId || undefined);
+  // `asetLoading` dipakai gerbang pembuatan BA: membuat BA sebelum master
+  // aset termuat menyimpan `asetId: ""` di database — aset lalu tak
+  // terdeteksi di dropdown tiket BMN dan kartu monitor operator.
+  const {
+    data: asetDb,
+    loading: asetTunggu,
+  } = useAsetById(checklist?.asetId || undefined);
   const aset = asetDb;
 
   // ── State form ───────────────────────────────────────────────────────────
@@ -117,12 +124,16 @@ export default function BeritaAcaraPage() {
     setGagal(null);
   }, [checklistId]);
 
-  // ── Siapkan berita acara (sekali, saat checklist tersedia) ───────────────
+  // ── Siapkan berita acara (sekali, saat checklist TULIS) ───────────────
   // Kalau belum ada BA untuk checklist ini, buat otomatis dengan status
   // "Draf" supaya isinya bisa langsung diedit. Setelah diserahkan, statusnya
   // menjadi "Diserahkan". Side effect di-defer 0 agar render pertama bersih.
+  //
+  // Menunggu master aset (`asetTunggu = false`) sebelum membuat BA — BA yang
+  // dibuat dulu tanpa aset akan tersimpan `aset_id = NULL` dan membuat
+  // aset tak terdeteksi di dropdown tiket BMN & kartu monitor.
   useEffect(() => {
-    if (!checklist) return;
+    if (!checklist || asetTunggu) return;
     const t = setTimeout(() => {
       if (baSiap.current) return;
       // Tunggu hidrasi Supabase — BA lama dari database jangan dibuat ulang.
@@ -131,9 +142,18 @@ export default function BeritaAcaraPage() {
         baSiap.current = true;
 
         const ada = beritaAcaraByChecklist(checklist.id);
-        // Filter: hanya ambil BA ini jika milik user yang sedang login
-        const adaMilikSaya = ada && ada.pengajuId === ses.id;
-        if (adaMilikSaya) {
+        // SATU BA PER CHECKLIST: draf milik user ini (pengaju = NIP login)
+        // atau draf yang belum pernah diserahkan (pengaju masih kosong —
+        // milik pemeriksa checklist) harus selalu diadopsi dan diteruskan —
+        // BUKAN membuat duplikat baru sekali lagi saat proses belum selesai.
+        const sayaPemeriksa =
+          !checklist.pemeriksaId || checklist.pemeriksaId === ses.id;
+        const adopsiMilikSaya =
+          ada &&
+          (ada.pengajuId === ses.id ||
+            (ada.status === "Draf" &&
+              (!ada.pengajuId || sayaPemeriksa)));
+        if (adopsiMilikSaya) {
           setBaId(ada.id);
           setNomor(ada.nomor);
           setUraian(ada.uraian);
@@ -142,6 +162,16 @@ export default function BeritaAcaraPage() {
             ada.kendala.length > 0
               ? ada.kendala
               : ekstrakItemRusak(checklist.items)
+          );
+          return;
+        }
+
+        // BA checklist ini ada tapi milik pelapor lain yang masih/ sudah
+        // diproses — JANGAN membuat salinan baru; tampilkan pemberitahuan
+        // agar alur berjalan tunggal (satu BA aktif per checklist).
+        if (ada) {
+          setPesan(
+            "Berita acara untuk checklist ini sudah ada dan sedang diproses pelapornya — tidak dapat diisi ulang."
           );
           return;
         }
@@ -169,7 +199,23 @@ export default function BeritaAcaraPage() {
       });
     }, 0);
     return () => clearTimeout(t);
-  }, [checklist, aset, ses]);
+  }, [checklist, aset, ses, asetTunggu]);
+
+  // ── Pulihkan BA lama yang tersimpan tanpa relasi aset ────────────────────
+  // BA historis yang dibuat saat race (aset belum termuat) menyimpan
+  // `aset_id = NULL` — dropdown tiket BMN & kartu monitor tak mengenali
+  // asetnya. Begitu master aset termuat di halaman ini, tulis relasinya
+  // (sekali per BA) lewat store — operator tidak perlu menunggu sesi baru.
+  const asetDipulihkan = useRef<string | null>(null);
+  useEffect(() => {
+    if (!baId || !aset?.id) return;
+    if (asetDipulihkan.current === baId) return;
+    const ba = beritaAcaraById(baId);
+    if (ba && !ba.asetId) {
+      asetDipulihkan.current = baId;
+      setAsetBeritaAcara(ba.id, aset.id, aset.nama, aset.kode);
+    }
+  }, [baId, aset]);
 
   // ── Handler ──────────────────────────────────────────────────────────────
   const handleFotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,6 +245,19 @@ export default function BeritaAcaraPage() {
   /** Simpan isi form ke berita acara (status tetap "Draf"). */
   const handleSimpanDraf = async () => {
     if (!baId) return;
+    // BA yang sudah diserahkan dan masih dalam proses (Diserahkan/Diproses)
+    // TIDAK boleh diisi ulang — BA menunggu keputusan KAKANSAR. BA Ditolak
+    // tetap boleh diperbaiki (status dinormalkan kembali ke Draf).
+    const baSaatIni = beritaAcaraById(baId);
+    if (
+      baSaatIni &&
+      (baSaatIni.status === "Diserahkan" || baSaatIni.status === "Diproses")
+    ) {
+      setGagal(
+        "Berita acara sudah diserahkan dan masih dalam proses — menunggu keputusan KAKANSAR. Tidak dapat diisi ulang saat ini."
+      );
+      return;
+    }
     try {
       await ubahIsiBeritaAcaraSupabase(baId, { nomor, uraian, kendala, fotoBukti });
       await ubahStatusBeritaAcaraSupabase(baId, "Draf");
@@ -227,6 +286,18 @@ export default function BeritaAcaraPage() {
    */
   const handleSerahkan = async () => {
     if (!baId || !aset || menyerahkan) return;
+    // BA yang sudah diserahkan & masih diproses tidak boleh diserahkan
+    // ulang — alur tunggal: BMN isi nomor → KAKANSAR memutus.
+    const baAktif = beritaAcaraById(baId);
+    if (
+      baAktif &&
+      (baAktif.status === "Diserahkan" || baAktif.status === "Diproses")
+    ) {
+      setGagal(
+        "Berita acara sudah diserahkan dan masih dalam proses. Tidak dapat diserahkan ulang."
+      );
+      return;
+    }
     setMenyerahkan(true);
     setGagal(null);
     setPesan(null);

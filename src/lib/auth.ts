@@ -54,16 +54,31 @@ export const INACTIVE_ACCOUNT_MESSAGE =
  * Arsitektur performa:
  *   1. Validasi format NIP di client (0 ms).
  *   2. Konversi NIP → email internal `{nip}@basarnas.ac.id` (0 ms).
- *   3. signInWithPassword (1 RTT, ~380 ms). JWT-nya sudah membawa `app_metadata`
- *      yang berisi `{ role, aktif, nip, nama }` → TANPA query DB kedua.
+ *   3. `signInWithPassword` (1 RTT, ~380 ms). JWT-nya sudah membawa
+ *      `app_metadata` yang berisi `{ role, aktif, nip, nama }` → TANPA
+ *      query DB kedua.
  *   4. Jika `app_metadata.aktif === false` → tolak login, session langsung
  *      signOut. Cek `aktif` real-time di halaman dashboard tetap dilakukan
  *      `AccountStatusGuard` di background (non-blocking).
+ *   5. Pilihan "Ingat saya" ditangani setelah sign-in:
+ *      - `rememberMe = true`  → session persist via cookie Supabase
+ *        (default). Saat browser ditutup, user tetap login.
+ *      - `rememberMe = false` → pilihan disimpan ke localStorage.
+ *        Halaman dashboard memanggil `handleRememberMeOff()` saat
+ *        tab/window ditutup (via `beforeunload`) untuk signOut,
+ *        sehingga sesi hilang tanpa perlu menghapus cookie saat login.
  *
  * @param nip NIP pengguna (16-18 digit, contoh: 198208042009121003)
  * @param password Password pengguna
+ * @param rememberMe true → login persist (tetap login saat browser ditutup);
+ * false → login ephemerel (signOut saat tab ditutup, aman untuk komputer
+ * bersama/umum).
  */
-export async function loginWithNip(nip: string, password: string) {
+export async function loginWithNip(
+  nip: string,
+  password: string,
+  rememberMe = true
+) {
   // 1. Validasi format NIP
   if (!isValidNip(nip)) {
     return { data: null, error: "NIP tidak valid. Harus 16-18 digit angka." };
@@ -318,6 +333,68 @@ export async function logoutFromImpersonation() {
     console.error("Logout error:", error);
   }
   return { error };
+}
+
+// ============================================================
+// "Ingat Saya" — pilihan persist login di lintas sesi
+// ============================================================
+
+/**
+ * Kunci localStorage untuk menyimpan pilihan "Ingat saya" dari login terakhir.
+ * Nilai: "true" (persist — default) atau "false" (hapus session saat tab ditutup).
+ */
+const REMEMBER_ME_KEY = "siap-sar-remember-me";
+
+/**
+ * Simpan pilihan "Ingat saya" untuk login berikutnya.
+ * Dipanggil oleh halaman login setelah `loginWithNip` sukses.
+ *
+ * @param rememberMe true → persist login lintas sesi; false → sesi ephemerel
+ * (dihapus otomatis saat browser/tab ditutup).
+ */
+export function setRememberMeChoice(rememberMe: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe));
+  } catch {
+    // localStorage tidak tersedia (mode privat / storage penuh) — abaikan.
+  }
+}
+
+/**
+ * Ambil pilihan "Ingat saya" tersimpan. `undefined` berarti belum pernah
+ * disimpan (treat sebagai `true` — default persist).
+ */
+export function getRememberMe(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const v = localStorage.getItem(REMEMBER_ME_KEY);
+    return v === null ? true : v === "true";
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Pasang listener untuk "Ingat saya = OFF": saat tab/window ditutup,
+ * panggil `signOut()` sehingga sesi tidak persist.
+ *
+ * Dipanggil dari halaman dashboard/layout setelah login sukses jika
+ * pilihan `rememberMe` adalah `false`. Listener dihapus otomatis saat
+ * user logout manual (signOut). Berguna untuk mode komputer bersama.
+ */
+export function registerRememberMeOffHandler(): () => void {
+  if (typeof window === "undefined") return () => {};
+  // Hanya pasang bila pilihan aktif "Ingat saya OFF"
+  if (getRememberMe()) return () => {};
+
+  const onBeforeUnload = () => {
+    // signOut() tanpa await — cukup untuk trigger fetch ke Supabase,
+    // token cookie akan tetap terhapus walau tab sudah menutup.
+    void getSupabaseBrowserClient().auth.signOut();
+  };
+  window.addEventListener("beforeunload", onBeforeUnload);
+  return () => window.removeEventListener("beforeunload", onBeforeUnload);
 }
 
 // ============================================================

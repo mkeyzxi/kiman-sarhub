@@ -72,6 +72,9 @@ export default function DaftarBeritaAcaraPage() {
   const baList = useMemo(
     () =>
       data.filter((ba) => {
+        // Draf operator TIDAK ditampilkan — aset milik PJ sampai operator
+        // menyerahkan berita acara ke BMN.
+        if (ba.status === "Draf") return false;
         const q = debouncedSearch.toLowerCase();
         const matchQuery =
           q === "" ||
@@ -93,9 +96,9 @@ export default function DaftarBeritaAcaraPage() {
     [baList, pagination.startIndex, pagination.endIndex]
   );
 
-  const menungguNomor = data.filter((b) => b.status === "Diserahkan").length;
-  const menungguAcc = data.filter((b) => b.status === "Diproses").length;
-  const disetujui = data.filter((b) => b.status === "Disetujui").length;
+  const menungguNomor = baList.filter((b) => b.status === "Diserahkan").length;
+  const menungguAcc = baList.filter((b) => b.status === "Diproses").length;
+  const disetujui = baList.filter((b) => b.status === "Disetujui").length;
 
   // Early return setelah semua hooks
   if (loading) {
@@ -128,7 +131,7 @@ export default function DaftarBeritaAcaraPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Berita Acara"
-          value={data.length}
+          value={baList.length}
           icon={FileText}
           iconBg="bg-primary-light"
           iconColor="text-primary"
@@ -174,7 +177,6 @@ export default function DaftarBeritaAcaraPage() {
             className="sm:w-52"
           >
             <option value="Semua">Semua Status</option>
-            <option value="Draf">Draf (belum diserahkan)</option>
             <option value="Diserahkan">Menunggu Nomor Surat</option>
             <option value="Diproses">Menunggu Acc KAKANSAR</option>
             <option value="Disetujui">Disetujui</option>
@@ -195,9 +197,9 @@ export default function DaftarBeritaAcaraPage() {
           {baList.length === 0 ? (
             <DataEmpty
               message={
-                data.length === 0
-                  ? "Belum ada berita acara di database. Berita acara dibuat operator dari checklist yang berisi kerusakan → tombol \u201CSerahkan ke BMN\u201D."
-                  : "Tidak ada berita acara yang cocok dengan pencarian/filter."
+                data.length > baList.length
+                  ? "Berita acara belum masuk ke proses — draf milik penanggung jawab tidak ditampilkan sampai operator menyerahkannya ke BMN."
+                  : "Belum ada berita acara di database. Berita acara dibuat operator dari checklist yang berisi kerusakan → tombol \u201CSerahkan ke BMN\u201D."
               }
             />
           ) : (
