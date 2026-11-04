@@ -1,8 +1,9 @@
 /**
  * Hook untuk badge dinamis di sidebar navigation.
- * 
+ *
  * Badge dihitung dari data nyata database:
- * - Tiket Maintenance: jumlah tiket status "Menunggu" atau "Diproses"
+ * - Tiket Maintenance: jumlah tiket berstatus "Menunggu" (masih masuk
+ *   antrean, belum dikerjakan PJ).
  * - Berita Acara: jumlah BA status "Diserahkan" atau "Diproses" (menunggu aksi)
  */
 
@@ -11,7 +12,7 @@ import { useTicketsCombined } from "./ticket-store";
 import { useBeritaAcara as useBeritaAcaraSupabase } from "./use-supabase-data";
 
 export interface NavigationBadges {
-  /** Badge Tiket Maintenance: tiket yang perlu diproses (Menunggu/Diproses). */
+  /** Badge Tiket Maintenance: tiket berstatus "Menunggu". */
   maintenance: number;
   /** Badge Berita Acara: BA menunggu aksi BMN/KAKANSAR (Diserahkan/Diproses). */
   beritaAcara: number;
@@ -27,9 +28,9 @@ export function useNavigationBadges(): NavigationBadges {
 
   const maintenance = useMemo(() => {
     if (ticketLoading) return 0;
-    return tickets.filter(
-      (t) => t.status === "Menunggu" || t.status === "Diproses"
-    ).length;
+    // Hanya tiket yang masih MASUK ANTREAN (status "Menunggu") yang
+    // dihitung — tiket "Diproses" tidak lagi menunggu penugasan.
+    return tickets.filter((t) => t.status === "Menunggu").length;
   }, [tickets, ticketLoading]);
 
   const beritaAcaraBadge = useMemo(() => {

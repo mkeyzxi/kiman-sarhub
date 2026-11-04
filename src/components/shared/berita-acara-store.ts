@@ -52,6 +52,10 @@ export function mulaiHidrasi(): Promise<void> {
           if (beritaAcaraList.some((b) => b.id === r.id)) continue;
           beritaAcaraList.push(mapDariSupabase(r));
         }
+        // Pulihkan BA lama yang tersimpan tanpa relasi aset — tanpa ini
+        // asetnya tidak muncul di dropdown tiket BMN maupun kartu monitor
+        // operator padahal BA-nya sudah di-acc KAKANSAR.
+        await pulihkanAsetDariChecklist();
       } catch {
         // Supabase belum siap — biarkan data in-memory saja.
       }
@@ -61,6 +65,90 @@ export function mulaiHidrasi(): Promise<void> {
 }
 
 let hidrasiPromise: Promise<void> | null = null;
+
+/**
+ * Pulihkan BA yang `asetId`-nya kosong tapi punya `checklistId`.
+ *
+ * Latar: ada jendela race saat operator membuka halaman berita acara —
+ * BA dibuat sebelum master aset selesai di-fetch, sehingga tersimpan
+ * `aset_id = NULL` di database. Akibatnya:
+ *  - dropdown "Pilih Aset Rusak" BMN tidak mengenali aset terkait BA,
+ *  - kartu monitor operator tidak tampil (tidak ada relasi BA ↔ aset).
+ *
+ * Perbaikan: ambil `aset_id` dari `checklist_harian` milik BA, tulis
+ * balik ke database (best-effort sesuai izin RLS) dan mutasi salinan
+ * in-memory agar UI langsung melihat relasinya. Dijalankan sekali per
+ * sesi bersama hidrasi; GAGAL PENULISAN tidak boleh mengganggu UI.
+ */
+async function pulihkanAsetDariChecklist(): Promise<void> {
+  // Kandidat: BA tanpa asetId yang punya checklist merujuk aset.
+  const kandidat = beritaAcaraList.filter(
+    (b) => !b.asetId && !!b.checklistId && b.checklistId.length > 0
+  );
+  if (kandidat.length === 0) return;
+  const checklistIds = Array.from(
+    new Set(kandidat.map((b) => b.checklistId as string))
+  );
+
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { data, error } = await supa
+      .from("checklist_harian")
+      .select("id, aset_id")
+      .in("id", checklistIds);
+    if (error || !data) return;
+
+    for (const c of data as { id: string; aset_id: string | null }[]) {
+      if (!c.aset_id) continue;
+      const ba = beritaAcaraList.find((b) => b.checklistId === c.id);
+      if (!ba) continue;
+      try {
+        await tulisPatchBeritaAcara(
+          ba.id,
+          { aset_id: c.aset_id },
+          "pulihkan aset_id"
+        );
+        ba.asetId = c.aset_id;
+      } catch {
+        // RLS menolak / jaringan gagal — coba lagi pada sesi berikutnya;
+        // perbaikan database permanen tersedia di
+        // `scripts/perbaiki-ba-tanpa-aset.sql`.
+      }
+    }
+  } catch {
+    // Supabase offline — abaikan; hidrasi utama tetap berjalan.
+  }
+}
+
+/**
+ * Hubungkan berita acara ke asetnya (tulis `aset_id` + identitas aset ke
+ * database dan mutasi salinan in-memory).
+ *
+ * Dipakai halaman berita acara operator saat master aset selesai di-fetch
+ * ternyata BA yang terkait belum menyimpan relasi aset (bug historis
+ * race waktu BA dibuat sebelum aset termuat) — sehingga tiket BMN dan
+ * kartu monitor langsung mengenali aset tanpa menunggu sesi baru.
+ */
+export function setAsetBeritaAcara(
+  id: string,
+  asetId: string,
+  namaAset?: string,
+  kodeAset?: string
+): void {
+  const ba = getBeritaAcaraById(id);
+  if (!ba || !asetId || ba.asetId === asetId) return;
+  ba.asetId = asetId;
+  if (namaAset !== undefined && namaAset) ba.namaAset = namaAset;
+  if (kodeAset !== undefined && kodeAset) ba.kodeAset = kodeAset;
+  ba.tanggalUpdate = new Date().toISOString().slice(0, 10);
+
+  void persistUpdate(id, {
+    aset_id: ba.asetId,
+    nama_aset: ba.namaAset,
+    kode_aset: ba.kodeAset,
+    tanggal_update: ba.tanggalUpdate,
+  });
+}
 
 /** Konversi baris berita_acara (snake_case) → bentuk aplikasi. */
 function mapDariSupabase(r: BeritaAcaraRow): BeritaAcara {
@@ -198,6 +286,13 @@ async function persistUpdate(id: string, patch: Record<string, unknown>): Promis
 /**
  * Tambah berita acara baru (status "Draf") — mutasi in-memory + persist
  * fire-and-forget ke Supabase.
+ *
+ * SATE BUKA SATU BA PER CHECKLIST: bila checklist yang ditunjuk sudah
+ * menyimpan berita acara apa pun (draf berjalan milik siapa pun, atau BA
+ * yang sudah diserahkan/berproses), fungsi mengembalikan baris LAMA — bukan
+ * membuat ganda. Alur tiket/BA singular per checklist, sehingga operator
+ * yang membuka ulang halaman atau mengulangi pengisian tidak bisa membuat
+ * duplikat saat prosesnya belum selesai.
  */
 export function tambahBeritaAcaraSupabase(
   input: Omit<BeritaAcara, "id" | "status" | "tanggalBuat" | "tanggalUpdate"> & {
@@ -208,6 +303,19 @@ export function tambahBeritaAcaraSupabase(
     checklistId?: string;
   }
 ): BeritaAcara {
+  if (input.checklistId) {
+    const ada = beritaAcaraList.find(
+      (b) => b.checklistId === input.checklistId
+    );
+    if (ada) {
+      // Backfill relasi aset bila baris lama secukur itu membawa aset baru
+      // yang lebih benar (BA historis tanpa aset_id).
+      if (!ada.asetId && input.asetId) {
+        setAsetBeritaAcara(ada.id, input.asetId);
+      }
+      return ada;
+    }
+  }
   const hariIni = new Date().toISOString().slice(0, 10);
   const ba: BeritaAcara = {
     ...input,

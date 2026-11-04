@@ -25,11 +25,13 @@ const statusVariant: Record<
 export default function BeritaAcaraPimpinanPage() {
   // Semua data langsung dari Supabase — KAKANSAR melihat berita acara
   // segera setelah operator menyerahkan ke BMN (RLS policy ba_select).
+  // Draf operator TIDAK ditampilkan — aset milik PJ sampai diserahkan.
   const { data, loading, error, refetch } = useBeritaAcara();
 
-  const menungguAcc = data.filter((b) => b.status === "Diproses").length;
-  const disetujui = data.filter((b) => b.status === "Disetujui").length;
-  const ditolak = data.filter((b) => b.status === "Ditolak").length;
+  const alurAktif = data.filter((b) => b.status !== "Draf");
+  const menungguAcc = alurAktif.filter((b) => b.status === "Diproses").length;
+  const disetujui = alurAktif.filter((b) => b.status === "Disetujui").length;
+  const ditolak = alurAktif.filter((b) => b.status === "Ditolak").length;
 
   if (loading) {
     return <DataLoading label="Memuat berita acara…" />;
@@ -99,15 +101,18 @@ export default function BeritaAcaraPimpinanPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Daftar Berita Acara ({data.length})
+            Daftar Berita Acara ({alurAktif.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {data.length === 0 ? (
-            <DataEmpty message="Belum ada berita acara masuk. Berita acara muncul di sini setelah operator menyerahkan kerusakan aset ke Pengelola BMN." />
+          {alurAktif.length === 0 ? (
+            <DataEmpty message={data.length > alurAktif.length
+              ? "Berita acara belum masuk ke proses — draf milik penanggung jawab akan tampil setelah operator menyerahkannya ke Pengelola BMN."
+              : "Belum ada berita acara masuk. Berita acara muncul di sini setelah operator menyerahkan kerusakan aset ke Pengelola BMN."}
+            />
           ) : (
             <ResponsiveTable<BeritaAcaraMapped>
-              data={data}
+              data={alurAktif}
               getKey={(ba) => ba.id}
               cardTitle={(ba) => ba.namaAset}
               cardSubtitle={(ba) =>

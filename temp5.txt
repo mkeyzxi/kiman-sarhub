@@ -1,0 +1,25 @@
+﻿              }
+            />
+          ) : (
+            <ResponsiveTable<BeritaAcaraMapped>
+              data={paginatedBA}
+              getKey={(ba) => ba.id}
+              cardTitle={(ba) => ba.namaAset}
+              cardSubtitle={(ba) =>
+                `${ba.nomor || "Nomor belum diisi"} â€” ${formatTanggal(ba.tanggal)}`
+              }
+              cardBadge={(ba) => (
+                <Badge variant={statusVariant[ba.status] ?? "default"}>
+                  {ba.status}
+                </Badge>
+              )}
+              emptyMessage="Tidak ada berita acara."
+              fields={[
+                {
+                  key: "nomor",
+                  header: "Nomor",
+                  render: (ba) =>
+                    ba.nomor || (
+                      <span className="text-slate-400">Belum diisi</span>
+                    ),
+                },

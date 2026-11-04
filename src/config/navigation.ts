@@ -114,7 +114,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       title: "Aset & Maintenance",
       items: [
         { href: "/bmn", label: "Master Data BMN", icon: Package },
-        { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: AlertTriangle, badge: 3 },
+        { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: AlertTriangle, badgeKey: "maintenance" },
         { href: "/bmn/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },
@@ -141,7 +141,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       title: "Aset & Maintenance",
       items: [
         { href: "/bmn", label: "Master Data BMN", icon: Package },
-        { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: AlertTriangle, badge: 3 },
+        { href: "/bmn/maintenance", label: "Tiket Maintenance", icon: AlertTriangle, badgeKey: "maintenance" },
         { href: "/bmn/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },

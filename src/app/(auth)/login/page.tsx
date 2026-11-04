@@ -6,7 +6,7 @@ import {Lock, Eye, EyeOff, Loader2, AlertTriangle, UserRound} from 'lucide-react
 import {Button} from '@/components/ui/button'
 import {Input, Label} from '@/components/ui/input'
 import {getDefaultPageForRole} from '@/config/navigation'
-import {loginWithNip, INACTIVE_ACCOUNT_MESSAGE} from '@/lib/auth'
+import {loginWithNip, INACTIVE_ACCOUNT_MESSAGE, setRememberMeChoice, registerRememberMeOffHandler} from '@/lib/auth'
 import {isValidNip, normalizeNip} from '@/lib/auth-identity'
 import type {UserRole} from '@/components/shared/mock-data'
 import Image from 'next/image'
@@ -40,6 +40,9 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  // "Ingat saya": default ON (persist login). Bila OFF, sesi ephemerel —
+  // sesi akan dihapus otomatis saat tab ditutup (via beforeunload handler).
+  const [rememberMe, setRememberMe] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -63,8 +66,11 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      // Gunakan autentikasi Supabase dengan NIP (email dipetakan otomatis)
-      const result = await loginWithNip(normalizeNip(nip), password)
+      // Gunakan autentikasi Supabase dengan NIP (email dipetakan otomatis).
+      // `rememberMe` di-pass ke loginWithNip — tapi karena Supabase
+      // persist via cookie default, handler "Ingat saya = OFF" dipasang
+      // di sini, bukan di auth layer.
+      const result = await loginWithNip(normalizeNip(nip), password, rememberMe)
 
       if (result.error) {
         setFormError(result.error)
@@ -73,6 +79,13 @@ function LoginForm() {
       }
 
       if (result.data) {
+        // Simpan pilihan "Ingat saya" agar konsisten lintas sesi.
+        setRememberMeChoice(rememberMe)
+
+        // Pasang handler signOut saat tab ditutup HANYA bila pilihan OFF.
+        // Handler akan otomatis no-op bila pilihan ON.
+        registerRememberMeOffHandler()
+
         // Simpan role dari database (bukan hardcoded!)
         const userRole = result.data.role as UserRole
         localStorage.setItem('userRole', userRole)
@@ -220,7 +233,13 @@ function LoginForm() {
             {/* Remember me & Forgot password */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="remember" className="peer sr-only" />
+                <input
+                  type="checkbox"
+                  id="remember"
+                  className="peer sr-only"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
                 <label
                   htmlFor="remember"
                   className="

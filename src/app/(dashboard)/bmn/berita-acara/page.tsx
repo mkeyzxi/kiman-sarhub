@@ -14,7 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal } from "@/components/shared/mock-data";
 import { useBeritaAcara } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError, DataEmpty } from "@/components/shared/data-state";
@@ -62,11 +65,17 @@ export default function DaftarBeritaAcaraPage() {
   const { data, loading, error, refetch } = useBeritaAcara();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  
+  // Debounce search
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const baList = useMemo(
     () =>
       data.filter((ba) => {
-        const q = searchQuery.toLowerCase();
+        // Draf operator TIDAK ditampilkan — aset milik PJ sampai operator
+        // menyerahkan berita acara ke BMN.
+        if (ba.status === "Draf") return false;
+        const q = debouncedSearch.toLowerCase();
         const matchQuery =
           q === "" ||
           ba.namaAset.toLowerCase().includes(q) ||
@@ -77,13 +86,21 @@ export default function DaftarBeritaAcaraPage() {
           statusFilter === "Semua" || ba.status === statusFilter;
         return matchQuery && matchStatus;
       }),
-    [data, searchQuery, statusFilter]
+    [data, debouncedSearch, statusFilter]
   );
 
-  const menungguNomor = data.filter((b) => b.status === "Diserahkan").length;
-  const menungguAcc = data.filter((b) => b.status === "Diproses").length;
-  const disetujui = data.filter((b) => b.status === "Disetujui").length;
+  // Pagination - panggil sebelum early return
+  const pagination = usePagination(baList.length, 20);
+  const paginatedBA = useMemo(
+    () => baList.slice(pagination.startIndex, pagination.endIndex),
+    [baList, pagination.startIndex, pagination.endIndex]
+  );
 
+  const menungguNomor = baList.filter((b) => b.status === "Diserahkan").length;
+  const menungguAcc = baList.filter((b) => b.status === "Diproses").length;
+  const disetujui = baList.filter((b) => b.status === "Disetujui").length;
+
+  // Early return setelah semua hooks
   if (loading) {
     return <DataLoading label="Memuat berita acara…" />;
   }
@@ -114,7 +131,7 @@ export default function DaftarBeritaAcaraPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Berita Acara"
-          value={data.length}
+          value={baList.length}
           icon={FileText}
           iconBg="bg-primary-light"
           iconColor="text-primary"
@@ -160,7 +177,6 @@ export default function DaftarBeritaAcaraPage() {
             className="sm:w-52"
           >
             <option value="Semua">Semua Status</option>
-            <option value="Draf">Draf (belum diserahkan)</option>
             <option value="Diserahkan">Menunggu Nomor Surat</option>
             <option value="Diproses">Menunggu Acc KAKANSAR</option>
             <option value="Disetujui">Disetujui</option>
@@ -181,14 +197,14 @@ export default function DaftarBeritaAcaraPage() {
           {baList.length === 0 ? (
             <DataEmpty
               message={
-                data.length === 0
-                  ? "Belum ada berita acara di database. Berita acara dibuat operator dari checklist yang berisi kerusakan → tombol \u201CSerahkan ke BMN\u201D."
-                  : "Tidak ada berita acara yang cocok dengan pencarian/filter."
+                data.length > baList.length
+                  ? "Berita acara belum masuk ke proses — draf milik penanggung jawab tidak ditampilkan sampai operator menyerahkannya ke BMN."
+                  : "Belum ada berita acara di database. Berita acara dibuat operator dari checklist yang berisi kerusakan → tombol \u201CSerahkan ke BMN\u201D."
               }
             />
           ) : (
             <ResponsiveTable<BeritaAcaraMapped>
-              data={baList}
+              data={paginatedBA}
               getKey={(ba) => ba.id}
               cardTitle={(ba) => ba.namaAset}
               cardSubtitle={(ba) =>
@@ -258,6 +274,25 @@ export default function DaftarBeritaAcaraPage() {
                 },
               ]}
             />
+          )}
+          
+          {/* Pagination Controls */}
+          {baList.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                startItem={pagination.startItem}
+                endItem={pagination.endItem}
+                hasPrevious={pagination.hasPrevious}
+                hasNext={pagination.hasNext}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

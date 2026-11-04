@@ -1,0 +1,19 @@
+﻿                      {ba.status}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: "aksi",
+                  header: "Aksi",
+                  render: (ba) => (
+                    <Link href={`/bmn/berita-acara/${ba.id}`}>
+                      <Button variant="outline" size="sm">
+                        Kelola
+                      </Button>
+                    </Link>
+                  ),
+                  cellClassName: "text-right",
+                  hideOnCard: true,
+                },
+              ]}
+            />

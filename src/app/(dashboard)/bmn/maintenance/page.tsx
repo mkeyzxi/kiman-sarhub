@@ -18,6 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal, labelModelAset } from "@/components/shared/mock-data";
 import { useTicketsCombined } from "@/components/shared/ticket-store";
 import { useAsets, useSupabaseUsers } from "@/components/shared/use-supabase-data";
@@ -60,6 +63,9 @@ export default function TiketMaintenancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
+  
+  // Debounce search
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   /** Nama petugas berdasarkan NIP (ews_tickets.assigned_to). */
   const namaPetugas = (nip: string): string =>
@@ -67,6 +73,28 @@ export default function TiketMaintenancePage() {
   /** Asset lookup in-memory (id Supabase). */
   const asetById = new Map(asetSemua.map((a) => [a.id, a]));
 
+  const filteredTickets = tickets.filter((ticket) => {
+    const matchSearch =
+      ticket.judul.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      ticket.deskripsi.toLowerCase().includes(debouncedSearch.toLowerCase());
+    const matchStatus = statusFilter === "Semua" || ticket.status === statusFilter;
+    const matchTingkat = tingkatFilter === "Semua" || ticket.tingkatKeparahan === tingkatFilter;
+    return matchSearch && matchStatus && matchTingkat;
+  });
+
+  // Pagination - panggil sebelum early return
+  const pagination = usePagination(filteredTickets.length, 20);
+  const paginatedTickets = filteredTickets.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
+
+  const totalTickets = tickets.length;
+  const ticketsMenunggu = tickets.filter((t) => t.status === "Menunggu").length;
+  const ticketsDiproses = tickets.filter((t) => t.status === "Diproses").length;
+  const ticketsSelesai = tickets.filter((t) => t.status === "Selesai").length;
+
+  // Early return setelah semua hooks
   if (loading) {
     return <DataLoading label="Memuat antrean tiket maintenance…" />;
   }
@@ -79,20 +107,6 @@ export default function TiketMaintenancePage() {
       />
     );
   }
-
-  const filteredTickets = tickets.filter((ticket) => {
-    const matchSearch =
-      ticket.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.deskripsi.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchStatus = statusFilter === "Semua" || ticket.status === statusFilter;
-    const matchTingkat = tingkatFilter === "Semua" || ticket.tingkatKeparahan === tingkatFilter;
-    return matchSearch && matchStatus && matchTingkat;
-  });
-
-  const totalTickets = tickets.length;
-  const ticketsMenunggu = tickets.filter((t) => t.status === "Menunggu").length;
-  const ticketsDiproses = tickets.filter((t) => t.status === "Diproses").length;
-  const ticketsSelesai = tickets.filter((t) => t.status === "Selesai").length;
 
   return (
     <div className="space-y-6">
@@ -183,7 +197,7 @@ export default function TiketMaintenancePage() {
       <Card>
         <CardContent className="pt-0">
           <ResponsiveTable
-            data={filteredTickets}
+            data={paginatedTickets}
             getKey={(row) => row.id}
             cardTitle={(row) => row.judul}
             cardSubtitle={(row) => row.id.toUpperCase()}
@@ -310,6 +324,25 @@ export default function TiketMaintenancePage() {
               },
             ]}
           />
+          
+          {/* Pagination Controls */}
+          {filteredTickets.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                startItem={pagination.startItem}
+                endItem={pagination.endItem}
+                hasPrevious={pagination.hasPrevious}
+                hasNext={pagination.hasNext}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

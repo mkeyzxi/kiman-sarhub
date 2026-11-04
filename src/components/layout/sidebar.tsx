@@ -7,6 +7,7 @@ import {LogOut, X} from 'lucide-react'
 import {cn} from '@/lib/utils'
 import {navGroupsByRole, roleLabels, filterNavGroupsForNip, type NavGroup} from '@/config/navigation'
 import {useLocalStorageValue} from '@/lib/use-local-storage'
+import {useBadges} from '@/components/shared/badge-provider'
 
 import Image from 'next/image'
 import type {UserRole} from '@/components/shared/mock-data'
@@ -14,6 +15,9 @@ import type {UserRole} from '@/components/shared/mock-data'
 // ─── Sidebar Content (shared antara desktop fixed sidebar & mobile drawer) ──
 function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void}) {
   const pathname = usePathname()
+  // Badge dinamis dari data nyata (tiket "Menunggu" dll.) — dipasang
+  // BadgeProvider di layout dashboard, nilai mengikuti database.
+  const badges = useBadges()
   const nip = useLocalStorageValue('userNip')
   const groups = filterNavGroupsForNip(
     navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN,
@@ -70,6 +74,11 @@ function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void})
                   (item.href === '/admin' && pathname === '/admin')
 
                 const Icon = item.icon
+                // Prioritas badge dinamis (badgeKey → hitungan dari
+                // database); fallback angka statis dari konfigurasi.
+                const nilaiBadge = item.badgeKey
+                  ? badges[item.badgeKey]
+                  : item.badge
 
                 return (
                   <li key={item.href}>
@@ -87,9 +96,12 @@ function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void})
                         <Icon className="h-5 w-5" />
                       </span>
                       <span className="flex-1 truncate">{item.label}</span>
-                      {item.badge && (
-                        <span className="min-w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center px-1.5">
-                          {item.badge}
+                      {typeof nilaiBadge === 'number' && nilaiBadge > 0 && (
+                        <span
+                          className="min-w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center px-1.5"
+                          title={`${nilaiBadge} ${item.label.toLowerCase()} menunggu tindakan`}
+                        >
+                          {nilaiBadge}
                         </span>
                       )}
                     </Link>

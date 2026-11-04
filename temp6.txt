@@ -1,0 +1,21 @@
+﻿              emptyMessage="Tidak ada berita acara."
+              fields={[
+                {
+                  key: "nomor",
+                  header: "Nomor",
+                  render: (ba) =>
+                    ba.nomor || (
+                      <span className="text-slate-400">Belum diisi</span>
+                    ),
+                },
+                {
+                  key: "tanggal",
+                  header: "Tanggal",
+                  render: (ba) => formatTanggal(ba.tanggal),
+                },
+                {
+                  key: "aset",
+                  header: "Aset",
+                  render: (ba) => (
+                    <div>
+                      <p className="font-medium text-slate-800">{ba.namaAset}</p>

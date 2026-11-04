@@ -18,12 +18,16 @@ import {
   Loader2,
   Clock,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
+import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import {
   checklistTemplates,
   countItemKritis,
@@ -214,6 +218,10 @@ export default function ChecklistPerawatanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
+  
+  // Debounce search query untuk performa yang lebih baik
+  const debouncedSearch = useDebounce(searchQuery, 300);
+  
   // Data checklist: Supabase + tulisan sesi ini (in-memory), digabung.
   const { data: checklistHarianList, loading, error, refetch } =
     useChecklistsCombined();
@@ -240,6 +248,24 @@ export default function ChecklistPerawatanPage() {
   // tanpa useEffect + setState (pemicu "Maximum update depth exceeded").
   useBeritaAcara();
 
+  // Filter dengan debounced search - hitung sebelum early return
+  const filteredChecklist = useMemo(() => {
+    return checklistHarianList.filter((item) => {
+      const matchSearch =
+        item.unit.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        item.pemeriksa.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchStatus = statusFilter === "Semua" || item.status === statusFilter;
+      const matchJenis = jenisFilter === "Semua" || item.jenisUnit === jenisFilter;
+      return matchSearch && matchStatus && matchJenis;
+    });
+  }, [checklistHarianList, debouncedSearch, statusFilter, jenisFilter]);
+
+  // Pagination - HARUS dipanggil sebelum conditional return
+  const pagination = usePagination(filteredChecklist.length, 20);
+  const paginatedChecklist = useMemo(() => {
+    return filteredChecklist.slice(pagination.startIndex, pagination.endIndex);
+  }, [filteredChecklist, pagination.startIndex, pagination.endIndex]);
+
   /**
    * Draft Berita Acara milik user yang sedang login — dihitung langsung saat
    * render (bukan useEffect + setState) supaya tidak memicu loop render.
@@ -263,6 +289,7 @@ export default function ChecklistPerawatanPage() {
     }
   }
 
+  // Early return SETELAH semua hooks dipanggil
   if (loading) {
     return <DataLoading label="Memuat daftar checklist harian…" />;
   }
@@ -275,15 +302,6 @@ export default function ChecklistPerawatanPage() {
       />
     );
   }
-
-  const filteredChecklist = checklistHarianList.filter((item) => {
-    const matchSearch =
-      item.unit.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.pemeriksa.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchStatus = statusFilter === "Semua" || item.status === statusFilter;
-    const matchJenis = jenisFilter === "Semua" || item.jenisUnit === jenisFilter;
-    return matchSearch && matchStatus && matchJenis;
-  });
 
   const totalChecklist = checklistHarianList.length;
   const checklistLengkap = checklistHarianList.filter((c) => c.status === "Lengkap").length;
@@ -369,11 +387,23 @@ export default function ChecklistPerawatanPage() {
           <h2 className="text-lg font-semibold text-slate-800">
             Monitor Alur Kerusakan Kendaraan
           </h2>
-          {kartuSaya.length > 0 && (
-            <Badge variant="outline" className="text-xs">
-              {kartuSaya.length} alur milik Anda terpantau
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {kartuSaya.length > 0 && (
+              <Badge variant="outline" className="text-xs">
+                {kartuSaya.length} alur milik Anda terpantau
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => carduPJ.refetchKartu()}
+              disabled={carduPJ.loading}
+              className="h-8 px-2 text-xs"
+            >
+              <RefreshCw className={cn("mr-1 h-3.5 w-3.5", carduPJ.loading && "animate-spin")} />
+              Muat ulang
+            </Button>
+          </div>
         </div>
 
         {carduPJ.loading ? (
@@ -439,7 +469,7 @@ export default function ChecklistPerawatanPage() {
       <Card>
         <CardContent className="pt-0">
           <ResponsiveTable
-            data={filteredChecklist}
+            data={paginatedChecklist}
             getKey={(row) => row.id}
             cardTitle={(row) => row.unit}
             cardSubtitle={(row) => row.tanggal}
@@ -536,6 +566,25 @@ export default function ChecklistPerawatanPage() {
               },
             ]}
           />
+          
+          {/* Pagination Controls */}
+          {filteredChecklist.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                startItem={pagination.startItem}
+                endItem={pagination.endItem}
+                hasPrevious={pagination.hasPrevious}
+                hasNext={pagination.hasNext}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.setPageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

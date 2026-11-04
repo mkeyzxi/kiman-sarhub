@@ -537,6 +537,18 @@ export const labelTahap: Record<number, string> = {
   4: "Perbaikan selesai",
 };
 
+export interface HasilKartuPJ {
+  data: KartuPJ[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+  /**
+   * Refetch khusus kartu — memanggil refetch global lalu memicu re-render
+   * untuk memastikan operator melihat perubahan status tiket/BA terbaru.
+   */
+  refetchKartu: () => void;
+}
+
 /**
  * Kartu per penanggung jawab kendaraan: merangkai `users`, `asets`,
  * `berita_acara`, `ews_tickets` per NIP penanggung jawab, lalu menghitung
@@ -546,7 +558,7 @@ export const labelTahap: Record<number, string> = {
  * EWS yang diarahkan ke asetnya) — aset sehat tanpa laporan tidak
  * membuat kartu.
  */
-export function useKartuPenanggungJawab(): SupabaseQueryResult<KartuPJ> {
+export function useKartuPenanggungJawab(): HasilKartuPJ {
   const usersQ = useSupabaseTable<UserRow, UserInfo>(
     "users",
     "*",
@@ -684,7 +696,11 @@ export function useKartuPenanggungJawab(): SupabaseQueryResult<KartuPJ> {
     ewQ.refetch();
   }, [usersQ, asetsQ, baQ, ewQ]);
 
-  return { data: cards, loading, error, refetch };
+  const refetchKartu = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data: cards, loading, error, refetch, refetchKartu };
 }
 
 // ─── AUDIT KEPATUHAN (penilaian bulanan — recovery tiap tanggal 1) ───────────
