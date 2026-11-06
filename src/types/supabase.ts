@@ -82,6 +82,12 @@ export type AsetRow = {
   kode_barang: string;
   merk: string;
   tipe: string;
+  /**
+   * Nama referensi singkat untuk identifikasi aset oleh pengguna —
+   * diisi manual di form. Kolom opsional: tersedia setelah migration
+   * `scripts/migrasi-nama-referensi.sql` dijalankan.
+   */
+  nama_referensi?: string | null;
   no_stnk: string;
   no_polisi: string;
   tanggal_perolehan: string | null;

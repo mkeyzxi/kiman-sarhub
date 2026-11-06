@@ -26,6 +26,7 @@ import type {
   CatatanPerbaikanRow,
 } from "@/types/supabase";
 import type { BarisKendala } from "@/components/shared/mock-data";
+import { namaReferensiAset } from "@/components/shared/mock-data";
 
 // ─── ASET ───────────────────────────────────────────────────────────────────
 // Bentuk Aset mock yang diharapkan halaman (subset yang dipakai UI).
@@ -72,6 +73,7 @@ export interface AsetMapped {
   statusPenggunaan?: string;
   kodeRegister?: string;
   statusBmn?: "Aktif" | "Tidak Aktif";
+  namaReferensi?: string;
 }
 
 /**
@@ -126,6 +128,17 @@ export function mapAsets(
     statusPenggunaan: a.status_penggunaan || undefined,
     kodeRegister: a.kode_register || undefined,
     statusBmn: (a.status_bmn as "Aktif" | "Tidak Aktif") || undefined,
+    // Prioritaskan nilai manual dari database; fallback otomatis agar data lama
+    // tetap punya nama referensi yang terbaca.
+    namaReferensi:
+      a.nama_referensi ||
+      namaReferensiAset({
+        nama: a.nama,
+        kategori: a.kategori as KategoriAset,
+        merk: a.merk,
+        tipe: a.tipe,
+      }) ||
+      undefined,
   }));
 }
 

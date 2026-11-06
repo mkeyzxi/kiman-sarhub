@@ -83,6 +83,8 @@ export async function insertAset(
     status_penggunaan: "",
     kode_register: "",
     status_bmn: "",
+    // Kolom opsional — tersedia setelah migrasi-nama-referensi.sql dijalankan.
+    nama_referensi: input.namaReferensi ?? "",
   };
   const { error } = await supa.from("asets").insert(row);
   if (error) throw new Error(pesan(error.message));
@@ -151,6 +153,9 @@ export async function updateAsetRow(
     patch.keterangan = changes.keterangan ?? "";
   if (changes.merk !== undefined) patch.merk = changes.merk ?? "";
   if (changes.tipe !== undefined) patch.tipe = changes.tipe ?? "";
+  // namaReferensi kosong berarti hapus nilai di DB — simpan sebagai string kosong.
+  if (changes.namaReferensi !== undefined)
+    patch.nama_referensi = changes.namaReferensi ?? "";
 
   if (Object.keys(patch).length > 0) {
     const { error } = await supa.from("asets").update(patch).eq("id", id);

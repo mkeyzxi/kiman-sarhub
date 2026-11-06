@@ -24,6 +24,7 @@ import {
   STATUS_ASET,
   STATUS_ASET_VARIANT,
   labelModelAset,
+  namaReferensiAset,
   nupTampil,
 
 } from "@/components/shared/mock-data";
@@ -231,6 +232,24 @@ export default function MasterDataBMNPage() {
                 );
               },
               cellClassName: "font-medium text-slate-800",
+              hideOnCard: true,
+            },
+            {
+              key: "namaReferensi",
+              header: "Nama Referensi",
+              render: (row) => {
+                // Prioritaskan nilai manual dari DB; fallback ke perhitungan
+                // otomatis agar data lama tetap punya nama referensi terbaca.
+                const referensi =
+                  row.namaReferensi || namaReferensiAset(row);
+                return (
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-emerald-600">
+                      {referensi || "-"}
+                    </p>
+                  </div>
+                );
+              },
               hideOnCard: true,
             },
             {

@@ -13,6 +13,7 @@ import {
   Wrench,
   FileText,
   Hash,
+  Tag,
   CheckCircle,
   QrCode,
   Download,
@@ -38,6 +39,7 @@ import {
   formatTanggal,
   STATUS_ASET_VARIANT,
   labelModelAset,
+  namaReferensiAset,
   nupTampil,
 } from "@/components/shared/mock-data";
 import { useAsetById } from "@/components/shared/use-supabase-data";
@@ -282,6 +284,20 @@ export default function DetailAsetPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center shrink-0">
+                <Tag className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">
+                  Nama Referensi
+                </p>
+                {/* Prioritaskan nilai manual dari DB; fallback ke perhitungan otomatis. */}
+                <p className="text-sm font-medium text-emerald-600">
+                  {aset.namaReferensi || namaReferensiAset(aset) || "-"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center shrink-0">
                 <Package className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -409,6 +425,10 @@ export default function DetailAsetPage() {
         <CardContent>
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
+              {
+                label: "Nama Referensi",
+                value: aset.namaReferensi || namaReferensiAset(aset),
+              },
               { label: "Kode Barang", value: aset.kodeBarang },
               { label: "Merk", value: aset.merk },
               { label: "Tipe", value: aset.tipe },
