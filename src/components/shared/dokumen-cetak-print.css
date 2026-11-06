@@ -1,0 +1,36 @@
+/* ==========================================================================
+   DOKUMEN CETAK TAMBAHAN — LAPORAN CHECKLIST & LOGBOOK
+   --------------------------------------------------------------------------
+   Melengkapi `berita-acara-print.css`: dokumen checklist dan logbook memakai
+   kelas `ba-` yang sama (lembar A4, kop surat, tabel data, tanda tangan),
+   ditambah beberapa kelas `dc-` berikut (awalan "dokumen cetak").
+
+   Semua satuan memakai mm/pt supaya ukuran fisik di kertas A4 sama dengan
+   dokumen berita acara.
+   ========================================================================== */
+
+/* ── Tabel informasi label : nilai (tanpa header kolom) ──────────────────── */
+.dc-info-table {
+  width: calc(100% - 1.5mm);
+  margin: 0 0 8mm 2.3mm;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11pt;
+  line-height: 1.25;
+}
+
+.dc-info-table td {
+  border: 1px solid #111;
+  padding: 1.2mm 2mm;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+/* Kolom label — lebar tetap agar kolom nilai rata. */
+.dc-info-table .dc-label {
+  width: 34%;
+  font-weight: 700;
+}
+
+/* Tabel "Sebelum / Sesudah" memakai kelas `ba-data-table`; baris ada di
+   <tbody> sehingga tidak butuh aturan tambahan apa pun. */

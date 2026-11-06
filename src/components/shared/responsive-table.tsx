@@ -51,6 +51,11 @@ export interface ResponsiveTableProps<T> {
   detailTitle?: (row: T) => React.ReactNode;
   /** Label tombol di mobile, mis. "Lihat detail". */
   detailLabel?: string;
+  /**
+   * Bila diberikan, baris pada tabel desktop bisa diklik (mis. menuju halaman
+   * detail). Kartu mobile tetap membuka panel detail seperti biasa.
+   */
+  onRowClick?: (row: T) => void;
   /** Pesan saat `data` kosong. */
   emptyMessage?: string;
   className?: string;
@@ -76,6 +81,7 @@ export function ResponsiveTable<T>({
   cardPreviewCount = 3,
   detailTitle,
   detailLabel = "Lihat detail",
+  onRowClick,
   emptyMessage = "Belum ada data.",
   className,
 }: ResponsiveTableProps<T>) {
@@ -134,7 +140,11 @@ export function ResponsiveTable<T>({
           </TableHeader>
           <TableBody>
             {data.map((row) => (
-              <TableRow key={getKey(row)}>
+              <TableRow
+                key={getKey(row)}
+                className={cn(onRowClick && "cursor-pointer")}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+              >
                 {fields.map((field) => (
                   <TableCell
                     key={field.key}

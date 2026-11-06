@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -215,6 +216,7 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 export default function ChecklistPerawatanPage() {
   const ses = useSesiUser();
   const bolehBuatChecklist = ses.role === "OPERATOR_LAPANGAN";
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
@@ -554,17 +556,25 @@ export default function ChecklistPerawatanPage() {
               {
                 key: "aksi",
                 header: "Aksi",
-                render: () => (
+                render: (row) => (
                   <div className="flex items-center justify-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <Link href={`/operator/checklist/${row.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label={`Lihat detail checklist ${row.unit}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
                 ),
                 headClassName: "text-center",
                 hideBelowLg: true,
               },
             ]}
+            onRowClick={(row) => router.push(`/operator/checklist/${row.id}`)}
           />
           
           {/* Pagination Controls */}
