@@ -49,6 +49,8 @@ export default function TambahAsetPage() {
     kode: "",
     nup: "",
     kategori: "" as KategoriAset | "",
+    // FIELD BARU: nama referensi
+    namaReferensi: "",
     lokasi: "",
     status: "" as StatusAset | "",
     kondisi: "" as KondisiAset | "",
@@ -104,6 +106,7 @@ export default function TambahAsetPage() {
         keterangan: formData.keterangan.trim() || undefined,
         merk: formData.merk.trim() || undefined,
         tipe: formData.tipe.trim() || undefined,
+        namaReferensi: formData.namaReferensi || undefined,
       });
       router.push(`/bmn/${id}`);
     } catch (err) {
@@ -257,6 +260,17 @@ export default function TambahAsetPage() {
                   </option>
                 ))}
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="namaReferensi">Nama Referensi</Label>
+              <Input
+                id="namaReferensi"
+                placeholder="mis. mobil dinas kakansar, motor tempel"
+                value={formData.namaReferensi}
+                onChange={(e) =>
+                  setFormData({ ...formData, namaReferensi: e.target.value })
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lokasi">Lokasi</Label>

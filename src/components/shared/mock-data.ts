@@ -618,6 +618,8 @@ export interface Aset {
   kodeRegister?: string;
   /** Status BMN. */
   statusBmn?: "Aktif" | "Tidak Aktif";
+  /** Nama referensi singkat untuk identifikasi pengguna — contoh: "mobil dinas kakansar", "motor tempel". */
+  namaReferensi?: string;
 }
 
 /** Jumlah digit maksimal NUP. */
@@ -3988,6 +3990,7 @@ export type InputAset = Pick<
   | "keterangan"
   | "merk"
   | "tipe"
+  | "namaReferensi"
 >;
 
 /**
@@ -4004,6 +4007,68 @@ export function labelModelAset(
     .map((s) => (s ?? "").trim())
     .filter(Boolean)
     .join(" · ");
+}
+
+/**
+ * Menentukan nama referensi singkat berdasarkan jenis aset.
+ * Aturan mapping:
+ * - "Mobil Operasional PJR Toyota · TF36" → "mobil dinas kakansar"
+ * - "Out Boat Motor" / "Speed Boat / Motor Tempel" → "motor tempel"
+ * - Untuk yang lainnya: sesuaikan berdasarkan kategori/merk/tipe
+ */
+export function namaReferensiAset(
+  aset:
+    | (Pick<Aset, "kategori" | "nama"> &
+        Partial<Pick<Aset, "merk" | "tipe" | "namaReferensi">>)
+    | null
+    | undefined
+): string {
+  if (!aset) return "";
+
+  // Prioritaskan nilai manual yang sudah tersimpan di database —
+  // bila sudah diisi, tidak perlu dihitung ulang.
+  if (aset.namaReferensi && aset.namaReferensi.trim()) {
+    return aset.namaReferensi;
+  }
+
+  const { kategori, merk, tipe, nama } = aset;
+
+  // Aturan khusus: Mobil Operasional PJR Toyota TF36
+  if (
+    kategori === "Mobil" &&
+    merk?.toLowerCase() === "toyota" &&
+    tipe?.toLowerCase() === "tf36"
+  ) {
+    return "mobil dinas kakansar";
+  }
+
+  // Aturan khusus: Out Boat Motor dan Speed Boat / Motor Tempel → motor tempel
+  const namaLower = (nama || "").toLowerCase();
+  if (
+    namaLower.includes("out boat motor") ||
+    namaLower.includes("speed boat") ||
+    namaLower.includes("outboard motor")
+  ) {
+    return "motor tempel";
+  }
+
+  // Untuk kategori Mobil yang memiliki tipe TF36 atau menunjukkan dinas
+  if (
+    kategori === "Mobil" &&
+    (tipe?.toLowerCase().includes("tf36") || namaLower.includes("dinas"))
+  ) {
+    return "mobil dinas";
+  }
+
+  // Untuk kategori Kapal dengan nama Out Boat Motor atau Speed Boat
+  if (kategori === "Kapal" && (namaLower.includes("out boat") || namaLower.includes("speed boat"))) {
+    return "motor tempel";
+  }
+
+  // Default: kembalikan tipe jika ada, merk jika ada, atau nama singkat
+  if (tipe) return tipe;
+  if (merk) return merk;
+  return nama || "";
 }
 
 /** Kode aset sudah dipakai aset lain? `exceptId` dipakai saat edit. */

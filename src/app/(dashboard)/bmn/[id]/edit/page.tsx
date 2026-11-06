@@ -48,6 +48,8 @@ export default function EditAsetPage() {
     kode: "",
     nup: "",
     kategori: "",
+    // FIELD BARU: nama referensi
+    namaReferensi: "",
     lokasi: "",
     kondisi: "",
     tanggalPenetapan: "",
@@ -73,6 +75,8 @@ export default function EditAsetPage() {
         // Tampil tanpa nol depan; dipad kembali saat disimpan (nupSimpan).
         nup: nupTampil(aset.nup),
         kategori: aset.kategori,
+        // FIELD BARU: nama referensi
+        namaReferensi: aset.namaReferensi ?? "",
         lokasi: aset.lokasi,
         kondisi: aset.kondisi,
         tanggalPenetapan: aset.tanggalPenetapan,
@@ -163,6 +167,7 @@ export default function EditAsetPage() {
           keterangan: formData.keterangan.trim() || undefined,
           merk: formData.merk.trim() || undefined,
           tipe: formData.tipe.trim() || undefined,
+          namaReferensi: formData.namaReferensi || undefined,
         },
         tanggalPenetapanBerubah
           ? {
@@ -266,6 +271,21 @@ export default function EditAsetPage() {
                   }
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="namaReferensi">Nama Referensi</Label>
+              <Input
+                id="namaReferensi"
+                placeholder="mis. mobil dinas kakansar, motor tempel"
+                value={formData.namaReferensi}
+                onChange={(e) =>
+                  setFormData({ ...formData, namaReferensi: e.target.value })
+                }
+              />
+              <p className="text-xs text-slate-500">
+                Nama panggilan singkat agar aset mudah dibaca pengguna. Dikosongkan
+                akan diisi otomatis sesuai jenis aset.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="kode">Kode Aset</Label>

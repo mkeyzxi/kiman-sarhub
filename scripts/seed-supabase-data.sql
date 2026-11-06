@@ -58,6 +58,9 @@ CREATE TABLE IF NOT EXISTS public.asets (
   status_penggunaan     text,
   kode_register         text,
   status_bmn            text DEFAULT 'Aktif',
+  -- Nama referensi singkat untuk identifikasi aset oleh pengguna (mis.
+  -- "mobil dinas kakansar", "motor tempel"). Opsional — diisi manual di form.
+  nama_referensi        text,
   created_at            timestamptz DEFAULT now(),
   updated_at            timestamptz DEFAULT now()
 );
