@@ -15,6 +15,7 @@ import {
   PencilLine,
   TrendingDown,
   Gauge,
+  Printer,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -32,9 +33,15 @@ import {
   type LogbookPerjalanan,
 } from "@/components/shared/mock-data";
 import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
-import { useLogbooks } from "@/components/shared/use-supabase-data";
+import { useLogbooks, useAsets } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
+import {
+  DokumenLogbook,
+} from "@/components/shared/dokumen-logbook";
+import type { InfoUnitDokumen } from "@/components/shared/dokumen-checklist";
 import { cn } from "@/lib/utils";
+import "@/components/shared/berita-acara-print.css";
+import "@/components/shared/dokumen-cetak-print.css";
 
 /** Warna badge per status penggunaan — beda dari status kesiapsiagaan armada. */
 const statusVariant: Record<
@@ -65,6 +72,8 @@ export default function DetailLogbookPage() {
     supabaseLogbooks as unknown as LogbookPerjalanan[]
   );
   const log = logbooks.find((l) => l.id === params.id);
+  // Master BMN untuk melengkapi identitas unit pada dokumen cetak.
+  const { data: asetList } = useAsets();
 
   if (loading) {
     return <DataLoading label="Memuat detail logbook…" />;
@@ -100,6 +109,27 @@ export default function DetailLogbookPage() {
   const laut = isArmadaLaut(log.kategoriUnit);
   const tahapTertunda = tahapYangTertunda(log.status);
   const sudahSelesai = tahapTertunda === null;
+
+  // Unit terkait dari master BMN: cocokkan nama dokumen dengan nama aset.
+  // Bila tidak persis, ambil nama aset yang terkandung dalam teks jenis unit
+  // (pilih yang terpanjang agar tidak tertukar dengan varian lain).
+  const aset =
+    asetList.find((a) => a.nama === log.jenisUnit) ??
+    asetList
+      .filter((a) => log.jenisUnit.toLowerCase().includes(a.nama.toLowerCase()))
+      .sort((a, b) => b.nama.length - a.nama.length)[0];
+  const unitInfo: InfoUnitDokumen | null = aset
+    ? {
+        nama: aset.nama,
+        namaReferensi: aset.namaReferensi,
+        kode: aset.kode,
+        nup: aset.nup,
+        merk: aset.merk,
+        tipe: aset.tipe,
+        lokasi: aset.lokasi,
+        penanggungJawab: aset.penanggungJawab,
+      }
+    : null;
 
   // Durasi perjalanan TempUH (jam dinding) bila sudah kembali.
   let durasi = "-";
@@ -149,7 +179,8 @@ export default function DetailLogbookPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="ba-page space-y-6">
+      <div className="no-print space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
@@ -349,6 +380,22 @@ export default function DetailLogbookPage() {
           </CardContent>
         </Card>
       )}
+      </div>
+
+      {/* ── Aksi cetak pratinjau (tidak ikut dicetak) ─────────────────────── */}
+      <div className="no-print flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          Pratinjau dokumen logbook — kondisi unit sebelum dan sesudah
+          perjalanan, hasil cetak mengikuti kop surat BASARNAS.
+        </p>
+        <Button variant="outline" onClick={() => window.print()}>
+          <Printer className="h-4 w-4" />
+          Cetak / Simpan PDF
+        </Button>
+      </div>
+
+      {/* ── Pratinjau dokumen (identik dengan dokumen berita acara) ───────── */}
+      <DokumenLogbook log={log} unit={unitInfo} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileText,
+  Printer,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -26,7 +27,14 @@ import {
   checklistTemplates,
   formatTanggal,
 } from "@/components/shared/mock-data";
+import { useAsets } from "@/components/shared/use-supabase-data";
+import {
+  DokumenChecklist,
+  type InfoUnitDokumen,
+} from "@/components/shared/dokumen-checklist";
 import { cn } from "@/lib/utils";
+import "@/components/shared/berita-acara-print.css";
+import "@/components/shared/dokumen-cetak-print.css";
 
 const unitIcon = {
   Kapal: Ship,
@@ -41,6 +49,8 @@ export default function DetailChecklistPage() {
 
   // Checklist dari Supabase + data sesi berjalan (in-memory), digabung.
   const { data, loading, error, refetch } = useChecklistsCombined();
+  // Master BMN untuk melengkapi identitas unit pada dokumen cetak.
+  const { data: asetList } = useAsets();
   const checklist = data.find((c) => c.id === id);
 
   if (loading) {
@@ -87,6 +97,24 @@ export default function DetailChecklistPage() {
     (i) => i.kondisi === "Belum Diperiksa"
   ).length;
 
+  // Unit terkait dari master BMN: pakai asetId bila ada, fallback cocok
+  // dengan nama unit. Dipakai dokumen cetak (nama referensi, kode, dll).
+  const aset = checklist.asetId
+    ? asetList.find((a) => a.id === checklist.asetId)
+    : asetList.find((a) => a.nama === checklist.unit);
+  const unitInfo: InfoUnitDokumen | null = aset
+    ? {
+        nama: aset.nama,
+        namaReferensi: aset.namaReferensi,
+        kode: aset.kode,
+        nup: aset.nup,
+        merk: aset.merk,
+        tipe: aset.tipe,
+        lokasi: aset.lokasi,
+        penanggungJawab: aset.penanggungJawab,
+      }
+    : null;
+
   const info = [
     { icon: Calendar, label: "Tanggal", value: formatTanggal(checklist.tanggal) },
     { icon: User, label: "Pemeriksa", value: checklist.pemeriksa },
@@ -99,7 +127,8 @@ export default function DetailChecklistPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="ba-page space-y-6">
+      <div className="no-print space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
@@ -229,6 +258,26 @@ export default function DetailChecklistPage() {
           </p>
         </CardContent>
       </Card>
+      </div>
+
+      {/* ── Aksi cetak pratinjau (tidak ikut dicetak) ─────────────────────── */}
+      <div className="no-print flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          Pratinjau dokumen laporan checklist — hasil cetak mengikuti kop surat
+          BASARNAS.
+        </p>
+        <Button variant="outline" onClick={() => window.print()}>
+          <Printer className="h-4 w-4" />
+          Cetak / Simpan PDF
+        </Button>
+      </div>
+
+      {/* ── Pratinjau dokumen (identik dengan dokumen berita acara) ───────── */}
+      <DokumenChecklist
+        checklist={checklist}
+        templateNama={template?.nama}
+        unit={unitInfo}
+      />
     </div>
   );
 }

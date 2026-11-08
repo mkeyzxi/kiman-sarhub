@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Ship,
   FileText,
@@ -84,6 +85,7 @@ function formatDurasiTempuh(log: LogbookPerjalanan): string {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function LogbookPerjalananPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
 
@@ -356,6 +358,7 @@ export default function LogbookPerjalananPage() {
                 hideBelowLg: true,
               },
             ]}
+            onRowClick={(row) => router.push(`/operator/logbook/${row.id}`)}
           />
           
           {/* Pagination Controls */}

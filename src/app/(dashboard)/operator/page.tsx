@@ -88,6 +88,15 @@ function namaUnit(aset: AsetMapped): string {
   return aset.noPolisi ? `${inti} (${aset.noPolisi})` : inti;
 }
 
+/**
+ * Nama panggilan unit — mudah dikenali orang awam: nama referensi
+ * ("mobil dinas kakansar", "motor tempel") bila terisi di database;
+ * bila kosong, jatuh ke nama aset resmi.
+ */
+function namaPanggilan(aset: AsetMapped): string {
+  return aset.namaReferensi?.trim() || aset.nama;
+}
+
 /** Tahun pengadaan unit dari tanggal perolehan. */
 function tahunUnit(aset: AsetMapped): string {
   return aset.tanggalPerolehan ? aset.tanggalPerolehan.slice(0, 4) : "-";
@@ -249,7 +258,10 @@ function itemPemeliharaanRIB(
 
 type UnitArmada = {
   id: string;
+  /** Nama panggilan — mudah dikenali orang awam (nama referensi). */
   nama: string;
+  /** Nama teknis resmi dari master BMN; tidak tampil bila sama dgn `nama`. */
+  namaTeknis: string;
   status: string;
   kondisi: string;
   lokasi: string;
@@ -271,7 +283,8 @@ function susunUnitArmada(
     )
     .map((aset) => ({
       id: aset.id,
-      nama: namaUnit(aset),
+      nama: namaPanggilan(aset),
+      namaTeknis: namaUnit(aset),
       status: aset.status,
       kondisi: aset.kondisi,
       lokasi: aset.lokasi,
@@ -351,7 +364,14 @@ function KondisiArmadaCard({
             <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {standby.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-700">{u.nama}</span>
+                  <div className="min-w-0">
+                    <span className="font-medium text-slate-700">{u.nama}</span>
+                    {u.namaTeknis !== u.nama && (
+                      <span className="block truncate text-xs text-slate-400">
+                        {u.namaTeknis}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-slate-400">{u.lokasi}</span>
                 </li>
               ))}
@@ -369,8 +389,15 @@ function KondisiArmadaCard({
             <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {dipakai.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-700">{u.nama}</span>
-                  <Badge variant="default" className="text-xs">
+                  <div className="min-w-0">
+                    <span className="font-medium text-slate-700">{u.nama}</span>
+                    {u.namaTeknis !== u.nama && (
+                      <span className="block truncate text-xs text-slate-400">
+                        {u.namaTeknis}
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="default" className="shrink-0 text-xs">
                     Sedang digunakan
                   </Badge>
                 </li>
@@ -389,8 +416,18 @@ function KondisiArmadaCard({
             <ul className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
               {tidakStandby.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-700">{u.nama}</span>
-                  <Badge variant={STATUS_ASET_VARIANT[u.status as keyof typeof STATUS_ASET_VARIANT] ?? "outline"} className="text-xs">
+                  <div className="min-w-0">
+                    <span className="font-medium text-slate-700">{u.nama}</span>
+                    {u.namaTeknis !== u.nama && (
+                      <span className="block truncate text-xs text-slate-400">
+                        {u.namaTeknis}
+                      </span>
+                    )}
+                  </div>
+                  <Badge
+                    variant={STATUS_ASET_VARIANT[u.status as keyof typeof STATUS_ASET_VARIANT] ?? "outline"}
+                    className="shrink-0 text-xs"
+                  >
                     {u.status}
                   </Badge>
                 </li>
@@ -461,7 +498,7 @@ function KartuJurnalRIBUnit({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Ship className="h-5 w-5 text-primary" />
-            Jurnal {namaUnit(aset)}
+            Jurnal {namaPanggilan(aset)}
           </CardTitle>
           <BadgeStatusAset status={aset.status} />
         </div>
@@ -652,7 +689,7 @@ function KartuLogbookKapal({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Ship className="h-5 w-5 text-primary" />
-            Logbook Harian {aset.nama}
+            Logbook Harian {namaPanggilan(aset)}
           </CardTitle>
           <BadgeStatusAset status={aset.status} />
         </div>
@@ -867,7 +904,7 @@ function KartuLogbookDarat({
             ) : (
               <Bike className="h-5 w-5 text-primary" />
             )}
-            Logbook {namaUnit(aset)}
+            Logbook {namaPanggilan(aset)}
           </CardTitle>
           <BadgeStatusAset status={aset.status} />
         </div>
@@ -1197,7 +1234,13 @@ export default function OperatorPage() {
         ba?.status === "Disetujui"
           ? `Berita acara disetujui — ${ba.keterangan || "dikirim ke tempat service"}`
           : keteranganTerakhir(aset);
-      return { id: aset.id, nama: aset.nama, kondisi: aset.status, keterangan };
+      return {
+        id: aset.id,
+        nama: namaPanggilan(aset),
+        namaTeknis: aset.nama,
+        kondisi: aset.status,
+        keterangan,
+      };
     });
 
   const unitPunyaData = (aset: AsetMapped): boolean =>
@@ -1305,6 +1348,9 @@ export default function OperatorPage() {
               >
                 <div>
                   <p className="text-sm font-medium text-slate-800">{u.nama}</p>
+                  {u.namaTeknis !== u.nama && (
+                    <p className="text-xs text-slate-400">{u.namaTeknis}</p>
+                  )}
                   <p className="text-xs text-slate-500">{u.keterangan}</p>
                 </div>
                 <Badge
