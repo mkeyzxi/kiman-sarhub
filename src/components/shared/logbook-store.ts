@@ -32,6 +32,14 @@ import {
 let logbooks: LogbookPerjalanan[] = [...logbookPerjalananList];
 const listeners = new Set<() => void>();
 
+/**
+ * Reset in-memory state ke seed awal — hanya dipakai untuk pengujian.
+ * Dipanggil dari test agar state tidak saling mencemari antar test case.
+ */
+export function resetLogbooksForTesting(): void {
+  logbooks = [...logbookPerjalananList];
+}
+
 function emit() {
   listeners.forEach((l) => l());
 }
