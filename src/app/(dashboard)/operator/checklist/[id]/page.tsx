@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   FileText,
   Printer,
+  PencilLine,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -158,7 +159,11 @@ export default function DetailChecklistPage() {
           >
             {checklist.status}
           </Badge>
-          <TombolBeritaAcara checklistId={id} adaRusak={rusakCount > 0} />
+          <TombolBeritaAcara
+            checklistId={id}
+            adaRusak={rusakCount > 0}
+            draftBelumLengkap={belumCount > 0}
+          />
         </div>
       </div>
 
@@ -229,11 +234,22 @@ export default function DetailChecklistPage() {
       {belumCount > 0 && (
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm text-amber-800">
-            Checklist belum lengkap. Terdapat{" "}
-            <strong>{belumCount} item</strong> yang belum diperiksa dan harus
-            dilengkapi sebelum unit dinyatakan siap operasional.
-          </p>
+          <div className="flex-1">
+            <p className="text-sm text-amber-800">
+              Checklist belum lengkap. Terdapat{" "}
+              <strong>{belumCount} item</strong> yang belum diperiksa dan harus
+              dilengkapi sebelum unit dinyatakan siap operasional.
+            </p>
+            <Link
+              href={`/operator/checklist/buat?draft=${id}`}
+              className="mt-2 inline-block"
+            >
+              <Button variant="secondary" size="sm">
+                <PencilLine className="h-4 w-4 mr-1" />
+                Lanjutkan Pengisian Checklist
+              </Button>
+            </Link>
+          </div>
         </div>
       )}
 

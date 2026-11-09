@@ -141,6 +141,116 @@ export function ambilChecklist(
 }
 
 /**
+ * Ambil satu checklist berdasarkan ID dari Supabase (async).
+ * Dipakai pre-fill draft saat user melanjutkan dari sesi lain.
+ */
+export async function ambilChecklistDariDb(
+  id: string
+): Promise<ChecklistHarian | null> {
+  const local = ambilChecklist(id);
+  if (local) return local;
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { data, error: err } = await supa
+      .from("checklist_harian")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (err || !data) return null;
+    return {
+      id: data.id,
+      tanggal: data.tanggal,
+      unit: data.unit,
+      jenisUnit: data.jenis_unit as ChecklistHarian["jenisUnit"],
+      templateId: data.template_id ?? undefined,
+      pemeriksa: data.pemeriksa,
+      pemeriksaId: data.pemeriksa_id ?? undefined,
+      asetId: data.aset_id ?? undefined,
+      status: data.status as ChecklistHarian["status"],
+      itemChecked: data.item_checked,
+      itemTotal: data.item_total,
+      items: (data.items as ItemHasilPengecekan[]) ?? [],
+      catatan: data.catatan,
+    };
+  } catch (e) {
+    console.error("[checklist-store] ambilChecklistDariDb:", e);
+    return null;
+  }
+}
+
+/**
+ * Update draft checklist yang sudah ada (lanjutan pengisian).
+ * Mengganti item, status, itemChecked, itemTotal, dan catatan di Supabase.
+ */
+export async function updateChecklistDraft(
+  id: string,
+  patch: {
+    itemChecked: number;
+    itemTotal: number;
+    items: ItemHasilPengecekan[];
+    catatan: string;
+  }
+): Promise<ChecklistBaru> {
+  const lengkap = patch.itemChecked === patch.itemTotal;
+  const status: ChecklistHarian["status"] = lengkap ? "Lengkap" : "Belum Lengkap";
+
+  // Update in-memory dulu
+  const existing = memory.find((c) => c.id === id);
+  if (existing) {
+    existing.itemChecked = patch.itemChecked;
+    existing.itemTotal = patch.itemTotal;
+    existing.items = patch.items;
+    existing.catatan = patch.catatan;
+    existing.status = status;
+  } else {
+    // Fallback: jika belum di memori, buat entri baru (data lengkap dari patch)
+    memory.push({
+      id,
+      tanggal: "",
+      unit: "",
+      jenisUnit: "Kapal",
+      status,
+      itemChecked: patch.itemChecked,
+      itemTotal: patch.itemTotal,
+      items: patch.items,
+      catatan: patch.catatan,
+      pemeriksa: "",
+    });
+  }
+  emit();
+
+  // UPDATE ke Supabase
+  let persisted = false;
+  let error: string | undefined;
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { error: err } = await supa
+      .from("checklist_harian")
+      .update({
+        status,
+        item_checked: patch.itemChecked,
+        item_total: patch.itemTotal,
+        items: patch.items,
+        catatan: patch.catatan,
+      })
+      .eq("id", id);
+    if (err) {
+      error = err.message;
+      persisted = false;
+      console.error("[checklist-store] UPDATE draft error:", err.message, err.details);
+    } else {
+      persisted = true;
+    }
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Gagal update draft ke Supabase";
+    persisted = false;
+    console.error("[checklist-store] UPDATE draft exception:", e);
+  }
+
+  return { id, status, persisted, error };
+}
+
+/**
  * Hook: checklist harian dari Supabase + in-memory, digabung.
  *
  * Supabase data di-fetch saat mount; in-memory data dari sesi berjalan
