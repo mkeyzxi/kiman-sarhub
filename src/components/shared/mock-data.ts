@@ -11,7 +11,8 @@ export type UserRole =
   | "ADMIN_IT"
   | "PENGELOLA_BMN"
   | "KAKANSAR"
-  | "OPERATOR_LAPANGAN";
+  | "OPERATOR_LAPANGAN"
+  | "AKUNTOR";
 
 export interface User {
   id: string;
@@ -4437,6 +4438,10 @@ export function bolehIsiChecklist(
   role: UserRole | ""
 ): boolean {
   if (!aset || !userId) return false;
+  // Akun kantor mengisi checklist harian SEMUA kendaraan — tidak harus
+  // menjadi penanggung jawabnya. Tindak lanjut kerusakan tetap mengikuti
+  // PJ kendaraan (lewat berita acara & tiket maintenance).
+  if (role === "AKUNTOR") return true;
   return role === "OPERATOR_LAPANGAN" && aset.penanggungJawab === userId;
 }
 

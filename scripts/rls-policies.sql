@@ -129,7 +129,7 @@ create policy checklist_insert_self on public.checklist_harian
   for insert to authenticated
   with check (
     public.boleh_tulis_aset()
-    or (public.role_jwt() = 'OPERATOR_LAPANGAN'
+    or (public.role_jwt() in ('OPERATOR_LAPANGAN', 'AKUNTOR')
         and pemeriksa_id = public.nip_jwt())
   );
 
@@ -310,8 +310,10 @@ declare
   v_role text := public.role_jwt();
   v_nip   text := public.nip_jwt();
 begin
-  if v_role is distinct from 'OPERATOR_LAPANGAN' then
-    raise exception 'Hanya operator lapangan yang menyerahkan kerusakan.';
+  if v_role is distinct from 'OPERATOR_LAPANGAN'
+     and v_role is distinct from 'AKUNTOR'
+     and v_role is distinct from 'ADMIN_IT' then
+    raise exception 'Hanya operator lapangan, akun kantor, atau Admin IT yang menyerahkan kerusakan.';
   end if;
   if p_kondisi not in ('Rusak Ringan', 'Rusak Berat') then
     raise exception 'Kondisi kerusakan tidak valid.';
@@ -354,8 +356,11 @@ declare
   v_nip     text := public.nip_jwt();
   v_aset_id text;
 begin
-  if v_role is distinct from 'KAKANSAR' then
-    raise exception 'Hanya Kepala Kantor SAR yang memutus berita acara.';
+  -- ADMIN_IT = role tertinggi: boleh melakukan segalanya, termasuk
+  -- memutus berita acara layaknya Kepala Kantor SAR.
+  if v_role is distinct from 'KAKANSAR'
+     and v_role is distinct from 'ADMIN_IT' then
+    raise exception 'Hanya Kepala Kantor SAR (atau Admin IT) yang memutus berita acara.';
   end if;
 
   select aset_id into v_aset_id

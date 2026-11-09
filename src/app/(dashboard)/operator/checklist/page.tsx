@@ -215,7 +215,8 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function ChecklistPerawatanPage() {
   const ses = useSesiUser();
-  const bolehBuatChecklist = ses.role === "OPERATOR_LAPANGAN";
+  const bolehBuatChecklist =
+    ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR";
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
@@ -387,7 +388,7 @@ export default function ChecklistPerawatanPage() {
           </>
         ) : (
           <Badge variant="outline" className="self-start">
-            Pengisian hanya oleh operator lapangan
+            Pengisian hanya oleh operator lapangan & akun kantor
           </Badge>
         )}
       </div>

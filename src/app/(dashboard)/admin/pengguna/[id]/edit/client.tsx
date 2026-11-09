@@ -16,6 +16,7 @@ const roleOptions = [
   "PENGELOLA_BMN",
   "KAKANSAR",
   "OPERATOR_LAPANGAN",
+  "AKUNTOR",
 ] as const;
 
 export function EditPenggunaClient({ user }: { user: UserProfile }) {

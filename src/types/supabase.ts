@@ -16,7 +16,8 @@ export type UserRole =
   | "ADMIN_IT"
   | "PENGELOLA_BMN"
   | "KAKANSAR"
-  | "OPERATOR_LAPANGAN";
+  | "OPERATOR_LAPANGAN"
+  | "AKUNTOR";
 
 // ─── Public Schema: users table ──────────────────────────────────────────────
 
@@ -498,6 +499,16 @@ export type Database = {
           p_keterangan?: string;
         };
         Returns: undefined;
+      };
+      /** Cek apakah aset sudah punya checklist harian pada tanggal tertentu
+       *  (anti-duplikasi lintas pemeriksa; draft yang dilanjutkan dikecualikan). */
+      cek_checklist_sudah_ada: {
+        Args: {
+          p_aset_id: string;
+          p_tanggal: string;
+          p_exclude_id?: string;
+        };
+        Returns: boolean;
       };
     };
     Enums: {
