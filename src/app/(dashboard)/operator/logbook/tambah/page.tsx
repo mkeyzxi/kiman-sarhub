@@ -22,6 +22,8 @@ import {
   users,
   cariAsetDmUnit,
   labelModelAset,
+  todayISODate,
+  getUserById,
   type FormLogbook,
   type LogbookPerjalanan,
   type Aset,
@@ -104,9 +106,10 @@ function getUnitOptions(
     })
     .map((a) => {
       const sedangDigunakan = unitSedangDigunakan.has(a.kode);
+      const pj = getUserById(a.penanggungJawab)?.nama ?? "-";
       return {
         value: a.kode,
-        label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""} (${a.kode})${sedangDigunakan ? " — Sedang Digunakan" : ""}`,
+        label: `${a.nama} (${a.kode}) · PJ: ${pj}${sedangDigunakan ? " — Sedang Digunakan" : ""}`,
         disabled: sedangDigunakan,
       };
     });
@@ -284,6 +287,13 @@ export default function TambahLogbookPage() {
       return;
     }
 
+    if (formData.tanggal > todayISODate()) {
+      setErrors((prev) => ({ ...prev, tanggal: "Tanggal tidak boleh di masa depan." }));
+      setErrorUmum("Tanggal tidak valid.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     const asetUnit = cariAsetDmUnit(formData.jenisUnit);
     const hasil = simpanTahapAwal({
       ...formData,
@@ -396,6 +406,7 @@ export default function TambahLogbookPage() {
               <Input
                 id="tanggal"
                 type="date"
+                max={todayISODate()}
                 value={formData.tanggal}
                 onChange={(e) => setField("tanggal", e.target.value)}
                 className={cn(errors.tanggal && "border-red-300")}
