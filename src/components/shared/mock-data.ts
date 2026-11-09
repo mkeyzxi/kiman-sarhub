@@ -2992,6 +2992,12 @@ export interface LogbookPerjalanan {
   bbmSebelum: string;
   bbmSesudah: string;
   /**
+   * Pengisian BBM tambahan selama perjalanan (isi ulang di tengah perjalanan),
+   * format persen — mis. "30%". Opsional: kosong bila tidak ada pengisian.
+   * Diisi pada tahap 2 (kepulangan).
+   */
+  bbmTambahan?: string;
+  /**
    * Endurance Awal/Dakhir dalam format HH:MM (jam:menit).
    * Contoh: "80:00" berarti 80 jam, "80:30" berarti 80 jam 30 menit.
    * Khusus armada laut: Kapal, RIB, RBB. Darat (Mobil/Motor) tidak pakai field ini.
@@ -3711,6 +3717,8 @@ export interface FormLogbook {
   jumlahPersonel: string;
   bbmSebelum: string;
   bbmSesudah: string;
+  /** BBM tambahan selama perjalanan (persen, opsional — kosong bila tidak ada). */
+  bbmTambahan: string;
   enduranceAwal: string;
   enduranceAkhir: string;
   kmSebelum: string;
@@ -3814,13 +3822,23 @@ export function validasiTahapAkhir(form: FormLogbook): LogbookErrors {
     const err = cekPersen(form.bbmSesudah, "BBM sesudah");
     if (err) {
       e.bbmSesudah = err;
-    } else if (cekAngka(form.bbmSebelum)) {
+    } else if (cekAngka(form.bbmSebelum) && !(form.bbmTambahan ?? "").trim()) {
+      // BBM sesudah boleh lebih besar dari BBM sebelum BILA ada pengisian
+      // BBM tambahan di tengah perjalanan (isi ulang) — karena itu validasi
+      // "menurun" ini hanya berlaku saat tidak ada BBM tambahan.
       const sebelum = Number(form.bbmSebelum);
       const sesudah = Number(form.bbmSesudah);
       if (sesudah > sebelum) {
-        e.bbmSesudah = "BBM sesudah tidak boleh lebih besar dari BBM sebelum.";
+        e.bbmSesudah =
+          "BBM sesudah tidak boleh lebih besar dari BBM sebelum. Bila armada diisi BBM di tengah perjalanan, isi kolom BBM Tambahan.";
       }
     }
+  }
+
+  // BBM tambahan opsional — tapi bila diisi, harus persen yang valid.
+  if ((form.bbmTambahan ?? "").trim()) {
+    const errTambahan = cekPersen(form.bbmTambahan, "BBM tambahan");
+    if (errTambahan) e.bbmTambahan = errTambahan;
   }
 
   if (laut) {
@@ -3933,6 +3951,7 @@ export function logbookKeForm(logbook: LogbookPerjalanan): FormLogbook {
     jumlahPersonel: String(logbook.jumlahPersonel),
     bbmSebelum: persenKeAngka(logbook.bbmSebelum),
     bbmSesudah: persenKeAngka(logbook.bbmSesudah),
+    bbmTambahan: persenKeAngka(logbook.bbmTambahan ?? ""),
     enduranceAwal: logbook.enduranceAwal ?? "",
     enduranceAkhir: logbook.enduranceAkhir ?? "",
     kmSebelum: logbook.kmSebelum ?? "",

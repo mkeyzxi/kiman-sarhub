@@ -40,6 +40,7 @@ function formValid(tanggal = "2026-10-15", jamBerangkat = "08:00", jamKembali = 
     jumlahPersonel: "4",
     bbmSebelum: "90",
     bbmSesudah: "75",
+    bbmTambahan: "",
     enduranceAwal: "80:00",
     enduranceAkhir: "70:15",
     kmSebelum: "45230",
@@ -348,12 +349,30 @@ describe("Validasi Tahap Akhir (jam selesai/kembali)", () => {
     expect(errors.bbmSesudah).toBe("BBM sesudah harus antara 0 dan 100.");
   });
 
-  it("bbmSesudah > bbmSebelum → error (tidak boleh naik)", () => {
+  it("bbmSesudah > bbmSebelum → error (tidak boleh naik tanpa BBM tambahan)", () => {
     const form = formValid();
     form.bbmSebelum = "90";
     form.bbmSesudah = "95";
     const errors = validasiTahapAkhir(form);
-    expect(errors.bbmSesudah).toBe("BBM sesudah tidak boleh lebih besar dari BBM sebelum.");
+    expect(errors.bbmSesudah).toContain(
+      "BBM sesudah tidak boleh lebih besar dari BBM sebelum."
+    );
+  });
+
+  it("bbmSesudah > bbmSebelum dengan bbmTambahan → lolos (ada isi ulang)", () => {
+    const form = formValid();
+    form.bbmSebelum = "90";
+    form.bbmSesudah = "95";
+    form.bbmTambahan = "20";
+    const errors = validasiTahapAkhir(form);
+    expect(errors.bbmSesudah).toBeUndefined();
+  });
+
+  it("bbmTambahan tidak valid (bukan angka) → error", () => {
+    const form = formValid();
+    form.bbmTambahan = "abc";
+    const errors = validasiTahapAkhir(form);
+    expect(errors.bbmTambahan).toBeDefined();
   });
 
   it("bbmSesudah = bbmSebelum → lolos (sisa sama)", () => {
@@ -954,6 +973,7 @@ describe("Validasi Tahap Awal — form mobil/darat (tanpa endurance)", () => {
       jumlahPersonel: "3",
       bbmSebelum: "90",
       bbmSesudah: "55",
+      bbmTambahan: "",
       enduranceAwal: "",
       enduranceAkhir: "",
       kmSebelum: "45230",
@@ -977,6 +997,7 @@ describe("Validasi Tahap Awal — form mobil/darat (tanpa endurance)", () => {
       jumlahPersonel: "3",
       bbmSebelum: "90",
       bbmSesudah: "",
+      bbmTambahan: "",
       enduranceAwal: "",
       enduranceAkhir: "",
       kmSebelum: "45230",
@@ -1028,6 +1049,7 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
       jumlahPersonel: "4",
       bbmSebelum: "90",
       bbmSesudah: "75",
+      bbmTambahan: "",
       enduranceAwal: "76:30",
       enduranceAkhir: "63:45",
       kmSebelum: "",
@@ -1051,6 +1073,7 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
       jumlahPersonel: "3",
       bbmSebelum: "90",
       bbmSesudah: "55",
+      bbmTambahan: "",
       enduranceAwal: "",
       enduranceAkhir: "",
       kmSebelum: "45230",
@@ -1074,6 +1097,7 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
       jumlahPersonel: "1",
       bbmSebelum: "80",
       bbmSesudah: "50",
+      bbmTambahan: "",
       enduranceAwal: "",
       enduranceAkhir: "",
       kmSebelum: "12450",

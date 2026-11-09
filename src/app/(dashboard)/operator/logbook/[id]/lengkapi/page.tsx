@@ -309,6 +309,24 @@ export default function LengkapiLogbookPage() {
               />
             </Field>
 
+            <Field
+              label="BBM Tambahan (%)"
+              htmlFor="bbmTambahan"
+              error={errors.bbmTambahan}
+              hint="Opsional — diisi bila armada diisi ulang BBM selama perjalanan (mis. 30). Kosongkan bila tidak ada."
+            >
+              <Input
+                id="bbmTambahan"
+                type="number"
+                min={0}
+                max={100}
+                placeholder="Contoh: 30"
+                value={form.bbmTambahan}
+                onChange={(e) => setField("bbmTambahan", e.target.value)}
+                className={cn(errors.bbmTambahan && "border-red-300")}
+              />
+            </Field>
+
             {laut ? (
               <Field
                 label="Endurance Akhir (HH:MM)"

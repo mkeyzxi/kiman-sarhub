@@ -243,6 +243,8 @@ export type LogbookPerjalananRow = {
   jumlah_personel: number;
   bbm_sebelum: string;
   bbm_sesudah: string;
+  /** Pengisian BBM tambahan selama perjalanan (persen) — opsional. */
+  bbm_tambahan?: string | null;
   endurance_awal: string;
   endurance_akhir: string;
   km_sebelum: string;

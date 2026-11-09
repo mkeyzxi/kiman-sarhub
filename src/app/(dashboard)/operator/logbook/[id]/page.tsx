@@ -148,7 +148,10 @@ export default function DetailLogbookPage() {
   if (log.bbmSebelum && log.bbmSesudah) {
     const sebelum = parseInt(log.bbmSebelum);
     const sesudah = parseInt(log.bbmSesudah);
-    const diff = sebelum - sesudah;
+    // Pengisian BBM tambahan di tengah perjalanan menambah stok — ikut
+    // diperhitungkan agar konsumsi tetap akurat (stok awal + tambahan − akhir).
+    const tambahan = log.bbmTambahan ? parseInt(log.bbmTambahan) || 0 : 0;
+    const diff = sebelum + tambahan - sesudah;
     konsumsiBbm = diff > 0 ? `${diff}%` : "0%";
   }
 
@@ -336,6 +339,14 @@ export default function DetailLogbookPage() {
             >
               Sesudah: {log.bbmSesudah || "Belum diisi"}
             </span>
+            {log.bbmTambahan && log.bbmTambahan !== "" && (
+              <>
+                <span className="text-slate-300">+</span>
+                <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">
+                  Tambahan: {log.bbmTambahan}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

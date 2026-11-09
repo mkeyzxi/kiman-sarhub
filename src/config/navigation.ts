@@ -105,7 +105,7 @@ export const roleDescriptions: Record<UserRole, string> = {
   PENGELOLA_BMN: "Pengelolaan aset, maintenance, dan monitoring",
   KAKANSAR: "Monitoring kesiapsiagaan dan laporan",
   OPERATOR_LAPANGAN: "Operasional lapangan dan checklist kesiapan",
-  AKUNTOR: "Checklist perawatan harian kendaraan (tanpa mingguan/bulanan)",
+  AKUNTOR: "Dashboard operasional + checklist perawatan harian kendaraan (tanpa mingguan/bulanan)",
 };
 
 // ─── Navigasi per Role ───────────────────────────────────────────────────────
@@ -190,6 +190,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
     {
       title: "Operasional",
       items: [
+        { href: "/operator", label: "Dashboard Operasional", icon: LayoutDashboard },
         { href: "/operator/checklist", label: "Checklist Perawatan", icon: ClipboardCheck },
       ],
     },
@@ -251,28 +252,31 @@ export function canAccessPath(
       return true;
     }
   }
-  // Akun kantor: hanya akses ke halaman checklist (tanpa dashboard operator
-  // maupun logbook). Akses ke detail checklist & berita acara milik sendiri
-  // diizinkan seperti operator.
+  // Akun kantor: dashboard operasional (lihat kondisi armada) + checklist
+  // harian, tanpa logbook perjalanan. Akses ke detail checklist & berita
+  // acara milik sendiri diizinkan seperti operator.
   if (role === "AKUNTOR") {
+    if (pathname === "/operator") {
+      return true;
+    }
     if (pathname.startsWith("/operator/checklist/")) {
       return true;
     }
   }
-  // Kepala Kantor (KAKANSAR) memantau aset dari Dashboard Pimpinan dan
-  // membuka detailnya ("Lihat detail aset" → /bmn/<id>). Hanya LIHAT:
-  // halaman kelola (tambah/edit), berita acara BMN, dan tiket maintenance
-  // tetap tertutup — sesuai RLS yang hanya memberi KAKANSAR hak baca.
-  if (role === "KAKANSAR") {
-    if (
-      pathname.startsWith("/bmn/") &&
-      !pathname.startsWith("/bmn/maintenance") &&
-      !pathname.startsWith("/bmn/tambah") &&
-      !pathname.startsWith("/bmn/berita-acara") &&
-      !pathname.endsWith("/edit")
-    ) {
-      return true;
-    }
+  // DETAIL ASET BISA DIBUKA SEMUA ROLE — hanya LIHAT ("lihat saja").
+  // Setiap kendaraan di Dashboard Operasional punya tautan ke master data
+  // detail (/bmn/<id>), jadi semua role perlu bisa membukanya. Halaman
+  // kelola (tambah/edit), berita acara BMN, dan tiket maintenance tetap
+  // mengikuti aturan per-role masing-masing — mengedit master data hanya
+  // untuk PENGELOLA_BMN (dan ADMIN_IT).
+  if (
+    pathname.startsWith("/bmn/") &&
+    !pathname.startsWith("/bmn/maintenance") &&
+    !pathname.startsWith("/bmn/tambah") &&
+    !pathname.startsWith("/bmn/berita-acara") &&
+    !pathname.endsWith("/edit")
+  ) {
+    return true;
   }
   return accessibleHrefs.some(
     (href) => pathname === href || pathname.startsWith(href + "/")
