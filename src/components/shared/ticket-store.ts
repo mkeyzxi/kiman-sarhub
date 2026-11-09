@@ -170,12 +170,32 @@ async function persistInsert(t: EWSTicket): Promise<void> {
   }
 }
 
-/** Susun objek tiket baru (status "Menunggu", tanggal hari ini). */
-function buatTiketBaru(data: TicketBaru): EWSTicket {
+/** Susun objek tiket baru (status "Menunggu", tanggal hari ini).
+ * ID di-generate berdasarkan jumlah tiket di Supabase agar tidak bentrok
+ * dengan data yang sudah ada (seeding awal sudah ada ews-001 s.d. ews-006).
+ */
+async function buatTiketBaru(data: TicketBaru): Promise<EWSTicket> {
+  const supa = getSupabaseBrowserClient();
+  const { count, error } = await supa
+    .from("ews_tickets")
+    .select("*", { count: "exact", head: true });
+  if (error) {
+    // Jika gagal baca DB, jadikan fallback seperti sebelumnya
+    const hariIni = new Date().toISOString().slice(0, 10);
+    return {
+      ...data,
+      id: `ews-${String(tickets.length + 1).padStart(3, "0")}`,
+      status: "Menunggu",
+      tanggalBuat: hariIni,
+      tanggalUpdate: hariIni,
+    };
+  }
+  // Nomor berikutnya = count saat ini + 1, format ews-001 / ews-002 / …
+  const nomorUrut = (count ?? 0) + 1;
   const hariIni = new Date().toISOString().slice(0, 10);
   return {
     ...data,
-    id: `ews-${String(tickets.length + 1).padStart(3, "0")}`,
+    id: `ews-${String(nomorUrut).padStart(3, "0")}`,
     status: "Menunggu",
     tanggalBuat: hariIni,
     tanggalUpdate: hariIni,
@@ -191,8 +211,8 @@ async function persistUpdate(id: string, t: EWSTicket): Promise<void> {
   }
 }
 
-export function addTicket(data: TicketBaru): EWSTicket {
-  const tiket = buatTiketBaru(data);
+export async function addTicket(data: TicketBaru): Promise<EWSTicket> {
+  const tiket = await buatTiketBaru(data);
   tickets = [tiket, ...tickets];
   emit();
   // Persist ke Supabase (fire-and-forget; error dicatat ke console).
@@ -208,7 +228,7 @@ export function addTicket(data: TicketBaru): EWSTicket {
  * belum ada di database → FK violation ("Referensi tidak valid").
  */
 export async function tambahTiketSupabase(data: TicketBaru): Promise<EWSTicket> {
-  const tiket = buatTiketBaru(data);
+  const tiket = await buatTiketBaru(data);
   tickets = [tiket, ...tickets];
   emit();
   try {

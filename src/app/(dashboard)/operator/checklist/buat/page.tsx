@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Plus, Trash2, PencilLine, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
@@ -20,7 +21,12 @@ import {
   type ItemHasilPengecekan,
 } from "@/components/shared/mock-data";
 import { useSesiUser, jabatanUser } from "@/components/shared/use-session";
-import { tambahChecklist, ambilChecklist } from "@/components/shared/checklist-store";
+import {
+  tambahChecklist,
+  ambilChecklist,
+  ambilChecklistDariDb,
+  updateChecklistDraft,
+} from "@/components/shared/checklist-store";
 import { useAsets } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
@@ -86,6 +92,8 @@ export default function BuatChecklistPage() {
   const ses = useSesiUser();
   // Aset dari Supabase. Dipakai untuk filter unit PJ — NIP disandingkan NIP.
   const { data: asetList, loading, error, refetch } = useAsets();
+  // Draft checklist yang sedang dilanjutkan (dari query param ?draft=ID).
+  // Form ter-prefill otomatis dari data draft saat mount.
   const [tanggal, setTanggal] = useState(tanggalHariIni);
   const [unit, setUnit] = useState("");
   const [jenisUnit, setJenisUnit] = useState<JenisArmada>("Kapal");
@@ -95,6 +103,10 @@ export default function BuatChecklistPage() {
   const [catatan, setCatatan] = useState("");
   /** Tersimpan sementara ID checklist yang baru dibuat (untuk tombol berita acara). */
   const [checklistBaruId, setChecklistBaruId] = useState<string | null>(null);
+  /** Menyimpan ID draft yang sedang dilengkapi — agar simpan UPDATE, bukan INSERT baru. */
+  const [draftId, setDraftId] = useState<string | null>(null);
+  /** Flag untuk memastikan prefill draft hanya berjalan satu kali. */
+  const draftDiprefill = useRef(false);
 
   // Aset terkait unit yang dipilih — untuk menampilkan PJ aset pada form.
   const asetTerkait = useMemo(() => cariAsetDmUnit(unit), [unit]);
@@ -123,6 +135,71 @@ export default function BuatChecklistPage() {
   const [hasil, setHasil] = useState<Record<string, KondisiHasil>>({});
   const [keterangan, setKeterangan] = useState<Record<string, string>>({});
 
+  // ─── Pre-fill dari draft yang sedang dilanjutkan (?draft=ID) ──────────────
+  // Saat halaman dibuka dengan query param `draft`, isi form dari data draft
+  // agar operator bisa melanjutkan pengisian tanpa membuat checklist baru.
+  // Data dicari dulu di memori (sesi berjalan), fallback ke Supabase.
+  const searchParams = useSearchParams();
+  const paramDraft = searchParams.get("draft");
+  const [draftDimuat, setDraftDimuat] = useState(false);
+
+  useEffect(() => {
+    if (!paramDraft || draftDiprefill.current) return;
+    draftDiprefill.current = true;
+    let aktif = true;
+    (async () => {
+      // Coba lokal dulu (sesi ini), lalu Supabase.
+      let draft = ambilChecklist(paramDraft);
+      if (!draft) {
+        draft = (await ambilChecklistDariDb(paramDraft)) ?? undefined;
+      }
+      if (!draft || !aktif) return;
+      setDraftId(draft.id);
+      setTanggal(draft.tanggal);
+      setUnit(draft.unit);
+      // DB menyimpan "Perahu" — form memakai opsi "RIB"/"RBB". Pilih RIB
+      // sebagai default; user tetap bisa ganti di form.
+      const jenisForm: JenisArmada =
+        draft.jenisUnit === "Perahu"
+          ? "RIB"
+          : (draft.jenisUnit as JenisArmada);
+      setJenisUnit(jenisForm);
+      // Jika draft dibuat dalam mode manual (templateId kosong), muat ulang
+      // baris item manual dari data draft.
+      if (draft.templateId) {
+        setTemplateId(draft.templateId);
+        const hasilBaru: Record<string, KondisiHasil> = {};
+        const keterBaru: Record<string, string> = {};
+        for (const item of draft.items) {
+          if (item.kondisi !== "Belum Diperiksa") {
+            hasilBaru[item.label] = item.kondisi;
+            if (item.keterangan) keterBaru[item.label] = item.keterangan;
+          }
+        }
+        setHasil(hasilBaru);
+        setKeterangan(keterBaru);
+      } else {
+        setModeManual(true);
+        setItemManual(
+          draft.items.map((i, idx) => ({
+            id: `manual-draft-${idx}`,
+            label: i.label,
+            kondisi: i.kondisi,
+            keterangan: i.keterangan ?? "",
+          }))
+        );
+      }
+      setCatatan(draft.catatan);
+      setDraftDimuat(true);
+    })().catch((e) => {
+      console.error("[buat-checklist] prefill draft gagal:", e);
+      if (aktif) setDraftDimuat(true);
+    });
+    return () => {
+      aktif = false;
+    };
+  }, [paramDraft]);
+
   const template = useMemo(
     () => checklistTemplates.find((t) => t.id === templateId),
     [templateId]
@@ -146,6 +223,12 @@ export default function BuatChecklistPage() {
     () => (template ? getKategoriTemplate(template.id) : []),
     [template]
   );
+
+  // Jika sedang memuat draft (?draft=ID) → tampilkan loading dulu supaya
+  // form tidak terisi default sebelum data draft masuk.
+  if (paramDraft && !draftDimuat) {
+    return <DataLoading label="Memuat draft checklist…" />;
+  }
 
   if (loading) {
     return <DataLoading label="Menyiapkan form checklist…" />;
@@ -228,6 +311,8 @@ export default function BuatChecklistPage() {
 
   /**
    * Simpan checklist harian ke Supabase (fallback memori sesi).
+   * - Jika draftId ada → UPDATE draft yang sudah ada.
+   * - Jika tidak → INSERT checklist baru.
    * Jika ada item Rusak Ringan/Berat → tampilkan tombol "Pengisian Berita Acara".
    */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -257,23 +342,37 @@ export default function BuatChecklistPage() {
       (i) => i.kondisi !== "Belum Diperiksa"
     ).length;
 
-    // Simpan checklist (Supabase + in-memory fallback)
-    const result = await tambahChecklist({
-      tanggal,
-      unit: asetTerkait?.nama ?? unit,
-      jenisUnit: (jenisUnit === "RIB" || jenisUnit === "RBB")
-        ? "Perahu"
-        : (jenisUnit as "Kapal" | "Mobil" | "Motor"),
-      templateId: modeManual ? undefined : templateId,
-      pemeriksa,
-      pemeriksaId: ses.id,
-      itemChecked,
-      itemTotal: items.length,
-      items,
-      catatan,
-      asetId: asetTerkait?.id,
-    });
-    setChecklistBaruId(result.id);
+    // Path berbeda: update draft vs insert baru
+    let result;
+    if (draftId) {
+      // Lanjutan draft — update checklist yang sudah ada
+      result = await updateChecklistDraft(draftId, {
+        itemChecked,
+        itemTotal: items.length,
+        items,
+        catatan,
+      });
+      setChecklistBaruId(result.id);
+    } else {
+      // Buat checklist baru — INSERT
+      result = await tambahChecklist({
+        tanggal,
+        unit: asetTerkait?.nama ?? unit,
+        jenisUnit: (jenisUnit === "RIB" || jenisUnit === "RBB")
+          ? "Perahu"
+          : (jenisUnit as "Kapal" | "Mobil" | "Motor"),
+        templateId: modeManual ? undefined : templateId,
+        pemeriksa,
+        pemeriksaId: ses.id,
+        itemChecked,
+        itemTotal: items.length,
+        items,
+        catatan,
+        asetId: asetTerkait?.id,
+      });
+      setChecklistBaruId(result.id);
+      setDraftId(null);
+    }
 
     // Reset form agar siap buat checklist berikutnya
     setTanggal("");
@@ -290,6 +389,15 @@ export default function BuatChecklistPage() {
     ? (ambilChecklist(checklistBaruId)?.items.some(
         (i) => i.kondisi === "Rusak Ringan" || i.kondisi === "Rusak Berat"
       ) ?? false)
+    : false;
+
+  /** Apakah hasil barusan masih ada item "Belum Diperiksa"? */
+  const hasilBelumLengkap = checklistBaruId
+    ? (
+        ambilChecklist(checklistBaruId)?.items.some(
+          (i) => i.kondisi === "Belum Diperiksa"
+        ) ?? false
+      )
     : false;
 
   // Aturan akses: hanya Operator Lapangan yang boleh membuka form pengisian.
@@ -328,9 +436,13 @@ export default function BuatChecklistPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Buat Checklist</h1>
+          <h1 className="text-2xl font-bold text-slate-800">
+            {draftId ? "Lanjutkan Pengisian Checklist" : "Buat Checklist"}
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Isi hasil pemeriksaan harian untuk unit yang akan diperiksa
+            {draftId
+              ? "Melanjutkan draft yang belum lengkap — lengkapi item yang tersisa"
+              : "Isi hasil pemeriksaan harian untuk unit yang akan diperiksa"}
           </p>
         </div>
       </div>
@@ -839,7 +951,8 @@ export default function BuatChecklistPage() {
           </div>
         </Card>
 
-        {/* Validasi sebelum simpan */}
+        {/* Validasi sebelum simpan — peringatan jika item belum lengkap,
+         * tetapi tidak memblokir penyimpanan agar bisa disimpan status "Belum Lengkap" */}
         {(template || modeManual) &&
           (itemBelumDijawab > 0 ||
             itemRusakTanpaKeterangan > 0 ||
@@ -849,8 +962,8 @@ export default function BuatChecklistPage() {
             <div className="text-sm text-amber-800">
               {itemBelumDijawab > 0 && (
                 <p>
-                  <strong>{itemBelumDijawab} item</strong> belum dijawab. Semua
-                  item template wajib diisi sebelum disimpan.
+                  <strong>{itemBelumDijawab} item</strong> belum dijawab. Checklist
+                  akan disimpan dengan status &quot;Belum Lengkap&quot;.
                 </p>
               )}
               {(itemRusakTanpaKeterangan > 0 ||
@@ -860,8 +973,8 @@ export default function BuatChecklistPage() {
                     {itemRusakTanpaKeterangan + itemManualRusakTanpaKeterangan}{" "}
                     item
                   </strong>{" "}
-                  berstatus rusak tanpa keterangan. Keterangan wajib diisi minimal
-                  5 karakter.
+                  berstatus rusak tanpa keterangan. Keterangan minimal
+                  5 karakter sangat disarankan.
                 </p>
               )}
             </div>
@@ -879,19 +992,42 @@ export default function BuatChecklistPage() {
               !bolehIsiUnit ||
               (modeManual
                 ? itemManual.length === 0 ||
-                  itemBelumDijawab > 0 ||
                   itemManualRusakTanpaKeterangan > 0
-                : !template ||
-                  itemBelumDijawab > 0 ||
-                  itemRusakTanpaKeterangan > 0)
+                : !template)
             }
           >
             Simpan Checklist
           </Button>
         </div>
 
-        {/* Setelah simpan: jika ada item rusak → tombol pengisian berita acara */}
-        {checklistBaruId && adaItemRusak && (
+        {/* Setelah simpan: alur lanjutan sesuai kelengkapan draft.
+            - Masih ada item "Belum Diperiksa" → arahkan ke detail checklist
+              agar operator bisa melengkapi dulu (BA baru sah setelah lengkap).
+            - Lengkap + ada item rusak → tombol pengisian Berita Acara.
+            - Lengkap + tanpa item rusak → unit siap operasional. */}
+        {checklistBaruId && hasilBelumLengkap && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800">
+                Checklist berhasil disimpan sebagai draft{" "}
+                <strong>Belum Lengkap</strong>.{" "}
+                {adaItemRusak
+                  ? "Terdapat item rusak — lengkapi dulu seluruh item sebelum pengisian Berita Acara."
+                  : "Lengkapi item yang tersisa agar unit siap operasional."}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Link href={`/operator/checklist/${checklistBaruId}`}>
+                <Button variant="outline" size="sm">
+                  Lihat Detail
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {checklistBaruId && !hasilBelumLengkap && adaItemRusak && (
           <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
             <div className="flex-1">
@@ -909,7 +1045,7 @@ export default function BuatChecklistPage() {
           </div>
         )}
 
-        {checklistBaruId && !adaItemRusak && (
+        {checklistBaruId && !hasilBelumLengkap && !adaItemRusak && (
           <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
             <div className="flex-1">

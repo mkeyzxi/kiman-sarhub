@@ -269,24 +269,47 @@ export default function ChecklistPerawatanPage() {
   }, [filteredChecklist, pagination.startIndex, pagination.endIndex]);
 
   /**
-   * Draft Berita Acara milik user yang sedang login — dihitung langsung saat
-   * render (bukan useEffect + setState) supaya tidak memicu loop render.
+   * Draft milik user yang sedang login — dihitung langsung saat render
+   * (bukan useEffect + setState) supaya tidak memicu loop render.
    * Draft sifatnya PER PENGGUNA: hanya checklist yang menjadi tanggung jawab
    * user (pemeriksaId = NIP user login) yang dipertimbangkan, sehingga draft
    * operator lain tidak ikut tampil.
+   *
+   * Prioritas alur "Lanjutkan Draft":
+   *  1) Checklist berstatus "Belum Lengkap" → lanjutkan isian checklist dulu
+   *     (link ke halaman detail checklist). Berita acara baru sah dibuat
+   *     setelah checklist lengkap, jadi jangan langsung arahkan ke BA.
+   *  2) Checklist sudah Lengkap tapi punya Berita Acara draft → lanjutkan
+   *     pengisian Berita Acara (link ke halaman berita-acara).
    * Fallback: jika sesi belum siap atau data belum datang, tampilkan null
    * agar button "Lanjutkan Draft" tidak muncul sewaktu-waktu.
    */
-  let checklistDraf: { id: string; nama: string } | null = null;
+  let checklistDraf: {
+    id: string;
+    nama: string;
+    /** true = lanjutkan isian checklist, false = lanjutkan berita acara */
+    tipeDraft: "checklist" | "berita-acara";
+  } | null = null;
   // Hanya hitung draft jika user sudah login DAN daftar checklist sudah muncul
   if (ses.id && checklistHarianList.length > 0) {
     for (const ck of checklistHarianList) {
       // cek pemeriksaId (NIP operator yang buat checklist) harus sama dengan user login
       if (ck.pemeriksaId !== ses.id) continue;
-      const ba = beritaAcaraByChecklist(ck.id);
-      if (ba && ba.status === "Draf") {
-        checklistDraf = { id: ck.id, nama: ck.unit };
+      if (ck.status === "Belum Lengkap") {
+        checklistDraf = { id: ck.id, nama: ck.unit, tipeDraft: "checklist" };
         break;
+      }
+    }
+    // 2) Checklist sudah lengkap tapi masih ada draft berita acara
+    if (!checklistDraf) {
+      for (const ck of checklistHarianList) {
+        if (ck.pemeriksaId !== ses.id) continue;
+        if (ck.status !== "Lengkap") continue;
+        const ba = beritaAcaraByChecklist(ck.id);
+        if (ba && ba.status === "Draf") {
+          checklistDraf = { id: ck.id, nama: ck.unit, tipeDraft: "berita-acara" };
+          break;
+        }
       }
     }
   }
@@ -337,10 +360,22 @@ export default function ChecklistPerawatanPage() {
               </Button>
             </Link>
             {checklistDraf && (
-              <Link href={`/operator/checklist/${checklistDraf.id}/berita-acara`}>
+              <Link
+                href={
+                  checklistDraf.tipeDraft === "checklist"
+                    ? `/operator/checklist/buat?draft=${checklistDraf.id}`
+                    : `/operator/checklist/${checklistDraf.id}/berita-acara`
+                }
+              >
                 <Button variant="secondary" className="ml-2">
-                  <FileText className="h-4 w-4" />
-                  Lanjutkan Draft
+                  {checklistDraf.tipeDraft === "checklist" ? (
+                    <PencilLine className="h-4 w-4" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                  {checklistDraf.tipeDraft === "checklist"
+                    ? "Lanjutkan Pengisian Checklist"
+                    : "Lanjutkan Draft Berita Acara"}
                 </Button>
               </Link>
             )}
