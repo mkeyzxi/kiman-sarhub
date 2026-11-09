@@ -29,7 +29,10 @@ import { DokumenBeritaAcara, susunButirAnalisa } from "@/components/shared/dokum
 import "@/components/shared/berita-acara-print.css";
 import { useBeritaAcara } from "@/components/shared/use-supabase-data";
 import { useLocalStorageValue } from "@/lib/use-local-storage";
-import { canAccessTiketMaintenance } from "@/config/navigation";
+import {
+  canAccessTiketMaintenance,
+  type UserRole,
+} from "@/config/navigation";
 import {
   updateBeritaAcaraIsi,
   updateBeritaAcaraStatus,
@@ -52,11 +55,13 @@ export default function DetailBeritaAcaraBmnPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  // NIP user login — penerbitan tiket maintenance hanya untuk pengelola
-  // yang ditunjuk (ZULKIFLI), jadi tombol "Buat Tiket Maintenance"
-  // disembunyikan untuk NIP lain.
+  // NIP & role user login — penerbitan tiket maintenance hanya untuk
+  // pengelola yang ditunjuk (ZULKIFLI) atau role ADMIN_IT (role tertinggi,
+  // boleh melakukan semuanya), jadi tombol "Buat Tiket Maintenance"
+  // disembunyikan untuk pengguna lain.
   const nip = useLocalStorageValue("userNip");
-  const bisaTerbitkanTiket = canAccessTiketMaintenance(nip);
+  const roleTersimpan = useLocalStorageValue("userRole") as UserRole | null;
+  const bisaTerbitkanTiket = canAccessTiketMaintenance(nip, roleTersimpan);
 
   // BA dari Supabase — tanpa fallback mock.
   const { data, loading, error, refetch } = useBeritaAcara();

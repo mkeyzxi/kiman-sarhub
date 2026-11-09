@@ -24,6 +24,7 @@ import {
   tanggalTeks,
   angkaTeks,
   KETERANGAN_SERVICE_DEFAULT,
+  getUserById,
   type BeritaAcara,
   type BarisKendala,
 } from "@/components/shared/mock-data";
@@ -385,6 +386,11 @@ export default function BeritaAcaraPage() {
     jabatanPJ === "Petugas"
       ? jabatanUserByNama(checklist?.pemeriksa ?? "")
       : jabatanPJ;
+  // Penanggung jawab kendaraan (dari register BMN) — pihak yang menangani
+  // tindak lanjut perbaikan saat ada item rusak pada checklist.
+  const pjKendaraanNama = aset?.penanggungJawab
+    ? getUserById(aset.penanggungJawab)?.nama ?? ""
+    : "";
   const namaAset = aset?.nama ?? checklist?.unit ?? "-";
   // Butir "Hasil Pemeriksaan / Analisa" pada dokumen: uraian manual bila
   // diisi (satu baris = satu butir), jika tidak dibuat dari baris kendala.
@@ -493,7 +499,9 @@ export default function BeritaAcaraPage() {
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
             <p className="text-xs text-rose-800">
               <strong>{rusakItems.length} item</strong> berstatus rusak (Rusak
-              Ringan/Berat) — wajib dilaporkan melalui berita acara.
+              Ringan/Berat) — wajib dilaporkan melalui berita acara. Tindak
+              lanjut perbaikan menjadi tanggung jawab penanggung jawab
+              kendaraan{pjKendaraanNama ? `: ${pjKendaraanNama}` : ""}.
             </p>
           </div>
         ) : (

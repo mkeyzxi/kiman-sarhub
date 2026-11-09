@@ -21,7 +21,8 @@ function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void})
   const nip = useLocalStorageValue('userNip')
   const groups = filterNavGroupsForNip(
     navGroupsByRole[role] || navGroupsByRole.OPERATOR_LAPANGAN,
-    nip
+    nip,
+    role
   )
   const storedName = useLocalStorageValue("userNama")
   const legacyName = useLocalStorageValue("userName")

@@ -2,7 +2,8 @@
  * Tests for the logbook store — simpanTahapAwal, simpanTahapAkhir,
  * tandaiBerangkat, mergeLogbooksWithSupabase, getLogbookById.
  *
- * Store uses in-memory state seeded from mock data. Tests focus on:
+ * Store starts EMPTY (data hidup hanya dari Supabase + tulisan sesi
+ * berjalan). Tests build their own fixtures via simpanTahapAwal:
  * - jamBerangkat / jamKembali saving behaviour
  * - status transitions
  * - merge & lookup logic
@@ -17,11 +18,7 @@ import {
   getAllLogbook,
   resetLogbooksForTesting,
 } from "../logbook-store";
-import {
-  logbookPerjalananList,
-  type FormLogbook,
-  type LogbookPerjalanan,
-} from "../mock-data";
+import { type FormLogbook, type LogbookPerjalanan } from "../mock-data";
 
 // ─── Form logbook valid helper ───────────────────────────────────────────────
 
@@ -71,6 +68,33 @@ function formValidDarat(
     kmSesudah: "45312",
     catatan: "Jalan berlubang KM 67-69",
   };
+}
+
+// ─── Fixture helpers (store mulai kosong — data dibuat lewat form) ──────────
+
+/** Logbook berstatus "Sedang Digunakan" (tahap awal, jam berangkat terisi). */
+function buatLogbookSedang(jamBerangkat = "08:00"): LogbookPerjalanan {
+  const hasil = simpanTahapAwal(formValidLaut(jamBerangkat, ""));
+  if ("error" in hasil) throw new Error(`Fixture gagal: ${hasil.error}`);
+  return hasil.logbook;
+}
+
+/** Logbook berstatus "Menunggu Penggunaan" (jam berangkat kosong). */
+function buatLogbookMenunggu(): LogbookPerjalanan {
+  const hasil = simpanTahapAwal(formValidLaut("", ""));
+  if ("error" in hasil) throw new Error(`Fixture gagal: ${hasil.error}`);
+  return hasil.logbook;
+}
+
+/** Logbook berstatus "Selesai" (tahap awal + tahap akhir). */
+function buatLogbookSelesai(
+  jamBerangkat = "08:00",
+  jamKembali = "14:00"
+): LogbookPerjalanan {
+  const awal = buatLogbookSedang(jamBerangkat);
+  const hasil = simpanTahapAkhir(awal.id, formValidLaut(jamBerangkat, jamKembali));
+  if ("error" in hasil) throw new Error(`Fixture gagal: ${hasil.error}`);
+  return hasil.logbook;
 }
 
 // ─── simpanTahapAwal ─────────────────────────────────────────────────────────
@@ -233,11 +257,7 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
 
   beforeEach(() => {
     resetLogbooksForTesting();
-    // Cari logbook "Sedang Digunakan" dari mock data
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan"
-    );
-    idTarget = logbookSedang!.id;
+    idTarget = buatLogbookSedang("08:00").id;
   });
 
   it("mencari logbook yang sudah ada berdasarkan ID", () => {
@@ -267,9 +287,8 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
   });
 
   it("jamBerangkat tidak di-undurkan bila sudah terisi", () => {
-    // Ambil logbook yang jamBerangkat sudah ada
-    const logbookTarget = getLogbookById(idTarget)!;
-    const jamBerangkatAsli = logbookTarget.jamBerangkat;
+    // Logbook target sudah berangkat jam 08:00
+    const jamBerangkatAsli = getLogbookById(idTarget)!.jamBerangkat;
 
     // Coba undur jam berangkat (lebih awal)
     const form = formValidLaut("05:00", "14:00");
@@ -288,11 +307,7 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
   });
 
   it("jamBerangkat yang sebelumnya kosong boleh diisi", () => {
-    // Cari logbook "Menunggu Penggunaan" (jamBerangkat kosong)
-    const logbookMenunggu = logbookPerjalananList.find(
-      (l) => l.status === "Menunggu Penggunaan"
-    );
-    if (!logbookMenunggu) throw new Error("Tidak ada logbook Menunggu Penggunaan");
+    const logbookMenunggu = buatLogbookMenunggu();
 
     const form = formValidLaut("09:00", "12:00");
     form.jamBerangkat = "09:00";
@@ -335,21 +350,19 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
   });
 
   it("kmSesudah disimpan untuk armada darat", () => {
-    // Cari logbook darat Sedang Digunakan
-    const logbookDarat = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan" && l.kategoriUnit === "Mobil"
-    );
-    if (logbookDarat) {
-      const form = formValidDarat("13:00", "16:00");
-      form.kmSesudah = "45500";
-      const hasil = simpanTahapAkhir(logbookDarat.id, form);
+    // Buat logbook darat "Sedang Digunakan"
+    const hasilAwal = simpanTahapAwal(formValidDarat("07:30", ""));
+    if ("error" in hasilAwal) throw new Error("Expected success");
 
-      if ("error" in hasil) {
-        // Bisa error — hanya cek yang tidak error
-        return;
-      }
-      expect(hasil.logbook.kmSesudah).toBe("45500");
+    const form = formValidDarat("13:00", "16:00");
+    form.kmSesudah = "45500";
+    const hasil = simpanTahapAkhir(hasilAwal.logbook.id, form);
+
+    if ("error" in hasil) {
+      // Bisa error — hanya cek yang tidak error
+      return;
     }
+    expect(hasil.logbook.kmSesudah).toBe("45500");
   });
 
   it("form tidak valid → error + daftar field yang kurang", () => {
@@ -366,15 +379,9 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
   });
 
   it("jamKembali sebelum jamBerangkat → error", () => {
-    // Cari logbook dengan jamBerangkat terisi
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan"
-    )!;
-    const jamBerangkatAsli = logbookSedang.jamBerangkat;
-
-    // Jam kembali lebih awal dari jam berangkat
-    const form = formValidLaut(jamBerangkatAsli, "05:00");
-    const hasil = simpanTahapAkhir(logbookSedang.id, form);
+    // Target berangkat jam 08:00 — jam kembali lebih awal
+    const form = formValidLaut("08:00", "05:00");
+    const hasil = simpanTahapAkhir(idTarget, form);
 
     expect("error" in hasil).toBe(true);
     if ("error" in hasil) {
@@ -383,13 +390,8 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
   });
 
   it("jamKembali sama dengan jamBerangkat → error", () => {
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan"
-    )!;
-    const jamBerangkatAsli = logbookSedang.jamBerangkat;
-
-    const form = formValidLaut(jamBerangkatAsli, jamBerangkatAsli);
-    const hasil = simpanTahapAkhir(logbookSedang.id, form);
+    const form = formValidLaut("08:00", "08:00");
+    const hasil = simpanTahapAkhir(idTarget, form);
 
     expect("error" in hasil).toBe(true);
     if ("error" in hasil) {
@@ -398,27 +400,20 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
   });
 
   it("catatan lama dipertahankan bila catatan baru kosong", () => {
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan"
-    )!;
-    const catatanAsli = logbookSedang.catatan;
+    const catatanAsli = getLogbookById(idTarget)!.catatan; // "Kondisi laut normal"
 
-    const form = formValidLaut(logbookSedang.jamBerangkat, "16:00");
+    const form = formValidLaut("08:00", "16:00");
     form.catatan = ""; // kosong
-    const hasil = simpanTahapAkhir(logbookSedang.id, form);
+    const hasil = simpanTahapAkhir(idTarget, form);
 
     if ("error" in hasil) return; // bila error, skrip tidak jalan
     expect(hasil.logbook.catatan).toBe(catatanAsli);
   });
 
   it("catatan baru menimpa catatan lama", () => {
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan"
-    )!;
-
-    const form = formValidLaut(logbookSedang.jamBerangkat, "16:00");
+    const form = formValidLaut("08:00", "16:00");
     form.catatan = "Perjalanan lancar, ada ombak besar";
-    const hasil = simpanTahapAkhir(logbookSedang.id, form);
+    const hasil = simpanTahapAkhir(idTarget, form);
 
     if ("error" in hasil) return;
     expect(hasil.logbook.catatan).toBe("Perjalanan lancar, ada ombak besar");
@@ -433,10 +428,7 @@ describe("tandaiBerangkat — transisi Menunggu → Sedang Digunakan", () => {
   });
 
   it("logbook 'Menunggu Penggunaan' → status berubah jadi 'Sedang Digunakan'", () => {
-    const logbookMenunggu = logbookPerjalananList.find(
-      (l) => l.status === "Menunggu Penggunaan"
-    );
-    if (!logbookMenunggu) throw new Error("Tidak ada logbook Menunggu Penggunaan");
+    const logbookMenunggu = buatLogbookMenunggu();
 
     // Pastikan status sebelum dipanggil
     const sebelum = getLogbookById(logbookMenunggu.id)!;
@@ -449,10 +441,7 @@ describe("tandaiBerangkat — transisi Menunggu → Sedang Digunakan", () => {
   });
 
   it("logbook bukan 'Menunggu Penggunaan' → tidak diubah", () => {
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan"
-    );
-    if (!logbookSedang) throw new Error("Tidak ada logbook Sedang Digunakan");
+    const logbookSedang = buatLogbookSedang();
 
     const sebelum = getLogbookById(logbookSedang.id)!;
     expect(sebelum.status).toBe("Sedang Digunakan");
@@ -464,10 +453,7 @@ describe("tandaiBerangkat — transisi Menunggu → Sedang Digunakan", () => {
   });
 
   it("logbook 'Selesai' → tidak diubah", () => {
-    const logbookSelesai = logbookPerjalananList.find(
-      (l) => l.status === "Selesai"
-    );
-    if (!logbookSelesai) throw new Error("Tidak ada logbook Selesai");
+    const logbookSelesai = buatLogbookSelesai();
 
     const sebelum = getLogbookById(logbookSelesai.id)!;
     expect(sebelum.status).toBe("Selesai");
@@ -495,13 +481,12 @@ describe("mergeLogbooksWithSupabase — gabung in-memory & Supabase", () => {
   });
 
   it("in-memory dipertahankan", () => {
+    const inMemory = buatLogbookSedang();
     const supabaseData: LogbookPerjalanan[] = [];
     const hasil = mergeLogbooksWithSupabase(supabaseData);
 
     // Semua in-memory harus ada
-    for (const l of logbookPerjalananList) {
-      expect(hasil.find((x) => x.id === l.id)).toBeDefined();
-    }
+    expect(hasil.find((x) => x.id === inMemory.id)).toBeDefined();
   });
 
   it("logbook dari Supabase yang baru ditambahkan", () => {
@@ -531,7 +516,7 @@ describe("mergeLogbooksWithSupabase — gabung in-memory & Supabase", () => {
   });
 
   it("in-memory yang ID sama dengan Supabase → in-memory menang (tidak duplikat)", () => {
-    const logbookInMemory = logbookPerjalananList[0];
+    const logbookInMemory = buatLogbookSedang();
     const supabaseCopy = { ...logbookInMemory, catatan: "Versi Supabase" };
     const hasil = mergeLogbooksWithSupabase([supabaseCopy]);
 
@@ -541,18 +526,19 @@ describe("mergeLogbooksWithSupabase — gabung in-memory & Supabase", () => {
   });
 
   it("diurutkan: tanggalSimpan terbaru di atas, yang belum disimpan di bawah", () => {
+    const inMemory = buatLogbookSedang();
     const lama: LogbookPerjalanan = {
-      ...logbookPerjalananList[0],
+      ...inMemory,
       id: "lp-test-lama",
       tanggalSimpan: "2026-01-01T08:00:00",
     };
     const baru: LogbookPerjalanan = {
-      ...logbookPerjalananList[0],
+      ...inMemory,
       id: "lp-test-baru",
       tanggalSimpan: "2026-12-01T08:00:00",
     };
     const tanpaTanggal: LogbookPerjalanan = {
-      ...logbookPerjalananList[0],
+      ...inMemory,
       id: "lp-test-tanpa",
       tanggalSimpan: undefined,
     };
@@ -576,9 +562,10 @@ describe("getLogbookById — cari berdasarkan ID", () => {
   });
 
   it("ID valid → mengembalikan logbook", () => {
-    const hasil = getLogbookById("lp-01");
+    const fixture = buatLogbookSedang();
+    const hasil = getLogbookById(fixture.id);
     expect(hasil).toBeDefined();
-    expect(hasil!.id).toBe("lp-01");
+    expect(hasil!.id).toBe(fixture.id);
   });
 
   it("ID tidak ada → undefined", () => {
@@ -631,9 +618,7 @@ describe("State jam keberangkatan/kembali — tidak hilang setelah simpan", () =
   });
 
   it("jam tidak direset ulang setelah tandaiBerangkat", () => {
-    const logbookMenunggu = logbookPerjalananList.find(
-      (l) => l.status === "Menunggu Penggunaan"
-    )!;
+    const logbookMenunggu = buatLogbookMenunggu();
     const jamBerangkatAsli = logbookMenunggu.jamBerangkat; // ""
 
     tandaiBerangkat(logbookMenunggu.id);
@@ -644,9 +629,7 @@ describe("State jam keberangkatan/kembali — tidak hilang setelah simpan", () =
   });
 
   it("jamBerangkat diupdate oleh simpanTahapAkhir bila sebelumnya kosong", () => {
-    const logbookMenunggu = logbookPerjalananList.find(
-      (l) => l.status === "Menunggu Penggunaan"
-    )!;
+    const logbookMenunggu = buatLogbookMenunggu();
 
     // Isi jamBerangkat yang sebelumnya kosong
     const form = formValidLaut("09:00", "12:00");
@@ -661,13 +644,11 @@ describe("State jam keberangkatan/kembali — tidak hilang setelah simpan", () =
   });
 
   it("jamBerangkat tidak bisa diundur lewat simpanTahapAkhir", () => {
-    const logbookSedang = logbookPerjalananList.find(
-      (l) => l.status === "Sedang Digunakan" && l.jamBerangkat !== ""
-    )!;
-    const jamBerangkatAsli = logbookSedang.jamBerangkat; // mis. "08:00"
+    const logbookSedang = buatLogbookSedang("08:00");
+    const jamBerangkatAsli = logbookSedang.jamBerangkat; // "08:00"
 
     // Coba set jamBerangkat lebih awal ("06:00")
-    const form = formValidLaut(jamBerangkatAsli, "14:00");
+    const form = formValidLaut("06:00", "14:00");
     form.jamBerangkat = "06:00"; // lebih awal dari asli
     form.jamKembali = "14:00";
     const hasil = simpanTahapAkhir(logbookSedang.id, form);

@@ -2,13 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import {
-  beritaAcaraList,
-  getBeritaAcaraById,
-  getBeritaAcaraByTiketId,
-  type BeritaAcara,
-  type BarisKendala,
-  type StatusBeritaAcara,
+import type {
+  BeritaAcara,
+  BarisKendala,
+  StatusBeritaAcara,
 } from "@/components/shared/mock-data";
 import type { BeritaAcaraRow } from "@/types/supabase";
 
@@ -16,15 +13,18 @@ import type { BeritaAcaraRow } from "@/types/supabase";
  * Store berita acara di sisi klien (modul-level, seperti `ticket-store`).
  *
  * - **Tulis**: INSERT/UPDATE ke Supabase `berita_acara` (Tahap 4).
- * - **Baca**: gabungan mock seed + in-memory sesi. Supabase data di-merge
- *   oleh hook `useBeritaAcara` di halaman yang membutuhkan.
+ * - **Baca**: data Supabase (dihidrasi sekali per sesi) + tulisan sesi
+ *   berjalan (in-memory). Supabase data di-merge oleh hook
+ *   `useBeritaAcara` di halaman yang membutuhkan.
  *
- * Supabase gagal/offline → tetap masuk in-memory (UI tidak hangus).
+ * SEED MOCK sengaja tidak dipakai — daftar & keputusan selalu nyata dari
+ * database. Supabase gagal/offline → tetap masuk in-memory (UI tidak hangus).
  */
 
 // ── In-memory fallback ────────────────────────────────────────────────────────
-// Mutasi di bawah tetap memutasi `beritaAcaraList` (mock-data) sebagai
-// sumber data lokal; Supabase ditangani fire-and-forget.
+// Array lokal milik store ini (mulai kosong) — dipush dari Supabase saat
+// hidrasi dan dimutasi fungsi tulis; Supabase ditangani fire-and-forget.
+const beritaAcaraList: BeritaAcara[] = [];
 
 export function useBeritaAcara(): BeritaAcara[] {
   // Hidrasi: data Supabase digabung ke `beritaAcaraList` sekali per sesi,
@@ -135,7 +135,7 @@ export function setAsetBeritaAcara(
   namaAset?: string,
   kodeAset?: string
 ): void {
-  const ba = getBeritaAcaraById(id);
+  const ba = beritaAcaraById(id);
   if (!ba || !asetId || ba.asetId === asetId) return;
   ba.asetId = asetId;
   if (namaAset !== undefined && namaAset) ba.namaAset = namaAset;
@@ -179,12 +179,12 @@ function mapDariSupabase(r: BeritaAcaraRow): BeritaAcara {
 
 /** Ambil satu berita acara berdasarkan ID. */
 export function beritaAcaraById(id: string): BeritaAcara | undefined {
-  return getBeritaAcaraById(id);
+  return beritaAcaraList.find((b) => b.id === id);
 }
 
 /** Ambil berita acara berdasarkan tiket terkait (bila ada). */
 export function beritaAcaraByTiket(tiketId: string): BeritaAcara | undefined {
-  return getBeritaAcaraByTiketId(tiketId);
+  return beritaAcaraList.find((b) => b.tiketId === tiketId);
 }
 
 /** Ambil berita acara yang dibuat dari sebuah checklist. */
@@ -349,7 +349,7 @@ export function ubahStatusBeritaAcaraSupabase(
     >
   > = {}
 ): BeritaAcara | undefined {
-  const ba = getBeritaAcaraById(id);
+  const ba = beritaAcaraById(id);
   if (!ba) return undefined;
   ba.status = status;
   ba.tanggalUpdate = new Date().toISOString().slice(0, 10);
@@ -443,7 +443,7 @@ export function terapkanPatchBeritaAcara(
   id: string,
   patch: Partial<BeritaAcara>
 ): void {
-  const ba = getBeritaAcaraById(id);
+  const ba = beritaAcaraById(id);
   if (!ba) return;
   Object.assign(ba, patch);
 }
@@ -461,7 +461,7 @@ export function ubahIsiBeritaAcaraSupabase(
     >
   >
 ): BeritaAcara | undefined {
-  const ba = getBeritaAcaraById(id);
+  const ba = beritaAcaraById(id);
   if (!ba) return undefined;
   if (isi.nomor !== undefined) ba.nomor = isi.nomor;
   if (isi.uraian !== undefined) ba.uraian = isi.uraian;

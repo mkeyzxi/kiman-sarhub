@@ -194,6 +194,7 @@ export default function PenggunaPage() {
             <option value="PENGELOLA_BMN">Pengelola BMN</option>
             <option value="KAKANSAR">Kepala Kantor</option>
             <option value="OPERATOR_LAPANGAN">Operator Lapangan</option>
+            <option value="AKUNTOR">Akun Kantor</option>
           </Select>
         </div>
       </Card>

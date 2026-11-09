@@ -41,12 +41,15 @@ export interface NavGroup {
 // ─── Pembatasan Menu Tiket Maintenance (Per-Pengguna, berdasarkan NIP) ───────
 
 /**
- * NIP tunggal yang berwenang mengakses menu Tiket Maintenance —
+ * NIP yang berwenang mengakses menu Tiket Maintenance —
  * termasuk menerbitkan tiket baru lewat "Buat Tiket".
  *
- * Kebutuhan proyek: hanya pengelola BMN ZULKIFLI S.I.P. (NIP di bawah)
- * yang boleh membuka /bmn/maintenance dan form penerbitan tiket.
- * Menu disembunyikan dan aksesnya ditolak untuk NIP lain, termasuk Admin IT.
+ * Kebutuhan proyek: pengelola BMN ZULKIFLI S.I.P. (NIP di bawah) yang
+ * boleh membuka /bmn/maintenance dan form penerbitan tiket.
+ *
+ * ADMIN_IT dikecualikan dari pembatasan ini: sebagai role tertinggi,
+ * Admin IT dapat mengakses seluruh modul — termasuk menerbitkan tiket
+ * maintenance — tanpa perlu NIP-nya didaftarkan di daftar ini.
  *
  * Semua NIP terdaftar di daftar di bawah — tambahkan NIP baru ke daftar
  * bila kelak ada petugas tambahan yang diberi wewenang.
@@ -55,10 +58,13 @@ export const NIP_PENGELOLA_TIKET_MAINTENANCE: readonly string[] = [
   "19850331200812100",
 ];
 
-/** Cek apakah NIP tertentu boleh membuka menu Tiket Maintenance. */
+/** Cek apakah NIP/role tertentu boleh membuka menu Tiket Maintenance. */
 export function canAccessTiketMaintenance(
-  nip: string | null | undefined
+  nip: string | null | undefined,
+  role?: UserRole | null
 ): boolean {
+  // Admin IT = role tertinggi, akses penuh ke semua modul.
+  if (role === "ADMIN_IT") return true;
   if (!nip) return false;
   return NIP_PENGELOLA_TIKET_MAINTENANCE.includes(normalizeNip(nip));
 }
@@ -66,12 +72,14 @@ export function canAccessTiketMaintenance(
 /**
  * Saring grup navigasi berdasarkan NIP: item yang tidak boleh diakses
  * oleh NIP tertentu (mis. "Tiket Maintenance") disembunyikan.
+ * ADMIN_IT selalu melihat menu lengkap.
  */
 export function filterNavGroupsForNip(
   groups: NavGroup[],
-  nip: string | null | undefined
+  nip: string | null | undefined,
+  role?: UserRole | null
 ): NavGroup[] {
-  if (canAccessTiketMaintenance(nip)) return groups;
+  if (canAccessTiketMaintenance(nip, role)) return groups;
   return groups
     .map((group) => ({
       ...group,
@@ -89,6 +97,7 @@ export const roleLabels: Record<UserRole, string> = {
   PENGELOLA_BMN: "Pengelola BMN",
   KAKANSAR: "Kepala Kantor",
   OPERATOR_LAPANGAN: "Operator Lapangan",
+  AKUNTOR: "Akun Kantor",
 };
 
 export const roleDescriptions: Record<UserRole, string> = {
@@ -96,6 +105,7 @@ export const roleDescriptions: Record<UserRole, string> = {
   PENGELOLA_BMN: "Pengelolaan aset, maintenance, dan monitoring",
   KAKANSAR: "Monitoring kesiapsiagaan dan laporan",
   OPERATOR_LAPANGAN: "Operasional lapangan dan checklist kesiapan",
+  AKUNTOR: "Checklist perawatan harian kendaraan (tanpa mingguan/bulanan)",
 };
 
 // ─── Navigasi per Role ───────────────────────────────────────────────────────
@@ -176,6 +186,14 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       ],
     },
   ],
+  AKUNTOR: [
+    {
+      title: "Operasional",
+      items: [
+        { href: "/operator/checklist", label: "Checklist Perawatan", icon: ClipboardCheck },
+      ],
+    },
+  ],
 };
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
@@ -205,15 +223,15 @@ export function canAccessPath(
     return true;
   }
   // Menu Tiket Maintenance + form penerbitan tiket hanya untuk NIP yang
-  // ditunjuk (lihat NIP_PENGELOLA_TIKET_MAINTENANCE) — melampaui
-  // pembatasan role biasa, jadi diperiksa lebih dulu. Halaman DETAIL
+  // ditunjuk (lihat NIP_PENGELOLA_TIKET_MAINTENANCE) atau role ADMIN_IT
+  // (role tertinggi — akses semua modul). Halaman DETAIL
   // (/bmn/maintenance/<id>) tetap mengikuti aturan per-role di bawah,
   // termasuk akses operator pada tiket yang diarahkan ke mereka.
   if (
     pathname === "/bmn/maintenance" ||
     pathname.startsWith("/bmn/maintenance/buat")
   ) {
-    return canAccessTiketMaintenance(nip);
+    return canAccessTiketMaintenance(nip, role);
   }
   const accessibleHrefs = getAccessibleHrefs(role);
   // Operator lapangan adalah penanggung jawab kendaraan: mereka perlu
@@ -230,6 +248,29 @@ export function canAccessPath(
     // Baca kartu BA milik operator (pengaju) — halaman BA tidak boleh
     // dikelola, hanya dilihat.
     if (pathname.startsWith("/operator/checklist/")) {
+      return true;
+    }
+  }
+  // Akun kantor: hanya akses ke halaman checklist (tanpa dashboard operator
+  // maupun logbook). Akses ke detail checklist & berita acara milik sendiri
+  // diizinkan seperti operator.
+  if (role === "AKUNTOR") {
+    if (pathname.startsWith("/operator/checklist/")) {
+      return true;
+    }
+  }
+  // Kepala Kantor (KAKANSAR) memantau aset dari Dashboard Pimpinan dan
+  // membuka detailnya ("Lihat detail aset" → /bmn/<id>). Hanya LIHAT:
+  // halaman kelola (tambah/edit), berita acara BMN, dan tiket maintenance
+  // tetap tertutup — sesuai RLS yang hanya memberi KAKANSAR hak baca.
+  if (role === "KAKANSAR") {
+    if (
+      pathname.startsWith("/bmn/") &&
+      !pathname.startsWith("/bmn/maintenance") &&
+      !pathname.startsWith("/bmn/tambah") &&
+      !pathname.startsWith("/bmn/berita-acara") &&
+      !pathname.endsWith("/edit")
+    ) {
       return true;
     }
   }

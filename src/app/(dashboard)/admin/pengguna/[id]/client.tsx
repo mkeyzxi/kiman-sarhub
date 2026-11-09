@@ -31,11 +31,12 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
   const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   // Daftar modul yang bisa diakses role — menu per-pengguna (mis. Tiket
-  // Maintenance hanya untuk NIP tertentu) ikut disaring agar tampilan
-  // hak akses sesuai kenyataan.
+  // Maintenance hanya untuk NIP tertentu, kecuali Admin IT) ikut disaring
+  // agar tampilan hak akses sesuai kenyataan.
   const aksesModul = filterNavGroupsForNip(
     navGroupsByRole[user.role] ?? [],
-    user.nip
+    user.nip,
+    user.role
   );
 
   const handleDelete = async () => {

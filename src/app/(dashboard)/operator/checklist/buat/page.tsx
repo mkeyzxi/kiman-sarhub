@@ -16,10 +16,12 @@ import {
   getUserById,
   labelModelAset,
   type Aset,
+  type UserRole,
   type KondisiHasil,
   type JenisArmada,
   type ItemHasilPengecekan,
 } from "@/components/shared/mock-data";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useSesiUser, jabatanUser } from "@/components/shared/use-session";
 import {
   tambahChecklist,
@@ -67,8 +69,14 @@ function cocokJenisArmada(aset: Aset, jenisArmada: JenisArmada): boolean {
 }
 
 /**
- * Daftar unit yang boleh diperiksa: hanya aset yang menjadi tanggung jawab
- * user. Unit statis lama (RIB 9 M, KN SAR MAMUJU 01) tidak dipakai lagi karena
+ * Daftar unit yang boleh diperiksa.
+ *
+ * - Operator lapangan: hanya aset yang menjadi tanggung jawabnya.
+ * - Akun kantor (AKUNTOR): SEMUA aset pada jenis armada itu — mereka
+ *   melakukan checklist perawatan harian tanpa harus menjadi PJ unit.
+ *   Nama PJ ditampilkan pada label agar asal unit jelas.
+ *
+ * Unit statis lama (RIB 9 M, KN SAR MAMUJU 01) tidak dipakai lagi karena
  * tidak ada di register BMN.
  *
  * @param asets Daftar aset (dari Supabase, fallback mock)
@@ -76,16 +84,23 @@ function cocokJenisArmada(aset: Aset, jenisArmada: JenisArmada): boolean {
 function getUnitOptionsForArmada(
   jenisArmada: JenisArmada,
   userId: string,
-  asets: Aset[]
+  asets: Aset[],
+  role?: UserRole
 ): { value: string; label: string }[] {
   return asets
-    .filter(
-      (a) => cocokJenisArmada(a, jenisArmada) && a.penanggungJawab === userId
-    )
-    .map((a) => ({
-      value: a.kode,
-      label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""} (${a.kode})`,
-    }));
+    .filter((a) => {
+      if (!cocokJenisArmada(a, jenisArmada)) return false;
+      if (role === "AKUNTOR") return true;
+      return a.penanggungJawab === userId;
+    })
+    .map((a) => {
+      const pj = getUserById(a.penanggungJawab)?.nama;
+      const labelPj = role === "AKUNTOR" && pj ? ` · PJ: ${pj}` : "";
+      return {
+        value: a.kode,
+        label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""}${labelPj} (${a.kode})`,
+      };
+    });
 }
 
 export default function BuatChecklistPage() {
@@ -207,16 +222,85 @@ export default function BuatChecklistPage() {
 
   // Hanya armada yang punya template dari form fisik kantor. Peralatan
   // "Lainnya" memakai mode input manual.
+  // AKUNTOR hanya melihat template harian (tidak termasuk mingguan/bulanan).
   const templateTersedia = useMemo(
-    () => checklistTemplates.filter((t) => t.jenisArmada === jenisUnit),
-    [jenisUnit]
+    () =>
+      checklistTemplates.filter((t) => {
+        if (t.jenisArmada !== jenisUnit) return false;
+        if (ses.role === "AKUNTOR") return t.periode === "Harian";
+        return true;
+      }),
+    [jenisUnit, ses.role]
   );
 
-  // Unit options hanya aset yang menjadi tanggung jawab user yang login.
+  // Unit options: operator = unit miliknya; akun kantor = semua unit
+  // pada jenis armada terpilih (lihat getUnitOptionsForArmada).
   const unitOptions = useMemo(
-    () => getUnitOptionsForArmada(jenisUnit, ses.id, asetList),
-    [jenisUnit, ses.id, asetList]
+    () => getUnitOptionsForArmada(jenisUnit, ses.id, asetList, ses.role),
+    [jenisUnit, ses.id, asetList, ses.role]
   );
+
+  // ─── Cek duplikasi: satu kendaraan satu checklist per tanggal ─────────────
+  // Jika unit terpilih sudah punya checklist pada tanggal terpilih (oleh
+  // siapa pun — operator PJ maupun akun kantor), form diblokir. Pengecekan
+  // lewat RPC SECURITY DEFINER karena RLS membatasi AKUNTOR hanya melihat
+  // checklist miliknya sendiri, sementara duplikasi harus terdeteksi lintas
+  // pemeriksa. Draft yang sedang dilanjutkan dikecualikan (p_exclude_id).
+  //
+  // Hasil cek disimpan BERSAMA konteks (asetId + tanggal) yang diperiksa,
+  // lalu relevansinya diturunkan saat render — sehingga perubahan unit/
+  // tanggal tidak sesaat menampilkan peringatan hasil cek lama, dan tidak
+  // ada setState sinkron di dalam effect (react-hooks/set-state-in-effect).
+  type HasilCekDuplikat = "idle" | "ada" | "bebas";
+  const [cekDuplikat, setCekDuplikat] = useState<{
+    asetId: string | undefined;
+    tanggal: string;
+    hasil: HasilCekDuplikat;
+  }>({ asetId: undefined, tanggal: "", hasil: "idle" });
+
+  useEffect(() => {
+    const asetId = asetTerkait?.id;
+    let aktif = true;
+    void (async (): Promise<{
+      asetId: string | undefined;
+      tanggal: string;
+      hasil: HasilCekDuplikat;
+    }> => {
+      if (!asetId || !tanggal) {
+        return { asetId: undefined, tanggal: "", hasil: "idle" };
+      }
+      try {
+        const supa = getSupabaseBrowserClient();
+        const { data, error: err } = await supa.rpc("cek_checklist_sudah_ada", {
+          p_aset_id: asetId,
+          p_tanggal: tanggal,
+          p_exclude_id: draftId ?? undefined,
+        });
+        if (err) {
+          // Gagal cek → jangan blokir form; unique index di DB tetap
+          // menjadi pengaman terakhir saat INSERT.
+          console.error("[buat-checklist] cek duplikat gagal:", err.message);
+          return { asetId, tanggal, hasil: "bebas" };
+        }
+        return { asetId, tanggal, hasil: data ? "ada" : "bebas" };
+      } catch (e) {
+        console.error("[buat-checklist] cek duplikat exception:", e);
+        return { asetId, tanggal, hasil: "bebas" };
+      }
+    })().then((hasil) => {
+      if (aktif) setCekDuplikat(hasil);
+    });
+    return () => {
+      aktif = false;
+    };
+  }, [asetTerkait?.id, tanggal, draftId]);
+
+  // Duplikat hanya relevan bila hasil cek masih untuk unit + tanggal yang
+  // sedang dipilih sekarang (hasil cek lama diabaikan).
+  const duplikatAda =
+    cekDuplikat.hasil === "ada" &&
+    cekDuplikat.asetId === asetTerkait?.id &&
+    cekDuplikat.tanggal === tanggal;
 
   // Item dikelompokkan mengikuti bagian pada form fisik (mis. "Kamar Mesin").
   const kelompokItem = useMemo(
@@ -318,8 +402,13 @@ export default function BuatChecklistPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Hanya operator lapangan yang menjadi PJ unit boleh menyimpan checklist.
+    // Hanya operator lapangan yang menjadi PJ unit (atau akun kantor untuk
+    // semua unit) boleh menyimpan checklist.
     if (!bolehIsiUnit) return;
+
+    // Satu kendaraan satu checklist per tanggal — tolak jika sudah ada
+    // checklist unit yang sama pada tanggal yang sama.
+    if (duplikatAda) return;
 
     // Kumpulkan item hasil pemeriksaan
     const items: ItemHasilPengecekan[] = modeManual
@@ -400,9 +489,10 @@ export default function BuatChecklistPage() {
       )
     : false;
 
-  // Aturan akses: hanya Operator Lapangan yang boleh membuka form pengisian.
-  // Pengelola BMN, Kakansar, dan Admin IT hanya dapat melihat checklist.
-  if (ses.role !== "OPERATOR_LAPANGAN") {
+  // Aturan akses: hanya Operator Lapangan DAN Akun Kantor yang boleh
+  // membuka form pengisian. Pengelola BMN, Kakansar, dan Admin IT hanya
+  // dapat melihat checklist.
+  if (ses.role !== "OPERATOR_LAPANGAN" && ses.role !== "AKUNTOR") {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="p-8 text-center">
@@ -412,8 +502,9 @@ export default function BuatChecklistPage() {
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             Checklist perawatan hanya dapat diisi oleh{" "}
-            <strong>Operator Lapangan</strong> yang ditunjuk sebagai penanggung
-            jawab unit. Peran Anda saat ini: <strong>{ses.jabatan}</strong>.
+            <strong>Operator Lapangan</strong> (penanggung jawab unit) dan{" "}
+            <strong>Akun Kantor</strong> (checklist harian kendaraan). Peran
+            Anda saat ini: <strong>{ses.jabatan}</strong>.
           </p>
           <Link href="/operator/checklist" className="mt-5 inline-block">
             <Button variant="outline">
@@ -485,9 +576,11 @@ export default function BuatChecklistPage() {
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {jenisArmadaOptions.map((opt) => {
                 const isActive = jenisUnit === opt.value;
-                const templateCount = checklistTemplates.filter(
-                  (t) => t.jenisArmada === opt.value
-                ).length;
+                const templateCount = checklistTemplates.filter((t) => {
+                  if (t.jenisArmada !== opt.value) return false;
+                  if (ses.role === "AKUNTOR") return t.periode === "Harian";
+                  return true;
+                }).length;
                 const IconComp = opt.icon;
                 return (
                   <button
@@ -546,24 +639,50 @@ export default function BuatChecklistPage() {
                 </Select>
               ) : (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  Tidak ada unit{" "}
-                  <strong>
-                    {jenisArmadaOptions.find((j) => j.value === jenisUnit)?.label ??
-                      jenisUnit}
-                  </strong>{" "}
-                  yang menjadi tanggung jawab Anda.
+                  {ses.role === "AKUNTOR" ? (
+                    <>
+                      Belum ada unit{" "}
+                      <strong>
+                        {jenisArmadaOptions.find((j) => j.value === jenisUnit)?.label ??
+                          jenisUnit}
+                      </strong>{" "}
+                      yang terdaftar di BMN.
+                    </>
+                  ) : (
+                    <>
+                      Tidak ada unit{" "}
+                      <strong>
+                        {jenisArmadaOptions.find((j) => j.value === jenisUnit)?.label ??
+                          jenisUnit}
+                      </strong>{" "}
+                      yang menjadi tanggung jawab Anda.
+                    </>
+                  )}
                 </div>
               )}
               <p className="text-xs text-slate-500">
-                {unitOptions.length > 0
-                  ? "Hanya unit yang menjadi tanggung jawab Anda yang ditampilkan."
-                  : "Hubungi Pengelola BMN bila penanggung jawab unit perlu diubah."}
+                {ses.role === "AKUNTOR"
+                  ? "Akun kantor dapat memeriksa semua kendaraan — penanggung jawab unit ditampilkan pada tiap opsi."
+                  : unitOptions.length > 0
+                    ? "Hanya unit yang menjadi tanggung jawab Anda yang ditampilkan."
+                    : "Hubungi Pengelola BMN bila penanggung jawab unit perlu diubah."}
               </p>
               {unit && !bolehIsiUnit && (
                 <p className="text-xs text-rose-600">
                   Anda bukan penanggung jawab unit ini sehingga tidak dapat
                   menyimpan checklist.
                 </p>
+              )}
+              {unit && duplikatAda && (
+                <div className="mt-2 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                  <p className="text-xs text-rose-800">
+                    <strong>Checklist unit ini pada tanggal {tanggal} sudah ada.</strong>{" "}
+                    Satu kendaraan hanya satu checklist perawatan per hari —
+                    duplikasi tidak diperbolehkan. Pilih tanggal lain atau
+                    lanjutkan draft yang sudah ada.
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -990,6 +1109,7 @@ export default function BuatChecklistPage() {
             type="submit"
             disabled={
               !bolehIsiUnit ||
+              duplikatAda ||
               (modeManual
                 ? itemManual.length === 0 ||
                   itemManualRusakTanpaKeterangan > 0

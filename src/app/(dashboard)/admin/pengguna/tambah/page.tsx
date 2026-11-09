@@ -15,6 +15,7 @@ const roleOptions: UserRole[] = [
   "PENGELOLA_BMN",
   "KAKANSAR",
   "OPERATOR_LAPANGAN",
+  "AKUNTOR",
 ];
 
 export default function TambahPenggunaPage() {

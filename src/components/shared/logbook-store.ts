@@ -3,7 +3,6 @@
 import { useSyncExternalStore } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import {
-  logbookPerjalananList,
   logbookKeForm,
   angkaKePersen,
   statusPenggunaanOtomatis,
@@ -17,9 +16,11 @@ import {
 /**
  * Store logbook perjalanan di sisi klien.
  *
- * - **Baca**: gabungan mock seed + in-memory sesi + data Supabase.
  * - **Tulis**: INSERT/UPDATE ke Supabase `logbook_perjalanan` (Tahap 4);
  *   tetap masuk in-memory sebagai fallback (UI tidak hangus saat offline).
+ * - **Baca**: data Supabase + tulisan sesi berjalan (in-memory).
+ *   SEED MOCK sengaja tidak digabung lagi supaya daftar & statistik
+ *   selalu nyata dari database.
  *
  * Aturan penting yang ditegakkan store ini:
  *
@@ -29,15 +30,15 @@ import {
  * 3. Tahap pelengkapan hanya boleh dipanggil bila `validasiTahapAkhir` lolos.
  */
 
-let logbooks: LogbookPerjalanan[] = [...logbookPerjalananList];
+let logbooks: LogbookPerjalanan[] = [];
 const listeners = new Set<() => void>();
 
 /**
- * Reset in-memory state ke seed awal — hanya dipakai untuk pengujian.
+ * Reset in-memory state ke kosong — hanya dipakai untuk pengujian.
  * Dipanggil dari test agar state tidak saling mencemari antar test case.
  */
 export function resetLogbooksForTesting(): void {
-  logbooks = [...logbookPerjalananList];
+  logbooks = [];
 }
 
 function emit() {
@@ -53,7 +54,7 @@ function subscribe(listener: () => void) {
 
 /** Snapshot untuk render di server / pengambilan awal hydration. */
 function getServerSnapshot(): LogbookPerjalanan[] {
-  return logbookPerjalananList;
+  return logbooks;
 }
 
 /** Daftar seluruh catatan logbook, paling baru di atas. */
@@ -92,7 +93,7 @@ export function getAllLogbook(): LogbookPerjalanan[] {
   return logbooks;
 }
 
-/** Catatan logbook berdasarkan ID; ikut mencari data mock saat SSR. */
+/** Catatan logbook berdasarkan ID. */
 export function getLogbookById(id: string): LogbookPerjalanan | undefined {
   return logbooks.find((l) => l.id === id);
 }
@@ -102,8 +103,13 @@ function nowStamp(jamBerangkat: string): string {
   return jamBerangkat ? `${hariIni}T${jamBerangkat}:00` : `${hariIni}T07:00:00`;
 }
 
+/**
+ * ID logbook baru — berbasis waktu unik (bentuk selaras `chk-…`/`ba-…`).
+ * Tanpa menyentuh seed/DB: kalaupun memori hangus antar sesi, ID tetap
+ * unik sehingga tidak menabrak primary key saat INSERT ke database.
+ */
 function idBerikutnya(): string {
-  return `lp-${String(logbooks.length + 1).padStart(2, "0")}`;
+  return `lp-${Date.now()}`;
 }
 
 // ── Helpers INSERT/UPDATE ke Supabase ───────────────────────────────────────
