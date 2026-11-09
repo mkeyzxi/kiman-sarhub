@@ -25,7 +25,11 @@ import type {
   PengisianBbmRow,
   CatatanPerbaikanRow,
 } from "@/types/supabase";
-import type { BarisKendala } from "@/components/shared/mock-data";
+import type {
+  BarisKendala,
+  KategoriLogbook,
+  StatusPenggunaan,
+} from "@/components/shared/mock-data";
 import { namaReferensiAset } from "@/components/shared/mock-data";
 
 // ─── ASET ───────────────────────────────────────────────────────────────────
@@ -150,18 +154,19 @@ export interface LogbookMapped {
   jamKembali: string;
   rute: string;
   tujuan: string;
-  kategoriUnit?: string;
+  kategoriUnit?: KategoriLogbook;
   jenisUnit: string;
   nahkoda: string;
   jumlahPersonel: number;
   bbmSebelum: string;
   bbmSesudah: string;
+  bbmTambahan?: string;
   enduranceAwal?: string;
   enduranceAkhir?: string;
   kmSebelum?: string;
   kmSesudah?: string;
   kecepatanRata?: string;
-  status: string;
+  status: StatusPenggunaan;
   catatan: string;
   tanggalSimpan?: string;
   tanggalLengkap?: string;
@@ -175,18 +180,19 @@ export function mapLogbooks(rows: LogbookPerjalananRow[]): LogbookMapped[] {
     jamKembali: r.jam_kembali,
     rute: r.rute,
     tujuan: r.tujuan,
-    kategoriUnit: r.kategori_unit || undefined,
+    kategoriUnit: (r.kategori_unit as KategoriLogbook) || undefined,
     jenisUnit: r.jenis_unit,
     nahkoda: r.nahkoda,
     jumlahPersonel: r.jumlah_personel,
     bbmSebelum: r.bbm_sebelum,
     bbmSesudah: r.bbm_sesudah,
+    bbmTambahan: r.bbm_tambahan || undefined,
     enduranceAwal: r.endurance_awal || undefined,
     enduranceAkhir: r.endurance_akhir || undefined,
     kmSebelum: r.km_sebelum || undefined,
     kmSesudah: r.km_sesudah || undefined,
     kecepatanRata: r.kecepatan_rata || undefined,
-    status: r.status,
+    status: r.status as StatusPenggunaan,
     catatan: r.catatan,
     tanggalSimpan: r.tanggal_simpan ?? undefined,
     tanggalLengkap: r.tanggal_lengkap ?? undefined,

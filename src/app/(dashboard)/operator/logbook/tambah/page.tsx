@@ -23,6 +23,7 @@ import {
   cariAsetDmUnit,
   labelModelAset,
   type FormLogbook,
+  type LogbookPerjalanan,
   type Aset,
 } from "@/components/shared/mock-data";
 import { simpanTahapAwal } from "@/components/shared/logbook-store";
@@ -69,7 +70,7 @@ function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
 function getUnitOptions(
   kategori: FormLogbook["kategoriUnit"],
   asets: Aset[],
-  logbooks: any[]
+  logbooks: LogbookPerjalanan[]
 ): {
   value: string;
   label: string;
@@ -141,6 +142,7 @@ const FORM_KOSONG: FormLogbook = {
   jumlahPersonel: "1",
   bbmSebelum: "",
   bbmSesudah: "",
+  bbmTambahan: "",
   enduranceAwal: "",
   enduranceAkhir: "",
   kmSebelum: "",

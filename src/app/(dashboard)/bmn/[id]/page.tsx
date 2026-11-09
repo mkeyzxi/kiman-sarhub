@@ -45,6 +45,7 @@ import {
 import { useAsetById } from "@/components/shared/use-supabase-data";
 import { updateAsetStatus } from "@/components/shared/db-writes";
 import { useSesiUser } from "@/components/shared/use-session";
+import { getDefaultPageForRole } from "@/config/navigation";
 import { useState, useCallback } from "react";
 
 export default function DetailAsetPage() {
@@ -147,6 +148,27 @@ export default function DetailAsetPage() {
 
   const penanggungJawab = getUserById(aset.penanggungJawab);
 
+  /**
+   * Mengedit master data (tombol Edit, aksi status aset) hanya untuk
+   * Pengelola BMN — ADMIN_IT ikut karena role tertinggi. Role lain yang
+   * membuka halaman ini (operator, akun kantor, kakansar) hanya LIHAT.
+   */
+  const bolehKelola =
+    ses.role === "PENGELOLA_BMN" || ses.role === "ADMIN_IT";
+
+  /**
+   * Tujuan tombol kembali — dinamis per role. Pengelola BMN/ADMIN_IT kembali
+   * ke daftar master data (/bmn); role lain tidak punya akses ke /bmn (akan
+   * ditolak guard → 403), jadi kembalikan ke dashboard role-nya masing-masing
+   * (operator/akun kantor → /operator, kakansar → /pimpinan).
+   */
+  const tujuanKembali = bolehKelola
+    ? "/bmn"
+    : getDefaultPageForRole(ses.role);
+  const labelKembali = bolehKelola
+    ? "Kembali ke daftar aset"
+    : "Kembali ke dashboard";
+
   const handleSelesaiDigunakan = async () => {
     // UPDATE status aset + entri riwayat ke Supabase.
     try {
@@ -173,8 +195,8 @@ export default function DetailAsetPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link
-            href="/bmn"
-            aria-label="Kembali ke daftar aset"
+            href={tujuanKembali}
+            aria-label={labelKembali}
             className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -192,12 +214,14 @@ export default function DetailAsetPage() {
             <QrCode className="h-4 w-4" />
             Cetak QR Code
           </Button>
-          <Link href={`/bmn/${aset.id}/edit`}>
-            <Button variant="outline">
-              <Pencil className="h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
+          {bolehKelola && (
+            <Link href={`/bmn/${aset.id}/edit`}>
+              <Button variant="outline">
+                <Pencil className="h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -494,8 +518,8 @@ export default function DetailAsetPage() {
         </Card>
       )}
 
-      {/* Form Selesai Digunakan */}
-      {aset.status === "Sedang digunakan" && (
+      {/* Form Selesai Digunakan — aksi ubah status, hanya Pengelola BMN */}
+      {bolehKelola && aset.status === "Sedang digunakan" && (
         <Card className="p-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

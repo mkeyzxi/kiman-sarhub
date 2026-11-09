@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Ship,
   FileText,
@@ -10,6 +11,7 @@ import {
   Wrench,
   Bike,
   Car,
+  ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -52,6 +54,24 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
       {children}
     </h2>
+  );
+}
+
+/**
+ * Tautan ke master data detail aset (/bmn/<id>) — tampil di setiap
+ * kendaraan pada dashboard. Semua role bisa MEMBUKA (lihat saja);
+ * mengedit master data hanya PENGELOLA_BMN / ADMIN_IT.
+ */
+function DetailAsetLink({ id, label = "Detail Aset" }: { id: string; label?: string }) {
+  return (
+    <Link
+      href={`/bmn/${id}`}
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-sky-600 transition-colors hover:bg-sky-50 hover:text-sky-700"
+      title="Buka detail master data aset"
+    >
+      <ExternalLink className="h-3 w-3" />
+      {label}
+    </Link>
   );
 }
 
@@ -365,7 +385,14 @@ function KondisiArmadaCard({
               {standby.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                   <div className="min-w-0">
-                    <span className="font-medium text-slate-700">{u.nama}</span>
+                    <Link
+                      href={`/bmn/${u.id}`}
+                      className="inline-flex items-center gap-1 font-medium text-slate-700 transition-colors hover:text-sky-700 hover:underline"
+                      title="Buka detail master data aset"
+                    >
+                      {u.nama}
+                      <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
+                    </Link>
                     {u.namaTeknis !== u.nama && (
                       <span className="block truncate text-xs text-slate-400">
                         {u.namaTeknis}
@@ -390,7 +417,14 @@ function KondisiArmadaCard({
               {dipakai.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                   <div className="min-w-0">
-                    <span className="font-medium text-slate-700">{u.nama}</span>
+                    <Link
+                      href={`/bmn/${u.id}`}
+                      className="inline-flex items-center gap-1 font-medium text-slate-700 transition-colors hover:text-sky-700 hover:underline"
+                      title="Buka detail master data aset"
+                    >
+                      {u.nama}
+                      <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
+                    </Link>
                     {u.namaTeknis !== u.nama && (
                       <span className="block truncate text-xs text-slate-400">
                         {u.namaTeknis}
@@ -417,7 +451,14 @@ function KondisiArmadaCard({
               {tidakStandby.map((u) => (
                 <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                   <div className="min-w-0">
-                    <span className="font-medium text-slate-700">{u.nama}</span>
+                    <Link
+                      href={`/bmn/${u.id}`}
+                      className="inline-flex items-center gap-1 font-medium text-slate-700 transition-colors hover:text-sky-700 hover:underline"
+                      title="Buka detail master data aset"
+                    >
+                      {u.nama}
+                      <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
+                    </Link>
                     {u.namaTeknis !== u.nama && (
                       <span className="block truncate text-xs text-slate-400">
                         {u.namaTeknis}
@@ -500,7 +541,10 @@ function KartuJurnalRIBUnit({
             <Ship className="h-5 w-5 text-primary" />
             Jurnal {namaPanggilan(aset)}
           </CardTitle>
-          <BadgeStatusAset status={aset.status} />
+          <div className="flex items-center gap-3">
+            <DetailAsetLink id={aset.id} />
+            <BadgeStatusAset status={aset.status} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -691,7 +735,10 @@ function KartuLogbookKapal({
             <Ship className="h-5 w-5 text-primary" />
             Logbook Harian {namaPanggilan(aset)}
           </CardTitle>
-          <BadgeStatusAset status={aset.status} />
+          <div className="flex items-center gap-3">
+            <DetailAsetLink id={aset.id} />
+            <BadgeStatusAset status={aset.status} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -906,7 +953,10 @@ function KartuLogbookDarat({
             )}
             Logbook {namaPanggilan(aset)}
           </CardTitle>
-          <BadgeStatusAset status={aset.status} />
+          <div className="flex items-center gap-3">
+            <DetailAsetLink id={aset.id} />
+            <BadgeStatusAset status={aset.status} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -1347,7 +1397,16 @@ export default function OperatorPage() {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3"
               >
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{u.nama}</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    <Link
+                      href={`/bmn/${u.id}`}
+                      className="inline-flex items-center gap-1 transition-colors hover:text-sky-700 hover:underline"
+                      title="Buka detail master data aset"
+                    >
+                      {u.nama}
+                      <ExternalLink className="h-3 w-3 text-slate-400" />
+                    </Link>
+                  </p>
                   {u.namaTeknis !== u.nama && (
                     <p className="text-xs text-slate-400">{u.namaTeknis}</p>
                   )}

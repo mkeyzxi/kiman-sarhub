@@ -42,6 +42,7 @@ function formValidLaut(
     enduranceAkhir: "70:15",
     kmSebelum: "",
     kmSesudah: "",
+    bbmTambahan: "",
     catatan: "Kondisi laut normal",
   };
 }
@@ -66,6 +67,7 @@ function formValidDarat(
     enduranceAkhir: "",
     kmSebelum: "45230",
     kmSesudah: "45312",
+    bbmTambahan: "",
     catatan: "Jalan berlubang KM 67-69",
   };
 }
@@ -338,6 +340,39 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.bbmSesudah).toBe("75%");
+  });
+
+  it("BBM sesudah > sebelum diperbolehkan bila ada BBM tambahan (isi ulang)", () => {
+    const form = formValidLaut("08:00", "14:00");
+    form.bbmSesudah = "95"; // lebih besar dari bbmSebelum (90)
+    form.bbmTambahan = "20"; // ada pengisian tambahan → sah
+    const hasil = simpanTahapAkhir(idTarget, form);
+
+    if ("error" in hasil) throw new Error("Expected success");
+    expect(hasil.logbook.bbmTambahan).toBe("20%");
+  });
+
+  it("BBM sesudah > sebelum tanpa BBM tambahan → error", () => {
+    const form = formValidLaut("08:00", "14:00");
+    form.bbmSesudah = "95";
+    form.bbmTambahan = ""; // tidak ada pengisian tambahan
+    const hasil = simpanTahapAkhir(idTarget, form);
+
+    expect("error" in hasil).toBe(true);
+    if ("error" in hasil) {
+      expect(hasil.errors.bbmSesudah).toBeDefined();
+    }
+  });
+
+  it("BBM tambahan tidak valid (bukan angka) → error", () => {
+    const form = formValidLaut("08:00", "14:00");
+    form.bbmTambahan = "abc";
+    const hasil = simpanTahapAkhir(idTarget, form);
+
+    expect("error" in hasil).toBe(true);
+    if ("error" in hasil) {
+      expect(hasil.errors.bbmTambahan).toBeDefined();
+    }
   });
 
   it("enduranceAkhir disimpan untuk armada laut", () => {

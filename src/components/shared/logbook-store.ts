@@ -129,6 +129,7 @@ function toSupabaseRow(l: LogbookPerjalanan) {
     jumlah_personel: l.jumlahPersonel,
     bbm_sebelum: l.bbmSebelum,
     bbm_sesudah: l.bbmSesudah,
+    bbm_tambahan: l.bbmTambahan ?? null,
     endurance_awal: l.enduranceAwal ?? "",
     endurance_akhir: l.enduranceAkhir ?? "",
     km_sebelum: l.kmSebelum ?? "",
@@ -199,6 +200,8 @@ export function simpanTahapAwal(
     jumlahPersonel: Number(form.jumlahPersonel),
     bbmSebelum: angkaKePersen(form.bbmSebelum),
     bbmSesudah: "",
+    // BBM tambahan (isi ulang di perjalanan) diisi nanti pada tahap 2.
+    bbmTambahan: "",
     ...(laut
       ? { enduranceAwal: form.enduranceAwal, enduranceAkhir: "" }
       : { kmSebelum: form.kmSebelum, kmSesudah: "" }),
@@ -256,6 +259,8 @@ export function simpanTahapAkhir(
       : {}),
     jamKembali: gabungan.jamKembali,
     bbmSesudah: angkaKePersen(gabungan.bbmSesudah),
+    // Pengisian BBM tambahan selama perjalanan (opsional, boleh kosong).
+    bbmTambahan: gabungan.bbmTambahan.trim() ? angkaKePersen(gabungan.bbmTambahan) : "",
     catatan: gabungan.catatan.trim() || existing.catatan,
     status,
     ...(laut

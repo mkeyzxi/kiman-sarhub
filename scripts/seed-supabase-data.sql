@@ -190,6 +190,9 @@ CREATE TABLE IF NOT EXISTS public.logbook_perjalanan (
   jumlah_personel   integer,
   bbm_sebelum       text,
   bbm_sesudah       text,
+  -- Pengisian BBM tambahan selama perjalanan (persen) — opsional,
+  -- diisi pada tahap 2 bila armada diisi ulang di tengah perjalanan.
+  bbm_tambahan      text,
   endurance_awal    text,
   endurance_akhir   text,
   km_sebelum        text,
