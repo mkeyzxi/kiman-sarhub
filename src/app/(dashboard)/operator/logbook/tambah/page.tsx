@@ -13,6 +13,7 @@ import {
   Anchor,
   Info,
   Save,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
@@ -61,7 +62,21 @@ function isArmadaLaut(kategori: FormLogbook["kategoriUnit"]): boolean {
   return kategori !== "" && ARMADA_LAUT.includes(kategori);
 }
 
-/** Label operator unit tergantung kategori */
+/**
+ * Cek apakah aset memiliki status "Rusak Berat" - jika ya, tidak boleh dipinjam.
+ * Mengembalikan string pesan warning atau null jika bisa dipinjam.
+ */
+function checkAsetRusakBerat(asetKode: string, asets: Aset[]): string | null {
+  const aset = asets.find((a) => a.kode === asetKode);
+  if (!aset) return null;
+  if (aset.kondisi !== "Baik" || aset.status === "Rusak Berat" || aset.status === "Rusak Ringan") {
+    return `Tidak dapat meminjam: ${aset.nama} sedang dalam kondisi "${aset.kondisi}" (${aset.status})`;
+  }
+  return null;
+}
+
+/**
+ * Label operator unit tergantung kategori */
 function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
   if (isArmadaLaut(kategori)) return "Nahkoda";
   if (kategori === "Motor") return "Pengemudi";
@@ -77,6 +92,7 @@ function getUnitOptions(
   value: string;
   label: string;
   disabled: boolean;
+  warning?: string;
 }[] {
   // Daftar unit yang sedang digunakan atau menunggu penggunaan
   const unitSedangDigunakan = new Set(
@@ -87,6 +103,16 @@ function getUnitOptions(
       )
       .map((l) => {
         // Ambil kode unit dari jenisUnit (format bisa "Nama Unit (KODE)" atau "KODE")
+        const match = l.jenisUnit.match(/\(([^)]+)\)$/);
+        return match ? match[1] : l.jenisUnit.split(" ")[0];
+      })
+  );
+
+  // Daftar unit yang sudah jadwalkan (ada logbook sebelumnya dengan status Sedang Digunakan)
+  const unitJadwalkan = new Set(
+    logbooks
+      .filter((l) => l.status === "Sedang Digunakan")
+      .map((l) => {
         const match = l.jenisUnit.match(/\(([^)]+)\)$/);
         return match ? match[1] : l.jenisUnit.split(" ")[0];
       })
@@ -106,11 +132,29 @@ function getUnitOptions(
     })
     .map((a) => {
       const sedangDigunakan = unitSedangDigunakan.has(a.kode);
+      const jadwalkan = unitJadwalkan.has(a.kode);
+      const rusakPesan = checkAsetRusakBerat(a.kode, asets);
+      
+      // Unit disabled jika sedang digunakan, sudah jadwalkan, atau rusak berat
+      let disabled = sedangDigunakan || jadwalkan;
+      let warning: string | undefined;
+      
+      if (rusakPesan) {
+        disabled = true;
+        warning = rusakPesan;
+      } else if (jadwalkan) {
+        warning = `Unit ${a.nama} sudah dijadwalkan — tidak bisa dipinjam`;
+      }
+      
       const pj = getUserById(a.penanggungJawab)?.nama ?? "-";
+      // Nama tampilan pakai "nama referensi" (mis. "RIB 01 - 9 M") — mudah
+      // dikenali; kode & NUP sengaja tidak ditampilkan di dropdown.
+      const ref = a.namaReferensi?.trim() || a.nama;
       return {
         value: a.kode,
-        label: `${a.nama} (${a.kode}) · PJ: ${pj}${sedangDigunakan ? " — Sedang Digunakan" : ""}`,
-        disabled: sedangDigunakan,
+        label: `${ref} · PJ: ${pj}${sedangDigunakan ? " — Sedang Digunakan" : ""}${jadwalkan ? " — Sudah Dijadwalkan" : ""}`,
+        disabled,
+        warning,
       };
     });
 }
@@ -197,6 +241,18 @@ export default function TambahLogbookPage() {
     );
     if (!asetScan) return;
 
+    // Cek status aset apakah rusak berat / tidak layak dipinjam
+    const rusakPesan = checkAsetRusakBerat(asetScan.kode, asetList);
+    
+    // Cek logbook terakhir untuk unit ini — apakah user sudah pernah melakukan perjalanan
+    const logbookTerakhir = logbooks.find((l) =>
+      l.jenisUnit.includes(asetScan.nama.split("(")[0].trim()) ||
+      (l.jenisUnit.includes(asetScan.kode?.split("-")[0] ?? "zzz"))
+    );
+    const sudahLewatPerjalanan = logbookTerakhir 
+      && logbookTerakhir.status === "Selesai"
+      && logbookTerakhir.nahkoda === ses.nama;
+    
     // Tentukan kategori berdasarkan nama aset
     let kategori: FormLogbook["kategoriUnit"] = "Mobil";
     if (/RIB|perahu/i.test(asetScan.nama) && !/RBB/i.test(asetScan.nama)) {
@@ -211,22 +267,37 @@ export default function TambahLogbookPage() {
       kategori = "Mobil";
     }
 
-    // Ambil logbook terakhir untuk unit ini — BBMe terakhir sebagai default
-    const logbookUnit = logbooks.find((l) =>
-      l.jenisUnit.includes(asetScan.nama.split("(")[0].trim()) ||
-      (l.jenisUnit.includes(asetScan.kode?.split("-")[0] ?? "zzz"))
-    );
-    const bbmDefault = logbookUnit?.bbmSesudah || "100";
-
     // Mark as processed dan schedule update
     qrScanProcessed.current = paramUnit;
     queueMicrotask(() => {
+      // Jika aset rusak berat, tampilkan warning dan tidak auto-fill
+      if (rusakPesan) {
+        setErrorUmum(rusakPesan);
+        setErrors({ jenisUnit: rusakPesan });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      
+      // Jika user sudah lewat perjalanan ini sebelumnya, lanjutkan mengisi logbook
+      if (sudahLewatPerjalanan) {
+        // Isi form dengan data logbook terakhir tapi biarkan operator isi data lengkap
+        setFormData((prev) => ({
+          ...prev,
+          kategoriUnit: kategori,
+          jenisUnit: asetScan.kode,
+          nahkoda: ses.nama,
+          bbmSebelum: logbookTerakhir?.bbmSesudah || "100",
+        }));
+        return;
+      }
+      
+      // Normal auto-fill untuk peminjaman baru
       setFormData((prev) => ({
         ...prev,
         kategoriUnit: kategori,
         jenisUnit: asetScan.kode,
         nahkoda: ses.nama,
-        bbmSebelum: bbmDefault,
+        bbmSebelum: logbookTerakhir?.bbmSesudah || "100",
       }));
     });
   }, [paramUnit, loading, asetList, logbooks, ses.nama]);
@@ -287,6 +358,15 @@ export default function TambahLogbookPage() {
       return;
     }
 
+    // Cek apakah aset sedang rusak berat sebelum menyimpan
+    const rusakPesan = checkAsetRusakBerat(formData.jenisUnit, asetList);
+    if (rusakPesan) {
+      setErrorUmum(rusakPesan);
+      setErrors({ jenisUnit: rusakPesan });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (formData.tanggal > todayISODate()) {
       setErrors((prev) => ({ ...prev, tanggal: "Tanggal tidak boleh di masa depan." }));
       setErrorUmum("Tanggal tidak valid.");
@@ -326,6 +406,10 @@ export default function TambahLogbookPage() {
   const catatanPlaceholder = laut
     ? "Kondisi laut, cuaca, insiden, atau keterangan lain..."
     : "Kondisi jalan, cuaca, insiden, atau keterangan lain...";
+
+  // Unit yang sedang terpilih beserta peringatannya (rusak berat / sudah dijadwalkan).
+  const warningUnitTerpilih =
+    unitOptions.find((u) => u.value === formData.jenisUnit)?.warning ?? null;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -510,11 +594,27 @@ export default function TambahLogbookPage() {
                 )}
                 {unitOptions.length > 0 && <option value="">Pilih unit</option>}
                 {unitOptions.map((u) => (
-                  <option key={u.value} value={u.value} disabled={u.disabled}>
-                    {u.label}
+                  <option
+                    key={u.value}
+                    value={u.value}
+                    disabled={u.disabled}
+                  >
+                    {u.warning ? `⚠ ${u.warning} — ${u.label}` : u.label}
                   </option>
                 ))}
               </Select>
+
+              {/* Peringatan tegas untuk unit terpilih yang rusak berat /
+                  sudah dijadwalkan — dilarang dipinjam. */}
+              {warningUnitTerpilih && (
+                <div
+                  role="alert"
+                  className="mt-2 flex items-start gap-2 rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-semibold text-red-800"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>⚠ {warningUnitTerpilih}</span>
+                </div>
+              )}
             </Field>
 
             <Field

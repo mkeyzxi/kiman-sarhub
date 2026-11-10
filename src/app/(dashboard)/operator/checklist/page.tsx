@@ -44,6 +44,7 @@ import { useSesiUser } from "@/components/shared/use-session";
 import { useChecklistsCombined } from "@/components/shared/checklist-store";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
+  useAsets,
   useKartuPenanggungJawab,
   labelTahap,
   type KartuPJ,
@@ -228,6 +229,8 @@ export default function ChecklistPerawatanPage() {
   // Data checklist: Supabase + tulisan sesi ini (in-memory), digabung.
   const { data: checklistHarianList, loading, error, refetch } =
     useChecklistsCombined();
+  // Master aset — sumber "Nama Referensi" untuk tiap unit checklist.
+  const asetRef = useAsets();
   // Kartu monitor alur kerusakan per penanggung jawab (independen dari gate
   // loading checklist supaya tetap tampil saat data checklist sudah siap).
   const carduPJ = useKartuPenanggungJawab();
@@ -245,6 +248,28 @@ export default function ChecklistPerawatanPage() {
         : [],
     [carduPJ.data, ses.id]
   );
+
+  /**
+   * Peta pencari "Nama Referensi" sebuah unit checklist:
+   * - pakai `asetId` bila terisi (andal),
+   * - fallback: cocokkan nama resmi aset (`aset.nama`) dengan field `unit`.
+   */
+  const referensiByUnit = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of asetRef.data) {
+      const ref = (a.namaReferensi ?? "").trim();
+      if (!ref || ref === a.nama) continue;
+      map.set(`id:${a.id}`, ref);
+      map.set(`nama:${a.nama}`, ref);
+    }
+    return map;
+  }, [asetRef.data]);
+
+  /** Nama referensi untuk satu baris checklist — "-" bila tidak ditemukan. */
+  const referensiUntuk = (row: { asetId?: string; unit: string }): string =>
+    (row.asetId ? referensiByUnit.get(`id:${row.asetId}`) : undefined) ??
+    referensiByUnit.get(`nama:${row.unit}`) ??
+    "-";
 
   // Berlangganan store berita acara: memicu hidrasi Supabase sekali per sesi
   // dan re-render setelah data database masuk — status draft selalu segar
@@ -509,7 +534,16 @@ export default function ChecklistPerawatanPage() {
           <ResponsiveTable
             data={paginatedChecklist}
             getKey={(row) => row.id}
-            cardTitle={(row) => row.unit}
+            cardTitle={(row) => (
+              <span className="block">
+                {row.unit}
+                {referensiUntuk(row) !== "-" && (
+                  <span className="mt-0.5 block text-xs font-normal text-slate-400">
+                    {referensiUntuk(row)}
+                  </span>
+                )}
+              </span>
+            )}
             cardSubtitle={(row) => row.tanggal}
             cardBadge={(row) => (
               <Badge variant={row.status === "Lengkap" ? "success" : "warning"}>
@@ -538,6 +572,19 @@ export default function ChecklistPerawatanPage() {
                     <span className="font-medium text-slate-800">{row.unit}</span>
                   </div>
                 ),
+                hideOnCard: true,
+              },
+              {
+                key: "namaReferensi",
+                header: "Nama Referensi",
+                render: (row) => {
+                  const ref = referensiUntuk(row);
+                  return (
+                    <span className={cn("whitespace-nowrap", ref === "-" ? "text-slate-300" : "text-slate-700")}>
+                      {ref}
+                    </span>
+                  );
+                },
                 hideOnCard: true,
               },
               {

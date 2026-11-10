@@ -133,7 +133,7 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
-        { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
+        { href: "/pimpinan/audit", label: "Pemantauan Kepatuhan", icon: ClipboardList },
         { href: "/pimpinan/berita-acara", label: "Berita Acara", icon: FileSignature },
       ],
     },
@@ -160,8 +160,16 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
       items: [
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
-        { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
+        { href: "/pimpinan/audit", label: "Pemantauan Kepatuhan", icon: ClipboardList },
         { href: "/pimpinan/berita-acara", label: "Berita Acara", icon: FileSignature },
+      ],
+    },
+    {
+      title: "Operasional",
+      items: [
+        { href: "/operator", label: "Dashboard Operasional", icon: LayoutDashboard },
+        { href: "/operator/logbook", label: "Logbook Perjalanan", icon: FileText },
+        { href: "/operator/checklist", label: "Checklist Perawatan", icon: ClipboardCheck },
       ],
     },
   ],
@@ -172,7 +180,8 @@ export const navGroupsByRole: Record<UserRole, NavGroup[]> = {
         { href: "/pimpinan", label: "Dashboard Pimpinan", icon: LayoutDashboard },
         { href: "/pimpinan/berita-acara", label: "Berita Acara", icon: FileSignature },
         { href: "/pimpinan/laporan", label: "Laporan & Analisis", icon: BarChart3 },
-        { href: "/pimpinan/audit", label: "Audit Kepatuhan", icon: ClipboardList },
+        { href: "/pimpinan/audit", label: "Pemantauan Kepatuhan", icon: ClipboardList },
+        { href: "/operator/logbook", label: "Logbook Perjalanan", icon: FileText },
       ],
     },
   ],

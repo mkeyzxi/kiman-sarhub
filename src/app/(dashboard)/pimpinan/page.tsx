@@ -21,6 +21,7 @@ import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   formatTanggal,
   hitungReadinessStats,
+  namaReferensiAset,
   STATUS_ASET_VARIANT,
   STATUS_ASET_STANDBY,
   type StatusAset,
@@ -31,6 +32,7 @@ import {
   useActivityLog,
   useRiwayatOperasi,
   useAuditKepatuhan,
+  useSupabaseUsers,
 } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
@@ -84,9 +86,13 @@ export default function PimpinanPage() {
   const { data: notifikasiList } = useNotifications();
   const { data: logAktivitas } = useActivityLog();
   const { data: riwayatOperasi } = useRiwayatOperasi();
+  // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
+  // angka hardcode 45 yang tidak terhubung data mana pun.
+  const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
 
   // Readiness dihitung dari data aset Supabase (bukan mock statis).
   const readinessStats = hitungReadinessStats(asetList);
+  const personelAktif = (daftarUsers ?? []).filter((u) => u.aktif).length;
   const asetStandby = readinessStats.standby;
   const totalAset = readinessStats.totalAset;
   const readinessIndex = readinessStats.readinessIndex;
@@ -142,8 +148,8 @@ export default function PimpinanPage() {
           iconColor="text-emerald-600"
         />
         <StatCard
-          label="Personel Standby"
-          value={45}
+          label="Personel Aktif"
+          value={usersLoading ? "…" : personelAktif}
           icon={Users}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
@@ -180,7 +186,21 @@ export default function PimpinanPage() {
           <ResponsiveTable
             data={filteredAset}
             getKey={(row) => row.id}
-            cardTitle={(row) => row.nama}
+            cardTitle={(row) => {
+              // Nama referensi (mis. "RIB 01 - 9 M") ditampilkan di bawah nama
+              // resmi agar mudah dikenali, terutama di kartu mobile.
+              const referensi = row.namaReferensi || namaReferensiAset(row);
+              return (
+                <span className="block">
+                  {row.nama}
+                  {referensi && referensi !== row.nama && (
+                    <span className="mt-0.5 block text-xs font-normal text-emerald-600">
+                      {referensi}
+                    </span>
+                  )}
+                </span>
+              );
+            }}
             cardSubtitle={(row) => `${row.kode} \u00b7 ${row.kategori}`}
             cardBadge={(row) => (
               <Badge variant={STATUS_ASET_VARIANT[row.status]} className="text-xs">
@@ -209,6 +229,21 @@ export default function PimpinanPage() {
                     {row.nama}
                   </Link>
                 ),
+                hideOnCard: true,
+              },
+              {
+                key: "namaReferensi",
+                header: "Nama Referensi",
+                render: (row) => {
+                  // Prioritaskan nilai manual dari DB; fallback ke perhitungan
+                  // otomatis agar data lama tetap punya nama referensi terbaca.
+                  const referensi = row.namaReferensi || namaReferensiAset(row);
+                  return (
+                    <span className="text-sm font-medium text-emerald-600">
+                      {referensi || "-"}
+                    </span>
+                  );
+                },
                 hideOnCard: true,
               },
               {
@@ -299,7 +334,7 @@ export default function PimpinanPage() {
             </CardTitle>
             <Link href="/pimpinan/audit">
               <Button variant="ghost" size="sm">
-                Detail Audit
+                Detail Kepatuhan
                 <ArrowUpRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
