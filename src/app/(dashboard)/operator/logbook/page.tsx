@@ -13,6 +13,7 @@ import {
   Users,
   CheckCircle2,
   PencilLine,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +30,16 @@ import {
   formatMenit,
   selisihEndurance,
   selisihKm,
+  cariAsetDariJenisUnit,
   type LogbookPerjalanan,
   type StatusPenggunaan,
 } from "@/components/shared/mock-data";
-import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
+import {
+  mergeLogbooksWithSupabase,
+  hapusLogbook,
+} from "@/components/shared/logbook-store";
 import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
+import { useSesiUser } from "@/components/shared/use-session";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -88,8 +94,17 @@ export default function LogbookPerjalananPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  const ses = useSesiUser();
+  /** Hak kelola logbook (hapus/edit/tambah) — khusus Admin IT. */
+  const bisaKelola = ses.role === "ADMIN_IT";
 
-  // Debounce search query untuk mengurangi re-render saat mengetik
+  // Modal konfirmasi hapus + state proses (untuk mencegah klik dobel).
+  const [hapusTarget, setHapusTarget] = useState<LogbookPerjalanan | null>(null);
+  const [sedangMenghapus, setSedangMenghapus] = useState(false);
+  const [pesanGagalHapus, setPesanGagalHapus] = useState<string | null>(null);
+  const [pesanBerhasilHapus, setPesanBerhasilHapus] = useState<string | null>(null);
+
+  /** Debounce search query untuk mengurangi re-render saat mengetik */
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Data logbook dari Supabase.
@@ -103,14 +118,13 @@ export default function LogbookPerjalananPage() {
   const { data: asetList } = useAsets();
 
   /**
-   * Cocokkan nama unit tersimpan di logbook (`jenis_unit` = nama resmi aset,
-   * kadang data lama menyertakan polisi) kembali ke baris master aset.
+   * Cocokkan nama unit tersimpan di logbook (`jenis_unit`) kembali ke baris
+   * master aset — memakai resolver yang SAMA dengan status live dashboard
+   * (no. polisi → kode → nama referensi → tipe/merk → nama), sehingga nama
+   * referensi yang tampil selalu sepadan dengan unit yang ditandai dipakai.
    */
   const asetDariUnit = (unitNama: string) =>
-    asetList.find((a) => a.nama === unitNama) ??
-    asetList.find(
-      (a) => !!unitNama && (a.nama.includes(unitNama) || unitNama.includes(a.nama))
-    );
+    cariAsetDariJenisUnit(unitNama, asetList);
 
   /** Nama referensi yang berbeda dari nama resmi — kosong bila sama/tak ada. */
   const referensiUnit = (unitNama: string): string => {
@@ -145,6 +159,52 @@ export default function LogbookPerjalananPage() {
   const perjalananSelesai = logbookPerjalananList.filter((l) => l.status === "Selesai").length;
   const perjalananBerlangsung = logbookPerjalananList.filter((l) => l.status === "Sedang Digunakan").length;
   const menungguPenggunaan = logbookPerjalananList.filter((l) => l.status === "Menunggu Penggunaan").length;
+  /**
+   * Unit FISIK yang sedang keluar — hitung distinct aset hasil resolusi
+   * jenis_unit, konsisten dengan kartu status di /operator, /bmn, dan
+   * /pimpinan (satu unit = satu angka, bukan jumlah catatan). Dua catatan
+   * berjalan untuk unit yang sama tetap berarti SATU unit keluar.
+   */
+  const idUnitDipakai = new Set(
+    logbookPerjalananList
+      .filter((l) => l.status === "Sedang Digunakan")
+      .map((l) => cariAsetDariJenisUnit(l.jenisUnit, asetList)?.id)
+      .filter((id): id is string => !!id)
+  );
+  const unitDipakai = idUnitDipakai.size;
+
+  // ── Management Admin IT: hapus logbook ──────────────────────────────────────
+  /**
+   * Eksekusi penghapusan logbook: hapus dari in-memory + Supabase (RLS
+   * memastikan hanya ADMIN_IT yang bisa), lalu segarkan daftar agar
+   * statistik & tabel langsung mengikuti.
+   */
+  const eksekusiHapus = async () => {
+    if (!hapusTarget) return;
+    setSedangMenghapus(true);
+    setPesanGagalHapus(null);
+    try {
+      const ok = await hapusLogbook(hapusTarget.id);
+      if (!ok) {
+        setPesanGagalHapus(
+          "Penghapusan ditolak database (RLS). Pastikan Anda login sebagai Admin IT."
+        );
+        return;
+      }
+      setPesanBerhasilHapus(
+        `Logbook "${hapusTarget.rute}" berhasil dihapus.`
+      );
+      setHapusTarget(null);
+      // Segarkan data Supabase agar statistik + tabel langsung terupdate.
+      refetch();
+    } catch (err) {
+      setPesanGagalHapus(
+        err instanceof Error ? err.message : "Gagal menghapus logbook."
+      );
+    } finally {
+      setSedangMenghapus(false);
+    }
+  };
 
   // Early return SETELAH semua hooks dipanggil
   if (loading) {
@@ -170,13 +230,49 @@ export default function LogbookPerjalananPage() {
             Catatan perjalanan operasional SAR
           </p>
         </div>
-        <Link href="/operator/logbook/tambah">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Tambah Logbook
-          </Button>
-        </Link>
+        {bisaKelola && (
+          <Link href="/operator/logbook/tambah">
+            <Button>
+              <Plus className="h-4 w-4" />
+              Tambah Logbook
+            </Button>
+          </Link>
+        )}
       </div>
+
+      {/* Toast hasil hapus / gagal */}
+      {pesanBerhasilHapus && (
+        <div
+          role="status"
+          className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700"
+        >
+          <p>{pesanBerhasilHapus}</p>
+          <button
+            type="button"
+            onClick={() => setPesanBerhasilHapus(null)}
+            className="text-emerald-600 hover:text-emerald-800"
+            aria-label="Tutup"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {pesanGagalHapus && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
+        >
+          <p>{pesanGagalHapus}</p>
+          <button
+            type="button"
+            onClick={() => setPesanGagalHapus(null)}
+            className="text-red-600 hover:text-red-800"
+            aria-label="Tutup"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
@@ -197,10 +293,15 @@ export default function LogbookPerjalananPage() {
         />
         <StatCard
           label="Sedang Digunakan"
-          value={perjalananBerlangsung}
+          value={unitDipakai}
           icon={Ship}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
+          subText={
+            perjalananBerlangsung !== unitDipakai
+              ? `${perjalananBerlangsung} catatan berjalan`
+              : undefined
+          }
         />
         <StatCard
           label="Selesai"
@@ -355,7 +456,10 @@ export default function LogbookPerjalananPage() {
                 key: "aksi",
                 header: "Aksi",
                 render: (row) => (
-                  <div className="flex items-center justify-center gap-1">
+                  <div
+                    className="flex items-center justify-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Link href={`/operator/logbook/${row.id}`}>
                       <Button
                         variant="ghost"
@@ -377,6 +481,34 @@ export default function LogbookPerjalananPage() {
                           <PencilLine className="h-4 w-4" />
                         </Button>
                       </Link>
+                    )}
+                    {/* Aksi management — hanya untuk Admin IT */}
+                    {bisaKelola && (
+                      <>
+                        <Link href={`/operator/logbook/${row.id}/edit`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                            aria-label={`Edit logbook ${row.rute}`}
+                          >
+                            <PencilLine className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:bg-red-50"
+                          aria-label={`Hapus logbook ${row.rute}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPesanGagalHapus(null);
+                            setHapusTarget(row as LogbookPerjalanan);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 ),
@@ -518,6 +650,72 @@ export default function LogbookPerjalananPage() {
           })()}
         </CardContent>
       </Card>
+
+      {/* ── Modal konfirmasi hapus (management Admin IT) ─────────────────── */}
+      {hapusTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-md p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-full bg-red-100">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">
+                  Hapus Logbook Perjalanan
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Tindakan ini tidak dapat dibatalkan
+                </p>
+              </div>
+            </div>
+            <div className="mb-6 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Rute</span>
+                <span className="font-medium text-slate-800">
+                  {hapusTarget.rute}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Unit</span>
+                <span className="font-medium text-slate-800">
+                  {hapusTarget.jenisUnit}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Nahkoda</span>
+                <span className="font-medium text-slate-800">
+                  {hapusTarget.nahkoda}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Status</span>
+                <StatusBadge status={hapusTarget.status} />
+              </div>
+            </div>
+            <p className="mb-6 text-sm text-slate-600">
+              Catatan perjalanan ini akan dihapus dari database. Gunakan bila
+              data tercatat keliru (salah input / duplikat).
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setHapusTarget(null)}
+                disabled={sedangMenghapus}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="danger"
+                onClick={eksekusiHapus}
+                disabled={sedangMenghapus}
+              >
+                <Trash2 className="h-4 w-4" />
+                {sedangMenghapus ? "Menghapus..." : "Hapus Logbook"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

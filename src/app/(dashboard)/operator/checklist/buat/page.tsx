@@ -125,7 +125,11 @@ export default function BuatChecklistPage() {
   const draftDiprefill = useRef(false);
 
   // Aset terkait unit yang dipilih — untuk menampilkan PJ aset pada form.
-  const asetTerkait = useMemo(() => cariAsetDmUnit(unit), [unit]);
+  // Pencarian memakai daftar aset DATABASE (Supabase), bukan daftar mock.
+  const asetTerkait = useMemo(
+    () => cariAsetDmUnit(unit, asetList),
+    [unit, asetList]
+  );
   /**
    * Hak pengisian: user harus operator lapangan DAN penanggung jawab aset.
    * Unit yang dipilih selalu berasal dari aset milik user, tetapi pengecekan

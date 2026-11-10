@@ -287,6 +287,12 @@ export function canAccessPath(
   ) {
     return true;
   }
+  // Edit penuh logbook perjalanan (/operator/logbook/<id>/edit) hanya untuk
+  // ADMIN_IT — management data. Role lain tetap bisa LIHAT detail
+  // (/operator/logbook/<id>) dan Lengkapi pengisian (/lengkapi).
+  if (pathname.includes("/logbook/") && pathname.endsWith("/edit")) {
+    return role === "ADMIN_IT";
+  }
   return accessibleHrefs.some(
     (href) => pathname === href || pathname.startsWith(href + "/")
   );

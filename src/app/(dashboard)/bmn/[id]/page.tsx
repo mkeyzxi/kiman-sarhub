@@ -32,7 +32,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import RiwayatTable from "./riwayat-table";
 import {
   getUserById,
@@ -46,7 +46,10 @@ import { useAsetById } from "@/components/shared/use-supabase-data";
 import { updateAsetStatus } from "@/components/shared/db-writes";
 import { useSesiUser } from "@/components/shared/use-session";
 import { getDefaultPageForRole } from "@/config/navigation";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+
+/** Logo SIAP SAR di tengah QR code — penanda asal barcode (aset /public). */
+const LOGO_SIAP_SAR = "/logo-transparant.png";
 
 export default function DetailAsetPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +60,21 @@ export default function DetailAsetPage() {
   const [gagal, setGagal] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  /**
+   * Logo SIAP SAR dimuat sebagai HTMLImageElement untuk komposit manual.
+   * Kita GAMBARKAN logo sendiri ke atas kanvas QR, bukan mengandalkan
+   * imageSettings qrcode.react (yang gagal karena asinkron / aturan SVG-as-image).
+   */
+  const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = LOGO_SIAP_SAR;
+    img.onload = () => setLogoImg(img);
+    img.onerror = () => setLogoImg(null);
+    return () => { img.src = ""; };
+  }, []);
 
   const qrUrl = aset
     ? `${process.env.NEXT_PUBLIC_URL_QRCODE}/operator/logbook/tambah?unit=${encodeURIComponent(aset.kode)}`
@@ -75,14 +93,22 @@ export default function DetailAsetPage() {
     }
   }, [qrUrl]);
 
-  // Unduh QR code sebagai PNG
+  // ── Unduh QR code sebagai PNG ──────────────────────────────────────────────
+  // Alur manual, sinkron, 100% pasti:
+  //   1. Ambil QRCodeSVG dari DOM (grid QR polos, TANPA imageSettings).
+  //   2. Serialisasi SVG → rasterisasi ke kanvas 400×400.
+  //   3. Gambar patch putih + logo SIAP SAR di tengah secara manual.
+  //   4. toBlob → download.
+  // Tidak ada aturan SVG-as-image yang bisa memblokir, karena logo
+  // digambar langsung dari HTMLImageElement (logoImg) ke kanvas — bukan
+  // lewat <image> di dalam SVG.
   const handleDownload = useCallback(() => {
     const svg = document.getElementById("qr-code-img") as SVGSVGElement | null;
     if (!svg) return;
 
     const svgData = new XMLSerializer().serializeToString(svg);
     const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
+    const svgUrl = URL.createObjectURL(svgBlob);
 
     const img = new Image();
     img.onload = () => {
@@ -91,25 +117,47 @@ export default function DetailAsetPage() {
       canvas.height = 400;
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        // Background putih
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, 400, 400);
+        // QR code
         ctx.drawImage(img, 0, 0, 400, 400);
+        // ── Komposit logo manual (jika sudah siap) ──
+        if (logoImg) {
+          // Patch putih di tengah (menutup modul QR di bawah logo)
+          const patch = 100;
+          const px = (400 - patch) / 2;
+          const py = (400 - patch) / 2;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.beginPath();
+          ctx.roundRect(px, py, patch, patch, 12);
+          ctx.fill();
+          // Logo
+          const sisi = 80;
+          ctx.drawImage(
+            logoImg,
+            (400 - sisi) / 2,
+            (400 - sisi) / 2,
+            sisi,
+            sisi,
+          );
+        }
         canvas.toBlob((blob) => {
           if (!blob) return;
-          const downloadUrl = URL.createObjectURL(blob);
+          const dlUrl = URL.createObjectURL(blob);
           const a = document.createElement("a");
-          a.href = downloadUrl;
+          a.href = dlUrl;
           a.download = `qrcode-${aset?.kode ?? "aset"}.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          URL.revokeObjectURL(downloadUrl);
+          URL.revokeObjectURL(dlUrl);
         }, "image/png");
       }
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(svgUrl);
     };
-    img.src = url;
-  }, [aset?.kode]);
+    img.src = svgUrl;
+  }, [aset?.kode, logoImg]);
 
   // Buka link dalam tab baru untuk testing
   const handleTestLink = useCallback(() => {
@@ -237,15 +285,30 @@ export default function DetailAsetPage() {
           </DialogHeader>
 
           <div className="flex flex-col items-center gap-4 py-4">
-            {/* QR Code */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <QRCodeSVG
+            {/* QR Code — grid polos tanpa imageSettings, supaya hasil
+                serialisasi SVG untuk unduhan bersih. Logo digambar
+                secara manual ke canvas saat unduh. */}
+            <div className="relative rounded-lg border border-slate-200 bg-white p-4">
+              <QRCodeCanvas
                 id="qr-code-img"
                 value={qrUrl}
                 size={220}
                 bgColor="#FFFFFF"
                 fgColor="#000000"
+                level="H"
               />
+              {/* Overlay logo di tengah (hanya tampilan di layar).
+                  Kanvas unduhan sudah punya logo yang digambar manual,
+                  jadi overlay ini hanya untuk visual di modal. */}
+              {logoImg && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <img
+                    src={LOGO_SIAP_SAR}
+                    alt="SIAP SAR"
+                    className="h-12 w-12 rounded object-contain bg-white p-1"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Link Display */}

@@ -155,15 +155,31 @@ drop policy if exists logbook_select on public.logbook_perjalanan;
 create policy logbook_select on public.logbook_perjalanan
   for select to authenticated using (true);
 
+-- INSERT/UPDATE oleh operator lapangan & pengelola BMN (pencatatan &
+-- pelengkapan perjalanan).
 drop policy if exists logbook_write_operator on public.logbook_perjalanan;
 create policy logbook_write_operator on public.logbook_perjalanan
-  for all to authenticated
+  for insert to authenticated
+  with check (
+    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN')
+  );
+
+drop policy if exists logbook_update_operator on public.logbook_perjalanan;
+create policy logbook_update_operator on public.logbook_perjalanan
+  for update to authenticated
   using (
     public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN')
   )
   with check (
     public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN')
   );
+
+-- DELETE hanya Admin IT (management data logbook).
+drop policy if exists logbook_delete_admin on public.logbook_perjalanan;
+create policy logbook_delete_admin on public.logbook_perjalanan
+  for delete to authenticated
+  using (public.role_jwt() = 'ADMIN_IT')
+  with check (public.role_jwt() = 'ADMIN_IT');
 
 -- ─── 8. ews_tickets ────────────────────────────────────────────────────────--
 drop policy if exists tickets_select on public.ews_tickets;

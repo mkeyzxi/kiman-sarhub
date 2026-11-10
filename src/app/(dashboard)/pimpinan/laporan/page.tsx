@@ -19,6 +19,7 @@ import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   hitungReadinessStats,
+  hitungStatusAsetLive,
 } from "@/components/shared/mock-data";
 import {
   useRiwayatOperasi,
@@ -62,8 +63,15 @@ export default function LaporanPage() {
   // angka hardcode 45 yang tidak terhubung data mana pun.
   const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
 
-  // Readiness dihitung dari data aset Supabase (bukan mock statis).
-  const readinessStats = hitungReadinessStats(asetList);
+  // Readiness dihitung dari data aset Supabase (bukan mock statis) dengan
+  // status live — "Sedang digunakan" diturunkan dari logbook yang belum
+  // kembali, sama seperti dashboard /operator dan /pimpinan.
+  const statusLive = hitungStatusAsetLive(asetList, logbookPerjalananList);
+  const asetLive = asetList.map((aset) => ({
+    ...aset,
+    status: statusLive[aset.id] ?? aset.status,
+  }));
+  const readinessStats = hitungReadinessStats(asetLive);
   const personelAktif = (daftarUsers ?? []).filter((u) => u.aktif).length;
 
   if (loading) {
