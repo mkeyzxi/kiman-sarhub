@@ -33,7 +33,7 @@ import {
   type StatusPenggunaan,
 } from "@/components/shared/mock-data";
 import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
-import { useLogbooks } from "@/components/shared/use-supabase-data";
+import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
@@ -99,6 +99,25 @@ export default function LogbookPerjalananPage() {
     error,
     refetch,
   } = useLogbooks();
+  // Master aset — sumber "Nama Referensi" per unit di daftar perjalanan.
+  const { data: asetList } = useAsets();
+
+  /**
+   * Cocokkan nama unit tersimpan di logbook (`jenis_unit` = nama resmi aset,
+   * kadang data lama menyertakan polisi) kembali ke baris master aset.
+   */
+  const asetDariUnit = (unitNama: string) =>
+    asetList.find((a) => a.nama === unitNama) ??
+    asetList.find(
+      (a) => !!unitNama && (a.nama.includes(unitNama) || unitNama.includes(a.nama))
+    );
+
+  /** Nama referensi yang berbeda dari nama resmi — kosong bila sama/tak ada. */
+  const referensiUnit = (unitNama: string): string => {
+    const aset = asetDariUnit(unitNama);
+    const referensi = aset?.namaReferensi?.trim() ?? "";
+    return referensi && referensi !== unitNama ? referensi : "";
+  };
   // Gabungkan logbook in-memory (baru disimpan sesi ini) + Supabase.
   const logbookPerjalananList = mergeLogbooksWithSupabase(
     supabaseLogbooks as unknown as LogbookPerjalanan[]
@@ -263,9 +282,16 @@ export default function LogbookPerjalananPage() {
                 key: "jenisUnit",
                 header: "Unit",
                 render: (row) => (
-                  <Badge variant="outline" className="text-xs">
-                    {row.jenisUnit}
-                  </Badge>
+                  <div className="min-w-0">
+                    <Badge variant="outline" className="text-xs">
+                      {row.jenisUnit}
+                    </Badge>
+                    {referensiUnit(row.jenisUnit) && (
+                      <span className="mt-0.5 block text-xs font-medium text-emerald-600">
+                        {referensiUnit(row.jenisUnit)}
+                      </span>
+                    )}
+                  </div>
                 ),
               },
               {

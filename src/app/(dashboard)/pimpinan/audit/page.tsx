@@ -112,7 +112,7 @@ export default function AuditPage() {
 
   // Early return setelah semua hooks
   if (loading) {
-    return <DataLoading label="Memuat audit kepatuhan…" />;
+    return <DataLoading label="Memuat pemantauan kepatuhan…" />;
   }
   if (error) {
     return (
@@ -128,7 +128,7 @@ export default function AuditPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Audit Kepatuhan</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Pemantauan Kepatuhan</h1>
         <p className="text-sm text-slate-500 mt-1">
           Evaluasi kepatuhan personel terhadap prosedur operasional SAR
         </p>

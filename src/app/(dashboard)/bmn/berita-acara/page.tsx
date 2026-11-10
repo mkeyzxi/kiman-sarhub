@@ -19,7 +19,7 @@ import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal } from "@/components/shared/mock-data";
-import { useBeritaAcara } from "@/components/shared/use-supabase-data";
+import { useAsets, useBeritaAcara } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError, DataEmpty } from "@/components/shared/data-state";
 import type { BeritaAcaraMapped } from "@/components/shared/supabase-mock-mapper";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,22 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 export default function DaftarBeritaAcaraPage() {
   // Semua data langsung dari Supabase — tanpa fallback mock.
   const { data, loading, error, refetch } = useBeritaAcara();
+  // Master aset — sumber "Nama Referensi" dari asetId/nama aset di BA.
+  const { data: asetSemua } = useAsets();
+  const asetById = useMemo(
+    () => new Map(asetSemua.map((a) => [a.id, a])),
+    [asetSemua]
+  );
+
+  /** Nama referensi BA: ikut asetId, fallback nama resmi. Kosong bila sama. */
+  const referensiBA = (ba: BeritaAcaraMapped): string => {
+    const aset =
+      (ba.asetId ? asetById.get(ba.asetId) : undefined) ??
+      asetSemua.find((a) => a.nama === ba.namaAset);
+    const referensi = aset?.namaReferensi?.trim() ?? "";
+    return referensi && referensi !== ba.namaAset ? referensi : "";
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   
@@ -206,7 +222,21 @@ export default function DaftarBeritaAcaraPage() {
             <ResponsiveTable<BeritaAcaraMapped>
               data={paginatedBA}
               getKey={(ba) => ba.id}
-              cardTitle={(ba) => ba.namaAset}
+              cardTitle={(ba) => {
+                // Nama referensi ditampilkan di bawah nama resmi — bacaan
+                // pertama orang awam ("RIB 01 - 9 M", "motor tempel", dst.).
+                const referensi = referensiBA(ba);
+                return (
+                  <span className="block">
+                    {ba.namaAset}
+                    {referensi && (
+                      <span className="mt-0.5 block text-xs font-normal text-emerald-600">
+                        {referensi}
+                      </span>
+                    )}
+                  </span>
+                );
+              }}
               cardSubtitle={(ba) =>
                 `${ba.nomor || "Nomor belum diisi"} — ${formatTanggal(ba.tanggal)}`
               }
@@ -233,16 +263,24 @@ export default function DaftarBeritaAcaraPage() {
                 {
                   key: "aset",
                   header: "Aset",
-                  render: (ba) => (
-                    <div>
-                      <p className="font-medium text-slate-800">{ba.namaAset}</p>
-                      {ba.kodeAset && (
-                        <p className="font-mono text-xs text-slate-500">
-                          {ba.kodeAset}
-                        </p>
-                      )}
-                    </div>
-                  ),
+                  render: (ba) => {
+                    const referensi = referensiBA(ba);
+                    return (
+                      <div className="min-w-0">
+                        {referensi && (
+                          <p className="text-sm font-medium text-emerald-600">
+                            {referensi}
+                          </p>
+                        )}
+                        <p className="font-medium text-slate-800">{ba.namaAset}</p>
+                        {ba.kodeAset && (
+                          <p className="font-mono text-xs text-slate-500">
+                            {ba.kodeAset}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  },
                 },
                 {
                   key: "pengaju",

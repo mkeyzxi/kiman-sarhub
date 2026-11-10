@@ -243,10 +243,18 @@ export default function TiketMaintenancePage() {
                 render: (row) => {
                   const aset = asetById.get(row.asetId);
                   const model = labelModelAset(aset);
+                  // Nama referensi jadi baris pertama — mudah dikenali
+                  // orang awam; nama resmi & kode tetap tampil di bawah.
+                  const referensi = aset?.namaReferensi?.trim() ?? "";
                   return (
                     <div className="flex min-w-0 items-center gap-2">
                       <Package className="h-4 w-4 shrink-0 text-slate-400" />
                       <div className="min-w-0">
+                        {referensi && referensi !== aset?.nama && (
+                          <p className="truncate text-sm font-medium text-emerald-600">
+                            {referensi}
+                          </p>
+                        )}
                         <p className="truncate text-sm text-slate-700">{aset?.nama ?? "-"}</p>
                         <p className="truncate text-xs text-slate-400">
                           {model ? `${model} · ` : ""}

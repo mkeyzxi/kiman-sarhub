@@ -24,6 +24,7 @@ import {
   useRiwayatOperasi,
   useLogbooks,
   useAsets,
+  useSupabaseUsers,
 } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 
@@ -57,9 +58,13 @@ export default function LaporanPage() {
   const { data: riwayatOperasi } = useRiwayatOperasi();
   const { data: logbookPerjalananList, loading, error, refetch } = useLogbooks();
   const { data: asetList } = useAsets();
+  // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
+  // angka hardcode 45 yang tidak terhubung data mana pun.
+  const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
 
   // Readiness dihitung dari data aset Supabase (bukan mock statis).
   const readinessStats = hitungReadinessStats(asetList);
+  const personelAktif = (daftarUsers ?? []).filter((u) => u.aktif).length;
 
   if (loading) {
     return <DataLoading label="Menyiapkan laporan…" />;
@@ -141,8 +146,8 @@ export default function LaporanPage() {
           iconColor="text-blue-600"
         />
         <StatCard
-          label="Personel Standby"
-          value={45}
+          label="Personel Aktif"
+          value={usersLoading ? "…" : personelAktif}
           icon={Users}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
