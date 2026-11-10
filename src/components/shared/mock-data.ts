@@ -4393,57 +4393,227 @@ export function hitungStatusAsetDariChecklist(
   return null;
 }
 
+/**
+ * Status aset secara **hidup**: turunkan status operasional per aset dari
+ * catatan logbook perjalanan yang masih berjalan, lalu gabungkan dengan
+ * status master aset di database.
+ *
+ * Mengapa diperlukan: kolom `asets.status` di database hanya berubah lewat
+ * aksi manual (tombol "Selesai Digunakan" oleh Pengelola BMN). Sementara
+ * pencatatan logbook (tahap awal → "Sedang Digunakan") tidak menyentuh
+ * kolom itu, sehingga dashboard bisa menampilkan unit "Standby" padahal
+ * logbook menunjukkan unit sedang dalam perjalanan.
+ *
+ * Aturan turunannya:
+ * - aset punya logbook berstatus "Sedang Digunakan" (belum kembali) →
+ *   "Sedang digunakan" — unit sedang dipakai.
+ * - logbook "Menunggu Penggunaan" (jadwalan, belum berangkat) tidak
+ *   mengubah apa pun — unit masih dianggap berstatus master aset.
+ * - selain itu, atau tanpa logbook aktif → status master aset apa adanya
+ *   ("Standby", "Rusak Berat", "Maintenance", dst.).
+ *
+ * Pencocokan logbook → aset memakai `cariAsetDariJenisUnit`: setiap catatan
+ * berjalan diresolusi ke MAKSIMAL SATU aset (prioritas: no. polisi → kode →
+ * nama referensi → tipe/merk → nama resmi). Satu perjalanan memakai satu
+ * unit — nama resmi yang generik ("Sepeda Motor" untuk 4 motor sekaligus)
+ * tidak boleh menandai semua unit yang namanya sama.
+ */
+export function hitungStatusAsetLive(
+  asets: Pick<Aset, "id" | "nama" | "kode" | "status" | "noPolisi" | "tipe" | "merk" | "namaReferensi">[],
+  logbooks: Pick<LogbookPerjalanan, "jenisUnit" | "status">[]
+): Record<string, StatusAset> {
+  const logbooksBerjalan = logbooks.filter((l) => l.status === "Sedang Digunakan");
+  const hasil: Record<string, StatusAset> = {};
+  for (const aset of asets) {
+    // Aset rusak tetap berstatus rusak — logbook berjalan tidak menampilkannya.
+    if (aset.status !== "Rusak Berat" && aset.status !== "Rusak Ringan") {
+      const adaLogbookBerjalan = logbooksBerjalan.some((l) =>
+        cocokLogbookDenganAset(asets, aset, l)
+      );
+      if (adaLogbookBerjalan) {
+        hasil[aset.id] = "Sedang digunakan";
+        continue;
+      }
+    }
+    hasil[aset.id] = aset.status;
+  }
+  return hasil;
+}
+
 /** Normalisasi teks untuk pencocokan nama unit. */
 function normalUnit(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 /**
- * Cari aset berdasarkan nama unit yang ditulis pada form checklist/logbook.
- * Urutan pencocokan: identitas persis (nama/kode/no polisi) → nomor polisi di
- * dalam teks → nama aset terpanjang yang terkandung → tipe khas.
+ * Apakah `token` muncul di `teks` dengan batas kata yang aman:
+ * token persis, atau token diawali/diakhiri angka/seri
+ * (mis. "klx 230" cocok di "Sepeda Motor KLX 230 04").
+ *
+ * Token pendek (< 5 karakter) hanya dianggap cocok bila teks persis sama —
+ * mengandungnya di teks berisiko salah padan antar unit sejenis.
  */
-export function cariAsetDmUnit(unit: string): Aset | undefined {
-  const needle = normalUnit(unit);
-  if (!needle) return undefined;
-
-  const exact = asetList.find(
-    (a) =>
-      normalUnit(a.nama) === needle ||
-      normalUnit(a.kode) === needle ||
-      (a.noPolisi ? normalUnit(a.noPolisi) === needle : false)
-  );
-  if (exact) return exact;
-
-  // Alias nama operasional dari form fisik: RBB 309 MAMUJU adalah RBB pada
-  // master BMN (nama resminya memakai "Rigid Inflatable Boat (RIB) ... RBB").
-  if (needle === "rbb 309 mamuju") {
-    const rbb = asetList.find((a) => /RBB/i.test(a.nama));
-    if (rbb) return rbb;
+function cocokTokenBatasKata(teks: string, token: string): boolean {
+  if (!token) return false;
+  if (teks === token) return true;
+  if (token.length < 5) return false;
+  const m = new RegExp(`(?:^|[^a-z0-9])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|[^a-z0-9])`).exec(teks);
+  if (m) {
+    const idx = m.index;
+    const kiri = teks.slice(0, idx);
+    const kanan = teks.slice(idx + m[0].length);
+    // kiri: token diakhiri angka/seri (prefix nama lebih panjang);
+    // kanan: token diawali angka/seri (nama yang lebih panjang).
+    const diawaliToken = /^[^a-z0-9]*(?=[a-z0-9])(?=\d)/.test(kanan) || /^$/.test(kanan.trim());
+    const diakhiriToken = /[a-z0-9]\d[^a-z0-9]*$/.test(kiri) || /^$/.test(kiri.trim());
+    return diakhiriToken || diawaliToken;
   }
+  return false;
+}
 
-  // Nomor polisi di dalam teks, mis. "Motor Trail B 3184 PKQ".
-  const byPolisi = asetList.find((a) => {
-    const noPolisi = normalUnit(a.noPolisi ?? "");
-    return noPolisi.length >= 4 && needle.includes(noPolisi);
+/** Identitas aset minimum yang dipakai resolver logbook → aset. */
+type AsetUntukResolver = Pick<
+  Aset,
+  "id" | "nama" | "kode" | "noPolisi" | "tipe" | "merk" | "namaReferensi"
+>;
+
+/**
+ * Kandidat aset yang identitasnya muncul dalam teks `jenis_unit` logbook.
+ * Diurutkan dari identitas PALING SPESIFIK (nomor polisi — unik per unit)
+ * sampai paling umum (nama generik yang dipakai banyak unit sekaligus).
+ */
+function kandidatAsetDariTeks(
+  asets: AsetUntukResolver[],
+  teks: string
+): AsetUntukResolver[][] {
+  // 1. Nomor polisi — unik per unit, identitas terkuat.
+  const byPolisi = asets.filter((a) => {
+    const polisi = normalUnit(a.noPolisi ?? "");
+    return polisi.length >= 4 && teks.includes(polisi);
   });
-  if (byPolisi) return byPolisi;
 
-  // Nama aset yang terkandung dalam teks — pilih yang paling panjang agar
-  // "RIB Kelas I Sea First" tidak tertukar dengan varian RIB lain.
-  const byNama = asetList
-    .filter((a) => needle.includes(normalUnit(a.nama)))
-    .sort((a, b) => b.nama.length - a.nama.length);
-  if (byNama[0]) return byNama[0];
+  // 2. Kode aset persis (dropdown form logbook menyimpan kode).
+  const byKode = asets.filter((a) => teks === normalUnit(a.kode));
 
-  // Tipe/merk khas (minimal 5 karakter), bukan prefix generik seperti "RIB".
-  const byTipe = asetList
-    .filter((a) => {
-      const tipe = normalUnit(a.tipe ?? "");
-      return tipe.length >= 5 && (needle.includes(tipe) || tipe.includes(needle));
-    })
-    .sort((a, b) => (b.tipe?.length ?? 0) - (a.tipe?.length ?? 0));
-  return byTipe[0];
+  // 3. Nama referensi persis, ATAU label referensinya (bagian sebelum " — ")
+  //    muncul dalam teks — mis. referensi "Trail 04 — B 3184 PKQ" ↔ teks
+  //    "Sepeda Motor Trail 04". Label yang sama dipakai banyak aset
+  //    ("motor tempel") tidak dianggap kandidat tunggal di pemanggil.
+  const byReferensi = asets.filter((a) => {
+    const ref = normalUnit(a.namaReferensi ?? "");
+    if (!ref || ref.length < 3) return false;
+    if (teks === ref) return true;
+    const label = normalUnit(ref.split(/\s[—-]\s/)[0] ?? "");
+    return label.length >= 4 && cocokTokenBatasKata(teks, label);
+  });
+
+  // 4. Tipe spesifik (≥ 5 karakter) dengan batas kata — "klx 230" di
+  //    "Sepeda Motor KLX 230 04". Bisa menimpa beberapa unit sejenis;
+  //    pemanggil yang memutuskan bila kandidat tidak tunggal.
+  const byTipe = asets.filter((a) => {
+    const tipe = normalUnit(a.tipe ?? "");
+    return tipe.length >= 5 && cocokTokenBatasKata(teks, tipe);
+  });
+
+  // 5. Merk spesifik (≥ 5 karakter) dengan batas kata — "sea first", "vektor".
+  const byMerk = asets.filter((a) => {
+    const merk = normalUnit(a.merk ?? "");
+    return merk.length >= 5 && cocokTokenBatasKata(teks, merk);
+  });
+
+  // 6. Nama resmi persis — bisa generik dan dipakai banyak unit
+  //    ("Sepeda Motor" × 4, "Out Boat Motor" × 9).
+  const byNamaPersis = asets.filter((a) => teks === normalUnit(a.nama));
+
+  // 7. Nama resmi terkandung dalam teks dengan batas kata.
+  const byNamaTerkandung = asets.filter((a) =>
+    cocokTokenBatasKata(teks, normalUnit(a.nama))
+  );
+
+  // 8. Teks terkandung dalam nama resmi (logbook lama menulis singkatan,
+  //    mis. "RBB 309 MAMUJU" vs nama panjang RBB).
+  const byNamaMengandung = asets.filter((a) => {
+    const nama = normalUnit(a.nama);
+    return teks.length >= 8 && nama.includes(teks);
+  });
+
+  return [
+    byPolisi,
+    byKode,
+    byReferensi,
+    byTipe,
+    byMerk,
+    byNamaPersis,
+    byNamaTerkandung,
+    byNamaMengandung,
+  ];
+}
+
+/**
+ * Resolusi SATU aset dari teks `jenis_unit` sebuah catatan logbook —
+ * sumber kebenaran tunggal untuk status live & tampilan referensi.
+ *
+ * Mengapa maksimal satu: satu catatan perjalanan memakai SATU unit. Nama
+ * resmi aset sering generik dan dipakai banyak unit sekaligus (4 motor
+ * trail sama-sama bernama "Sepeda Motor"); mencocokkan teks ke SEMUA aset
+ * yang namanya cocok menandai unit yang tidak benar-benar keluar.
+ *
+ * Prioritas pencocokan (yang paling spesifik menang):
+ *   1. nomor polisi terkandung dalam teks (unik per unit);
+ *   2. kode aset persis (bentuk simpanan dropdown form);
+ *   3. nama referensi persis, atau label referensinya muncul dalam teks
+ *      ("Trail 04" di "Sepeda Motor Trail 04") — hanya bila tunggal;
+ *   4. tipe dengan batas kata — hanya bila tunggal;
+ *   5. merk dengan batas kata — hanya bila tunggal;
+ *   6. nama resmi persis → unit PERTAMA di daftar (deterministik dan sama
+ *      dengan tampilan halaman logbook, sehingga semua halaman sepakat);
+ *   7. nama resmi terkandung dalam teks → hanya bila tunggal;
+ *   8. teks terkandung dalam nama resmi → hanya bila tunggal.
+ *
+ * Bila tidak ada yang cocok (teks terlalu ambigu) → undefined: aset tidak
+ * ditandai dipakai, dan halaman logbook juga tidak menampilkan referensi.
+ */
+export function cariAsetDariJenisUnit(
+  unit: string,
+  asets: AsetUntukResolver[]
+): AsetUntukResolver | undefined {
+  const teks = normalUnit(unit);
+  if (!teks) return undefined;
+
+  const kelompok = kandidatAsetDariTeks(asets, teks);
+  for (const kandidat of kelompok) {
+    if (kandidat.length === 1) return kandidat[0];
+  }
+  // Nama persis yang dipakai bersama → ambil yang pertama supaya determinis
+  // (urutan daftar aset dari database sama di semua halaman).
+  return kelompok[5][0];
+}
+
+/**
+ * Cocokkan satu catatan logbook ke sebuah aset — versi boolean dari
+ * {@link cariAsetDariJenisUnit} untuk pemakaian per-aset.
+ */
+function cocokLogbookDenganAset(
+  asets: AsetUntukResolver[],
+  aset: AsetUntukResolver,
+  logbook: { jenisUnit: string }
+): boolean {
+  return cariAsetDariJenisUnit(logbook.jenisUnit, asets)?.id === aset.id;
+}
+
+/**
+ * Cari aset dari teks unit pada form checklist/logbook — delegasi ke
+ * {@link cariAsetDariJenisUnit} dengan prioritas identitas yang sama.
+ *
+ * @param unit   Teks unit dari form (kode, nama, "nama (polisi)", dst.).
+ * @param asets  Daftar aset AKTIF dari database (Supabase). WAJIB dilempar
+ *               pemanggil halaman — fallback daftar mock hanya untuk tes.
+ */
+export function cariAsetDmUnit(
+  unit: string,
+  asets: Aset[] = asetList
+): Aset | undefined {
+  return cariAsetDariJenisUnit(unit, asets) as Aset | undefined;
 }
 
 /**

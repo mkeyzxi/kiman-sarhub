@@ -23,12 +23,13 @@ import { usePagination } from "@/hooks/use-pagination";
 import {
   STATUS_ASET,
   STATUS_ASET_VARIANT,
+  hitungStatusAsetLive,
   labelModelAset,
   namaReferensiAset,
   nupTampil,
 
 } from "@/components/shared/mock-data";
-import { useAsets } from "@/components/shared/use-supabase-data";
+import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
 import {
   DataLoading,
   DataError,
@@ -42,12 +43,27 @@ export default function MasterDataBMNPage() {
   // Debounce search query
   const debouncedSearch = useDebounce(searchQuery, 300);
   
-  // Aset dari Supabase.
+  // Aset dari Supabase + logbook perjalanan (untuk status "hidup").
   const { data: asetList, loading, error, refetch } = useAsets();
+  const { data: logbookList } = useLogbooks();
 
-  // Filter aset dengan debounced search
+  /**
+   * Status aset secara live: turunkan "Sedang digunakan" dari logbook yang
+   * belum kembali, bukan semata kolom status di database — sama persis dengan
+   * statistik /operator/logbook. Statistik kartu, filter, dan tabel tabel di
+   * bawah memakai nilai ini supaya selalu sepadan.
+   */
+  const statusLive = hitungStatusAsetLive(asetList, logbookList);
+  /** Tampilkan status live pada tabel/kartu aset; kolom DB tetap untuk edit. */
+  const statusEfektif = (aset: (typeof asetList)[number]) =>
+    statusLive[aset.id] ?? aset.status;
+
+  // Filter aset dengan debounced search — status memakai nilai **live**
+  // (turunan logbook berjalan) agar filter "Sedang digunakan" juga menemukan
+  // unit yang sedang dipakai walau kolom DB masih "Standby".
   const filteredAset = asetList.filter((aset) => {
     const q = debouncedSearch.toLowerCase();
+    const statusEfektif = statusLive[aset.id] ?? aset.status;
     const matchSearch =
       aset.nama.toLowerCase().includes(q) ||
       aset.kode.toLowerCase().includes(q) ||
@@ -56,7 +72,8 @@ export default function MasterDataBMNPage() {
       (aset.noPolisi ?? "").toLowerCase().includes(q) ||
       (aset.merk ?? "").toLowerCase().includes(q) ||
       (aset.tipe ?? "").toLowerCase().includes(q);
-    const matchStatus = statusFilter === "Semua" || aset.status === statusFilter;
+    const matchStatus =
+      statusFilter === "Semua" || statusEfektif === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -68,8 +85,10 @@ export default function MasterDataBMNPage() {
   );
 
   const totalAset = asetList.length;
+  // Hitung dari status **live** (turunan logbook), bukan kolom DB saja:
+  // unit yang masih ada logbook "Sedang Digunakan"-nya tampil terpakai.
   const hitung = (status: string) =>
-    asetList.filter((a) => a.status === status).length;
+    asetList.filter((a) => statusEfektif(a) === status).length;
 
   const stats = [
     {
@@ -199,7 +218,9 @@ export default function MasterDataBMNPage() {
               .join(" · ");
           }}
           cardBadge={(row) => (
-            <Badge variant={STATUS_ASET_VARIANT[row.status]}>{row.status}</Badge>
+            <Badge variant={STATUS_ASET_VARIANT[statusEfektif(row)]}>
+              {statusEfektif(row)}
+            </Badge>
           )}
           cardPreviewCount={2}
           detailLabel="Lihat detail aset"
@@ -263,7 +284,9 @@ export default function MasterDataBMNPage() {
               key: "status",
               header: "Status",
               render: (row) => (
-                <Badge variant={STATUS_ASET_VARIANT[row.status]}>{row.status}</Badge>
+                <Badge variant={STATUS_ASET_VARIANT[statusEfektif(row)]}>
+                  {statusEfektif(row)}
+                </Badge>
               ),
               hideOnCard: true,
             },

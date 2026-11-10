@@ -292,3 +292,66 @@ export function tandaiBerangkat(id: string): void {
   const updated = logbooks.find((l) => l.id === id);
   if (updated) void persistUpdate(id, updated);
 }
+
+// ── HAPUS (manajemen Admin IT) ───────────────────────────────────────────────
+
+/**
+ * Hapus catatan logbook dari in-memory + Supabase.
+ *
+ * Hak hapus ada pada role ADMIN_IT (UI menahan aksi ini di tabel logbook;
+ * sisi RLS database juga hanya memberi izin delete ke ADMIN_IT).
+ * Bila Supabase menolak (mis. RLS) maka catatan in-memory dikembalikan —
+ * UI tetap konsisten dengan isi database.
+ *
+ * @returns `true` bila penghapusan berhasil, `false` bila ditolak database.
+ */
+export async function hapusLogbook(id: string): Promise<boolean> {
+  const snapshotSebelum = logbooks;
+  const adaInMemory = snapshotSebelum.some((l) => l.id === id);
+  const sisa = snapshotSebelum.filter((l) => l.id !== id);
+  logbooks = sisa;
+  emit();
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { error } = await supa
+      .from("logbook_perjalanan")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      // Database menolak hapus — kembalikan snapshot lama.
+      logbooks = snapshotSebelum;
+      emit();
+      return false;
+    }
+  } catch {
+    // Offline / Supabase belum dikonfigurasi — hapus in-memory saja.
+  }
+  return adaInMemory;
+}
+
+/**
+ * Update logbook di Supabase untuk keperluan management admin (edit full data).
+ * Menulis seluruh kolom (bukan fire-and-forget) dan melempar error agar
+ * halaman admin bisa menampilkan pesan gagal.
+ */
+export async function updateLogbookDB(
+  id: string,
+  baris: LogbookPerjalanan
+): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const { error } = await supa
+    .from("logbook_perjalanan")
+    .update(toSupabaseRow(baris))
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Hapus logbook di Supabase (throw bila gagal — untuk halaman admin). */
+export async function hapusLogbookDB(id: string): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const { error } = await supa
+    .from("logbook_perjalanan")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}

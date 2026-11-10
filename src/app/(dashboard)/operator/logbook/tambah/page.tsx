@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   users,
   cariAsetDmUnit,
+  cariAsetDariJenisUnit,
   labelModelAset,
   todayISODate,
   getUserById,
@@ -94,29 +95,21 @@ function getUnitOptions(
   disabled: boolean;
   warning?: string;
 }[] {
-  // Daftar unit yang sedang digunakan atau menunggu penggunaan
-  const unitSedangDigunakan = new Set(
+  // Unit yang sedang dipakai/jadwalan: resolusikan jenis_unit tiap catatan
+  // logbook berjalan ke asetnya lewat resolver yang sama dengan dashboard —
+  // jenis_unit bisa "nama (polisi)", kode, atau nama generik.
+  const idUnitTerpakai = new Set(
     logbooks
-      .filter((l) => 
-        l.status === "Sedang Digunakan" || 
+      .filter((l) =>
+        l.status === "Sedang Digunakan" ||
         l.status === "Menunggu Penggunaan"
       )
-      .map((l) => {
-        // Ambil kode unit dari jenisUnit (format bisa "Nama Unit (KODE)" atau "KODE")
-        const match = l.jenisUnit.match(/\(([^)]+)\)$/);
-        return match ? match[1] : l.jenisUnit.split(" ")[0];
-      })
+      .map((l) => cariAsetDariJenisUnit(l.jenisUnit, asets)?.id)
+      .filter((id): id is string => !!id)
   );
 
   // Daftar unit yang sudah jadwalkan (ada logbook sebelumnya dengan status Sedang Digunakan)
-  const unitJadwalkan = new Set(
-    logbooks
-      .filter((l) => l.status === "Sedang Digunakan")
-      .map((l) => {
-        const match = l.jenisUnit.match(/\(([^)]+)\)$/);
-        return match ? match[1] : l.jenisUnit.split(" ")[0];
-      })
-  );
+  const unitJadwalkan = idUnitTerpakai;
 
   return asets
     .filter((a) => {
@@ -131,8 +124,8 @@ function getUnitOptions(
       return false;
     })
     .map((a) => {
-      const sedangDigunakan = unitSedangDigunakan.has(a.kode);
-      const jadwalkan = unitJadwalkan.has(a.kode);
+      const sedangDigunakan = idUnitTerpakai.has(a.id);
+      const jadwalkan = unitJadwalkan.has(a.id);
       const rusakPesan = checkAsetRusakBerat(a.kode, asets);
       
       // Unit disabled jika sedang digunakan, sudah jadwalkan, atau rusak berat
@@ -244,10 +237,11 @@ export default function TambahLogbookPage() {
     // Cek status aset apakah rusak berat / tidak layak dipinjam
     const rusakPesan = checkAsetRusakBerat(asetScan.kode, asetList);
     
-    // Cek logbook terakhir untuk unit ini — apakah user sudah pernah melakukan perjalanan
-    const logbookTerakhir = logbooks.find((l) =>
-      l.jenisUnit.includes(asetScan.nama.split("(")[0].trim()) ||
-      (l.jenisUnit.includes(asetScan.kode?.split("-")[0] ?? "zzz"))
+    // Cek logbook terakhir untuk unit ini — apakah user sudah pernah melakukan perjalanan.
+    // Resolusi jenis_unit → aset memakai resolver yang sama dengan dashboard,
+    // sehingga unit yang benar yang terhubung (bukan unit sejenis mana pun).
+    const logbookTerakhir = logbooks.find(
+      (l) => cariAsetDariJenisUnit(l.jenisUnit, asetList)?.id === asetScan.id
     );
     const sudahLewatPerjalanan = logbookTerakhir 
       && logbookTerakhir.status === "Selesai"
@@ -374,10 +368,21 @@ export default function TambahLogbookPage() {
       return;
     }
 
-    const asetUnit = cariAsetDmUnit(formData.jenisUnit);
+    // Resolusi aset dari teks form memakai daftar aset DATABASE (Supabase),
+    // bukan daftar mock — master data yang benar adalah yang di database.
+    const asetUnit = cariAsetDmUnit(formData.jenisUnit, asetList);
+    // Simpan identitas yang bisa dibedakan per unit: nama resmi + nomor
+    // polisi di dalam kurung (mis. "Sepeda Motor (B 3184 PKQ)"). Nama resmi
+    // saja generik ("Sepeda Motor" dipakai 4 unit) sehingga status "Sedang
+    // digunakan" tidak bisa diikat ke unit yang benar.
+    const jenisUnitTersimpan = asetUnit
+      ? asetUnit.noPolisi
+        ? `${asetUnit.nama} (${asetUnit.noPolisi})`
+        : asetUnit.nama
+      : formData.jenisUnit;
     const hasil = simpanTahapAwal({
       ...formData,
-      jenisUnit: asetUnit?.nama ?? formData.jenisUnit,
+      jenisUnit: jenisUnitTersimpan,
     });
 
     if ("error" in hasil) {
@@ -624,10 +629,10 @@ export default function TambahLogbookPage() {
             >
               <Select
                 id="operator"
-                value={formData.nahkoda}
+                value={formData.nahkoda} 
                 onChange={(e) => setField("nahkoda", e.target.value)}
               >
-                <option value="">
+                <option value="" >
                   Pilih {getOperatorLabel(formData.kategoriUnit).toLowerCase()}
                 </option>
                 {users

@@ -34,6 +34,7 @@ import {
 } from "@/components/shared/mock-data";
 import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
 import { useLogbooks, useAsets } from "@/components/shared/use-supabase-data";
+import { useSesiUser } from "@/components/shared/use-session";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   DokumenLogbook,
@@ -68,6 +69,9 @@ export default function DetailLogbookPage() {
     error,
     refetch,
   } = useLogbooks();
+  const ses = useSesiUser();
+  /** Hak kelola (edit) logbook — khusus Admin IT. */
+  const bisaKelola = ses.role === "ADMIN_IT";
   const logbooks = mergeLogbooksWithSupabase(
     supabaseLogbooks as unknown as LogbookPerjalanan[]
   );
@@ -217,6 +221,19 @@ export default function DetailLogbookPage() {
           >
             <PencilLine className="h-4 w-4" />
             Lanjutkan Pengisian
+          </Link>
+        )}
+        {/* Tombol edit penuh — hanya untuk Admin IT */}
+        {bisaKelola && (
+          <Link
+            href={`/operator/logbook/${log.id}/edit`}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "w-fit gap-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+            )}
+          >
+            <PencilLine className="h-4 w-4" />
+            Edit Logbook
           </Link>
         )}
       </div>

@@ -21,6 +21,7 @@ import {
   STATUS_ASET_VARIANT,
   formatEndurance,
   formatMenit,
+  hitungStatusAsetLive,
   labelModelAset,
   type Aset,
 } from "@/components/shared/mock-data";
@@ -515,12 +516,15 @@ function KartuJurnalRIBUnit({
   instance,
   trips,
   pengisian,
+  statusEfektif,
 }: {
   aset: AsetMapped;
   template?: ChecklistTemplateMapped;
   instance?: ChecklistMapped;
   trips: LogbookMapped[];
   pengisian: PengisianBbmMapped[];
+  /** Status aset secara live (turunan logbook berjalan) untuk badge header. */
+  statusEfektif: string;
 }) {
   const tripSelesai = urutkanPerjalanan(trips).filter((t) => t.status === "Selesai");
   const tripInfo = tripSelesai[0];
@@ -543,7 +547,7 @@ function KartuJurnalRIBUnit({
           </CardTitle>
           <div className="flex items-center gap-3">
             <DetailAsetLink id={aset.id} />
-            <BadgeStatusAset status={aset.status} />
+            <BadgeStatusAset status={statusEfektif} />
           </div>
         </div>
       </CardHeader>
@@ -716,10 +720,13 @@ function KartuLogbookKapal({
   aset,
   instance,
   trips,
+  statusEfektif,
 }: {
   aset: AsetMapped;
   instance?: ChecklistMapped;
   trips: LogbookMapped[];
+  /** Status aset secara live (turunan logbook berjalan) untuk badge header. */
+  statusEfektif: string;
 }) {
   const semua = urutkanPerjalanan(trips);
   const tripSelesai = semua.filter((t) => t.status === "Selesai");
@@ -737,7 +744,7 @@ function KartuLogbookKapal({
           </CardTitle>
           <div className="flex items-center gap-3">
             <DetailAsetLink id={aset.id} />
-            <BadgeStatusAset status={aset.status} />
+            <BadgeStatusAset status={statusEfektif} />
           </div>
         </div>
       </CardHeader>
@@ -917,12 +924,15 @@ function KartuLogbookDarat({
   catatanPerbaikan,
   instances,
   templateById,
+  statusEfektif,
 }: {
   aset: AsetMapped;
   trips: LogbookMapped[];
   catatanPerbaikan: CatatanPerbaikanMapped[];
   instances: ChecklistMapped[];
   templateById: Map<string, ChecklistTemplateMapped>;
+  /** Status aset secara live (turunan logbook berjalan) untuk badge header. */
+  statusEfektif: string;
 }) {
   const semua = urutkanPerjalanan(trips);
   const tripSelesai = semua.filter((t) => t.status === "Selesai");
@@ -955,7 +965,7 @@ function KartuLogbookDarat({
           </CardTitle>
           <div className="flex items-center gap-3">
             <DetailAsetLink id={aset.id} />
-            <BadgeStatusAset status={aset.status} />
+            <BadgeStatusAset status={statusEfektif} />
           </div>
         </div>
       </CardHeader>
@@ -1262,17 +1272,28 @@ export default function OperatorPage() {
     templateQuery.data.map((t) => [t.id as string, t] as const)
   );
 
-  // ── Status live dari master aset ──────────────────────────────────────────
+  // ── Status live dari master aset + logbook berjalan ───────────────────────
   // Dihitung saat render supaya keputusan Pengelola BMN (setujui → aset
   // "Maintenance", tolak → aset tetap "Rusak") langsung tercermin di sini.
-  const unitDarat = susunUnitArmada("darat", asetList);
-  const unitAir = susunUnitArmada("air", asetList);
+  // `statusLive` menurunkan "Sedang digunakan" dari logbook yang belum kembali
+  // — sumber sama dengan statistik /operator/logbook — sehingga kartu kondisi
+  // armada selalu sepadan dengan catatan perjalanan aktual.
+  const statusLive = hitungStatusAsetLive(asetList, logbookQuery.data);
+  const asetLive = asetList.map((aset) => ({
+    ...aset,
+    status: statusLive[aset.id] ?? aset.status,
+  }));
+  const unitDarat = susunUnitArmada("darat", asetLive);
+  const unitAir = susunUnitArmada("air", asetLive);
 
   /** Unit yang perlu perhatian: aset rusak atau sudah dikirim ke service. */
   const unitPerluPerawatan = asetList
     .filter((aset) => {
       if (aset.kondisi !== "Baik") return true;
-      if (aset.status === "Rusak Berat" || aset.status === "Rusak Ringan")
+      if (
+        (statusLive[aset.id] ?? aset.status) === "Rusak Berat" ||
+        (statusLive[aset.id] ?? aset.status) === "Rusak Ringan"
+      )
         return true;
       // Maintenance karena berita acara disetujui → menunggu service.
       const ba = beritaAcaraAset(aset.id);
@@ -1288,7 +1309,7 @@ export default function OperatorPage() {
         id: aset.id,
         nama: namaPanggilan(aset),
         namaTeknis: aset.nama,
-        kondisi: aset.status,
+        kondisi: statusLive[aset.id] ?? aset.status,
         keterangan,
       };
     });
@@ -1300,7 +1321,7 @@ export default function OperatorPage() {
 
   /** Unit yang tampil di sebuah tab: harus punya data logbook/ceklist/BBM. */
   function unitsTab(jenis: "rib" | "kapal" | "mobil" | "motor"): AsetMapped[] {
-    return asetList.filter((aset) => {
+    return asetLive.filter((aset) => {
       if (jenis === "mobil" || jenis === "motor") {
         if (aset.kategori !== (jenis === "mobil" ? "Mobil" : "Motor")) return false;
       } else if (aset.kategori !== "Kapal") {
@@ -1523,6 +1544,7 @@ export default function OperatorPage() {
                 instance={instance}
                 trips={trips}
                 pengisian={pengisian}
+                statusEfektif={statusLive[aset.id] ?? aset.status}
               />
             );
           })}
@@ -1540,6 +1562,7 @@ export default function OperatorPage() {
                 aset={aset}
                 instance={instance}
                 trips={trips}
+                statusEfektif={statusLive[aset.id] ?? aset.status}
               />
             );
           })}
@@ -1556,6 +1579,7 @@ export default function OperatorPage() {
               catatanPerbaikan={perbaikanQuery.data}
               instances={ceklistQuery.data}
               templateById={templateById}
+              statusEfektif={statusLive[aset.id] ?? aset.status}
             />
           ))}
         </div>

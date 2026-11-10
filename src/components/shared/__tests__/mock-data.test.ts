@@ -3,6 +3,7 @@ import {
   validasiTahapAkhir,
   validasiLogbook,
   statusPenggunaanOtomatis,
+  hitungStatusAsetLive,
   logbookKeForm,
   angkaKePersen,
   persenKeAngka,
@@ -1106,5 +1107,213 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
     };
     const errors = validasiLogbook(form);
     expect(Object.keys(errors)).toEqual([]);
+  });
+});
+
+describe("hitungStatusAsetLive — turunan status dari logbook berjalan", () => {
+  const asets = [
+    {
+      id: "ast-1",
+      nama: "Sepeda Motor KAWASAKI KLX 230",
+      kode: "3020104001-000006",
+      noPolisi: "B 3184 PKQ",
+      tipe: "KLX 230",
+      merk: "Kawasaki",
+      status: "Standby" as const,
+    },
+    {
+      id: "ast-2",
+      nama: "RIB Sea First",
+      kode: "3012015010-000001",
+      noPolisi: "",
+      tipe: "",
+      merk: "",
+      status: "Standby" as const,
+    },
+    {
+      id: "ast-3",
+      nama: "Rescue Truck ISUZU",
+      kode: "3020105062-000004",
+      noPolisi: "DC 8982",
+      tipe: "",
+      merk: "Isuzu",
+      status: "Rusak Berat" as const,
+    },
+  ];
+
+  const logbookJalan = [
+    { jenisUnit: "Sepeda Motor KAWASAKI KLX 230", status: "Sedang Digunakan" as const },
+    { jenisUnit: "RIB Sea First", status: "Selesai" as const },
+    { jenisUnit: "Sepeda Motor KAWASAKI KLX 230 (B 3184 PKQ)", status: "Sedang Digunakan" as const },
+  ];
+
+  it("menurunkan status 'Sedang digunakan' bila ada logbook berjalan untuk aset", () => {
+    const hasil = hitungStatusAsetLive(asets, logbookJalan);
+    expect(hasil["ast-1"]).toBe("Sedang digunakan");
+  });
+
+  it("tetap 'Standby' bila logbook untuk aset sudah selesai", () => {
+    const hasil = hitungStatusAsetLive(asets, logbookJalan);
+    expect(hasil["ast-2"]).toBe("Standby");
+  });
+
+  it("tidak menimpa status rusak (Rusak Berat/Rusak Ringan) meskipun logbook berjalan", () => {
+    const hasil = hitungStatusAsetLive(asets, [
+      { jenisUnit: "Rescue Truck ISUZU", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["ast-3"]).toBe("Rusak Berat");
+  });
+
+  it("tetap 'Standby' bila aset tidak punya logbook sama sekali", () => {
+    const hasil = hitungStatusAsetLive(asets, []);
+    expect(hasil["ast-2"]).toBe("Standby");
+  });
+
+  it("mencocok jenisUnit yang menyertakan nomor polisi di belakang nama", () => {
+    // baris 3 logbookJalan: nama + "(B 3184 PKQ)" → tetap cocok ke ast-1
+    const hasil = hitungStatusAsetLive(asets, logbookJalan);
+    expect(hasil["ast-1"]).toBe("Sedang digunakan");
+  });
+
+  it("mengabaikan logbook 'Menunggu Penggunaan' (jadwalan, belum berangkat)", () => {
+    const hasil = hitungStatusAsetLive(asets, [
+      { jenisUnit: "RIB Sea First", status: "Menunggu Penggunaan" },
+    ]);
+    expect(hasil["ast-2"]).toBe("Standby");
+  });
+
+  it("mencocok jenisUnit yang hanya memuat nomor polisi", () => {
+    const hasil = hitungStatusAsetLive(asets, [
+      { jenisUnit: "B 3184 PKQ", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["ast-1"]).toBe("Sedang digunakan");
+  });
+
+  it("mencocok jenisUnit yang menyimpan kode aset (bukan nama)", () => {
+    const hasil = hitungStatusAsetLive(asets, [
+      { jenisUnit: "3020104001-000006", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["ast-1"]).toBe("Sedang digunakan");
+  });
+
+  it("mencocok jenisUnit bentuk nama referensi (tipe + seri) ke aset resminya", () => {
+    // Nama referensi "Sepeda Motor Trail 04" di dashboard berpadan dengan
+    // tipe "KLX 230" — jenis_unit "Sepeda Motor KLX 230 04" tetap cocok.
+    const hasil = hitungStatusAsetLive(asets, [
+      { jenisUnit: "Sepeda Motor KLX 230 04", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["ast-1"]).toBe("Sedang digunakan");
+  });
+
+  it("mencocok namaReferensi manual bila jenisUnit menulis nama referensi persis", () => {
+    const hasil = hitungStatusAsetLive(
+      [
+        {
+          id: "ast-9",
+          nama: "Mobil Dinas Toyota",
+          kode: "3020105058-000001",
+          noPolisi: "DC 1801",
+          tipe: "TF36",
+          merk: "Toyota",
+          namaReferensi: "mobil dinas kakansar",
+          status: "Standby" as const,
+        },
+      ],
+      [{ jenisUnit: "mobil dinas kakansar", status: "Sedang Digunakan" }]
+    );
+    expect(hasil["ast-9"]).toBe("Sedang digunakan");
+  });
+
+  it("tidak salah padan: nama aset generik pendek tidak menandai logbook unit lain", () => {
+    // Aset bernama "Sedan" tidak boleh "sedang digunakan" hanya karena
+    // logbook merujuk "Sepeda Motor KAWASAKI KLX 230 (B 3184 PKQ)".
+    const hasil = hitungStatusAsetLive(
+      [
+        {
+          id: "ast-sedan",
+          nama: "Sedan",
+          kode: "3020101001-000001",
+          noPolisi: "DC 1801",
+          tipe: "Corolla Altis 1.8 GAT",
+          merk: "Toyota",
+          status: "Standby" as const,
+        },
+      ],
+      [{ jenisUnit: "Sepeda Motor KAWASAKI KLX 230 (B 3184 PKQ)", status: "Sedang Digunakan" }]
+    );
+    expect(hasil["ast-sedan"]).toBe("Standby");
+  });
+
+  it("tidak salah padan: logbook RIB tidak menandai aset motor darat", () => {
+    const hasil = hitungStatusAsetLive(asets, [
+      { jenisUnit: "Perahu Karet RIB 01", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["ast-1"]).toBe("Standby");
+  });
+
+  it("hanya SATU unit yang ditandai bila jenis_unit nama generik dipakai banyak aset", () => {
+    // Regresi nyata: 4 motor trail sama-sama bernama resmi "Sepeda Motor";
+    // logbook yang menyimpan teks generik itu tidak boleh menandai semuanya.
+    const banyakMotor = [
+      { id: "m1", nama: "Sepeda Motor", kode: "3020104001-000003", noPolisi: "DC 3481", tipe: "LX 150L", merk: "Kawasaki", status: "Standby" as const },
+      { id: "m2", nama: "Sepeda Motor", kode: "3020104001-000005", noPolisi: "B 3183 PKQ", tipe: "KLX 230", merk: "Kawasaki", status: "Standby" as const },
+      { id: "m3", nama: "Sepeda Motor", kode: "3020104001-000006", noPolisi: "B 3184 PKQ", tipe: "KLX 230", merk: "Kawasaki", status: "Standby" as const },
+      { id: "m4", nama: "Sepeda Motor", kode: "3020104001-000007", noPolisi: "DC 3480", tipe: "KLX 150 L", merk: "Kawasaki", status: "Standby" as const },
+    ];
+    const hasil = hitungStatusAsetLive(banyakMotor, [
+      { jenisUnit: "Sepeda Motor", status: "Sedang Digunakan" },
+    ]);
+    const dipakai = banyakMotor.filter((m) => hasil[m.id] === "Sedang digunakan");
+    expect(dipakai).toHaveLength(1);
+    // Deterministik: unit pertama pada urutan daftar yang sama di semua halaman.
+    expect(dipakai[0].id).toBe("m1");
+  });
+
+  it("jenis_unit 'nama (no polisi)' mengikat ke unit yang tepat, bukan unit pertama", () => {
+    const banyakMotor = [
+      { id: "m1", nama: "Sepeda Motor", kode: "3020104001-000003", noPolisi: "DC 3481", tipe: "LX 150L", merk: "Kawasaki", status: "Standby" as const },
+      { id: "m2", nama: "Sepeda Motor", kode: "3020104001-000005", noPolisi: "B 3183 PKQ", tipe: "KLX 230", merk: "Kawasaki", status: "Standby" as const },
+      { id: "m3", nama: "Sepeda Motor", kode: "3020104001-000006", noPolisi: "B 3184 PKQ", tipe: "KLX 230", merk: "Kawasaki", status: "Standby" as const },
+      { id: "m4", nama: "Sepeda Motor", kode: "3020104001-000007", noPolisi: "DC 3480", tipe: "KLX 150 L", merk: "Kawasaki", status: "Standby" as const },
+    ];
+    const hasil = hitungStatusAsetLive(banyakMotor, [
+      // Format simpanan baru dari form logbook: nama resmi + polisi.
+      { jenisUnit: "Sepeda Motor (B 3184 PKQ)", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["m3"]).toBe("Sedang digunakan");
+    expect(hasil["m1"]).toBe("Standby");
+    expect(hasil["m2"]).toBe("Standby");
+    expect(hasil["m4"]).toBe("Standby");
+  });
+
+  it("label nama referensi ('Trail 04') dalam jenis_unit mengikat ke unit yang benar", () => {
+    const banyakMotor = [
+      { id: "m1", nama: "Sepeda Motor", kode: "3020104001-000003", noPolisi: "DC 3481", tipe: "LX 150L", merk: "Kawasaki", namaReferensi: "Trail 02 — DC 3481", status: "Standby" as const },
+      { id: "m2", nama: "Sepeda Motor", kode: "3020104001-000005", noPolisi: "B 3183 PKQ", tipe: "KLX 230", merk: "Kawasaki", namaReferensi: "Trail 03 — B 3183 PKQ", status: "Standby" as const },
+      { id: "m3", nama: "Sepeda Motor", kode: "3020104001-000006", noPolisi: "B 3184 PKQ", tipe: "KLX 230", merk: "Kawasaki", namaReferensi: "Trail 04 — B 3184 PKQ", status: "Standby" as const },
+      { id: "m4", nama: "Sepeda Motor", kode: "3020104001-000007", noPolisi: "DC 3480", tipe: "KLX 150 L", merk: "Kawasaki", namaReferensi: "Trail 01 — DC 3480", status: "Standby" as const },
+    ];
+    const hasil = hitungStatusAsetLive(banyakMotor, [
+      { jenisUnit: "Sepeda Motor Trail 04", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["m3"]).toBe("Sedang digunakan");
+    expect(hasil["m1"]).toBe("Standby");
+    expect(hasil["m2"]).toBe("Standby");
+    expect(hasil["m4"]).toBe("Standby");
+  });
+
+  it("merk membedakan RIB sejenis: 'Sea First' menandai RIB Sea First saja", () => {
+    const ribs = [
+      { id: "r1", nama: "Rigid Inflatable Boat (RIB) Kelas I", kode: "3020303040-000002", noPolisi: "RIB 02", tipe: "RIB 1100", merk: "Vektor", status: "Standby" as const },
+      { id: "r2", nama: "Rigid Inflatable Boat (RIB) Kelas I", kode: "3020303040-000006", noPolisi: "", tipe: "", merk: "Sea First", status: "Standby" as const },
+      { id: "r3", nama: "Rigid Inflatable Boat (RIB) Kelas I", kode: "3020303040-000007", noPolisi: "", tipe: "", merk: "", status: "Standby" as const },
+    ];
+    const hasil = hitungStatusAsetLive(ribs, [
+      // Bentuk jenis_unit pada data seed logbook.
+      { jenisUnit: "Rigid Inflatable Boat (RIB) Kelas I Sea First", status: "Sedang Digunakan" },
+    ]);
+    expect(hasil["r2"]).toBe("Sedang digunakan");
+    expect(hasil["r1"]).toBe("Standby");
+    expect(hasil["r3"]).toBe("Standby");
   });
 });

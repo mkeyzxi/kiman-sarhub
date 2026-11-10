@@ -21,6 +21,7 @@ import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   formatTanggal,
   hitungReadinessStats,
+  hitungStatusAsetLive,
   namaReferensiAset,
   STATUS_ASET_VARIANT,
   STATUS_ASET_STANDBY,
@@ -28,6 +29,7 @@ import {
 } from "@/components/shared/mock-data";
 import {
   useAsets,
+  useLogbooks,
   useNotifications,
   useActivityLog,
   useRiwayatOperasi,
@@ -89,9 +91,22 @@ export default function PimpinanPage() {
   // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
   // angka hardcode 45 yang tidak terhubung data mana pun.
   const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
+  // Logbook perjalanan — sumber status "Sedang digunakan" yang hidup.
+  const { data: logbookList } = useLogbooks();
+
+  /**
+   * Status aset secara live: turunkan "Sedang digunakan" dari logbook yang
+   * belum kembali (sumber sama dengan /operator/logbook), bukan semata kolom
+   * `asets.status` di database yang hanya berubah lewat aksi manual.
+   */
+  const statusLive = hitungStatusAsetLive(asetList, logbookList);
+  const asetLive = asetList.map((aset) => ({
+    ...aset,
+    status: statusLive[aset.id] ?? aset.status,
+  }));
 
   // Readiness dihitung dari data aset Supabase (bukan mock statis).
-  const readinessStats = hitungReadinessStats(asetList);
+  const readinessStats = hitungReadinessStats(asetLive);
   const personelAktif = (daftarUsers ?? []).filter((u) => u.aktif).length;
   const asetStandby = readinessStats.standby;
   const totalAset = readinessStats.totalAset;
@@ -99,7 +114,7 @@ export default function PimpinanPage() {
 
   // Status aset yang dihitung "lengkap" = benar-benar siap operasional.
   const siap = (status: StatusAset) => STATUS_ASET_STANDBY.includes(status);
-  const filteredAset = asetList.filter((aset) => {
+  const filteredAset = asetLive.filter((aset) => {
     if (asetFilter === "Standby") return siap(aset.status);
     if (asetFilter === "Belum Lengkap") return !siap(aset.status);
     return true;
