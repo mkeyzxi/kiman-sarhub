@@ -155,31 +155,33 @@ drop policy if exists logbook_select on public.logbook_perjalanan;
 create policy logbook_select on public.logbook_perjalanan
   for select to authenticated using (true);
 
--- INSERT/UPDATE oleh operator lapangan & pengelola BMN (pencatatan &
--- pelengkapan perjalanan).
+-- INSERT/UPDATE oleh semua role KECUALI Akun Kantor: logbook perjalanan
+-- dipakai untuk meminjam kendaraan, jadi operator lapangan, pengelola BMN,
+-- dan Kakansar juga mengisinya (pencatatan & pelengkapan perjalanan).
 drop policy if exists logbook_write_operator on public.logbook_perjalanan;
 create policy logbook_write_operator on public.logbook_perjalanan
   for insert to authenticated
   with check (
-    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN')
+    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN', 'KAKANSAR')
   );
 
 drop policy if exists logbook_update_operator on public.logbook_perjalanan;
 create policy logbook_update_operator on public.logbook_perjalanan
   for update to authenticated
   using (
-    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN')
+    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN', 'KAKANSAR')
   )
   with check (
-    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN')
+    public.role_jwt() in ('ADMIN_IT', 'PENGELOLA_BMN', 'OPERATOR_LAPANGAN', 'KAKANSAR')
   );
 
 -- DELETE hanya Admin IT (management data logbook).
+-- CATATAN: policy DELETE tidak boleh memakai WITH CHECK —
+-- PostgreSQL menolaknya (error 42601). USING saja sudah cukup.
 drop policy if exists logbook_delete_admin on public.logbook_perjalanan;
 create policy logbook_delete_admin on public.logbook_perjalanan
   for delete to authenticated
-  using (public.role_jwt() = 'ADMIN_IT')
-  with check (public.role_jwt() = 'ADMIN_IT');
+  using (public.role_jwt() = 'ADMIN_IT');
 
 -- ─── 8. ews_tickets ────────────────────────────────────────────────────────--
 drop policy if exists tickets_select on public.ews_tickets;

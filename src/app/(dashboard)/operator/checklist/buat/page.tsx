@@ -73,7 +73,11 @@ function cocokJenisArmada(aset: Aset, jenisArmada: JenisArmada): boolean {
  * - Operator lapangan: hanya aset yang menjadi tanggung jawabnya.
  * - Akun kantor (AKUNTOR): SEMUA aset pada jenis armada itu — mereka
  *   melakukan checklist perawatan harian tanpa harus menjadi PJ unit.
- *   Nama PJ ditampilkan pada label agar asal unit jelas.
+ *
+ * Label opsi memakai format logbook perjalanan: "Nama Referensi ·
+ * PJ: NamaPenanggungJawab". Nama referensi (mis. "Trail 03 — B 3183 PKQ")
+ * jauh lebih mudah dikenali daripada nama generik aset ("Sepeda Motor"),
+ * dan nama PJ menegaskan asal unit — untuk semua role.
  *
  * Unit statis lama (RIB 9 M, KN SAR MAMUJU 01) tidak dipakai lagi karena
  * tidak ada di register BMN.
@@ -94,12 +98,13 @@ function getUnitOptionsForArmada(
     })
     .map((a) => {
       const pj = getUserById(a.penanggungJawab)?.nama;
-      // Label format: "Nama Aset · PJ: NamaPenanggungJawab"
-      // Seperti tampilan logbook perjalanan — hanya nama unit + penanggung jawab
-      const labelPj = role === "AKUNTOR" && pj ? ` · PJ: ${pj}` : "";
+      // Nama referensi lebih spesifik daripada nama generik aset;
+      // fallback ke nama aset bila referensi kosong.
+      const ref = a.namaReferensi?.trim() || a.nama;
+      const labelPj = pj ? ` · PJ: ${pj}` : "";
       return {
         value: a.kode,
-        label: `${a.nama}${labelPj}`,
+        label: `${ref}${labelPj}`,
       };
     });
 }
