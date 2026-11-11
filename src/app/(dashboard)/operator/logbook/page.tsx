@@ -95,8 +95,14 @@ export default function LogbookPerjalananPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const ses = useSesiUser();
-  /** Hak kelola logbook (hapus/edit/tambah) — khusus Admin IT. */
+  /** Hak kelola logbook (hapus/edit) — khusus Admin IT. */
   const bisaKelola = ses.role === "ADMIN_IT";
+  /**
+   * Semua role BOLEH menambah logbook perjalanan (untuk meminjam
+   * kendaraan), KECUALI Akun Kantor — menunya tidak ditampilkan
+   * untuk mereka (guard navigasi juga memblokir akses halamannya).
+   */
+  const bisaTambah = ses.role !== "AKUNTOR";
 
   // Modal konfirmasi hapus + state proses (untuk mencegah klik dobel).
   const [hapusTarget, setHapusTarget] = useState<LogbookPerjalanan | null>(null);
@@ -230,7 +236,7 @@ export default function LogbookPerjalananPage() {
             Catatan perjalanan operasional SAR
           </p>
         </div>
-        {bisaKelola && (
+        {bisaTambah && (
           <Link href="/operator/logbook/tambah">
             <Button>
               <Plus className="h-4 w-4" />
