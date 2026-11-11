@@ -32,7 +32,7 @@ import {
   type StatusPenggunaan,
   type LogbookPerjalanan,
 } from "@/components/shared/mock-data";
-import { mergeLogbooksWithSupabase } from "@/components/shared/logbook-store";
+import { mergeLogbooksWithSupabase, getLogbookById } from "@/components/shared/logbook-store";
 import { useLogbooks, useAsets } from "@/components/shared/use-supabase-data";
 import { useSesiUser } from "@/components/shared/use-session";
 import { DataLoading, DataError } from "@/components/shared/data-state";
@@ -75,7 +75,9 @@ export default function DetailLogbookPage() {
   const logbooks = mergeLogbooksWithSupabase(
     supabaseLogbooks as unknown as LogbookPerjalanan[]
   );
-  const log = logbooks.find((l) => l.id === params.id);
+  const log =
+    logbooks.find((l) => l.id === params.id) ??
+    getLogbookById(params.id);
   // Master BMN untuk melengkapi identitas unit pada dokumen cetak.
   const { data: asetList } = useAsets();
 
