@@ -90,6 +90,30 @@ export default function MasterDataBMNPage() {
   const hitung = (status: string) =>
     asetList.filter((a) => statusEfektif(a) === status).length;
 
+  /**
+   * Klik kartu statistik → langsung memfilter tabel di bawah, lalu
+   * auto-scroll supaya hasil filter terlihat. Kartu "Total Aset"
+   * (reset) tidak di-scroll karena tabel sudah terlihat dari atas.
+   */
+  const statusKartuAktif =
+    statusFilter === "Semua" ? null : statusFilter;
+
+  const klikKartuStat = (label: string) => {
+    const statusTarget = label === "Total Aset" ? null : label;
+    const reset = statusKartuAktif === statusTarget;
+    if (reset) {
+      setStatusFilter("Semua");
+      return;
+    }
+    setStatusFilter(statusTarget ?? "Semua");
+    // Setelah re-render, scroll lembut ke area tabel supaya hasil
+    // filter langsung terlihat tanpa harus mencari manual.
+    requestAnimationFrame(() => {
+      const el = document.getElementById("bmn-table-target");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const stats = [
     {
       label: "Total Aset",
@@ -153,23 +177,41 @@ export default function MasterDataBMNPage() {
         </Link>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards — klik untuk memfilter tabel di bawah */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="p-6">
-            <div className="flex items-center gap-4">
-              <div
-                className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.iconBg}`}
+        {stats.map((stat) => {
+          const aktif = statusKartuAktif === stat.label;
+          return (
+            <button
+              key={stat.label}
+              type="button"
+              onClick={() => klikKartuStat(stat.label)}
+              className="w-full cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <Card
+                className={`h-full w-full p-6 transition-all ${
+                  aktif
+                    ? "ring-2 ring-primary shadow-md"
+                    : "hover:shadow-md hover:-translate-y-0.5"
+                }`}
               >
-                <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-                <p className="text-sm text-slate-600">{stat.label}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.iconBg}`}
+                  >
+                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
+                    <p className={`text-sm ${aktif ? "font-semibold text-primary" : "text-slate-600"}`}>
+                      {stat.label}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search + Filter */}
@@ -205,7 +247,7 @@ export default function MasterDataBMNPage() {
       )}
 
       {/* Table — otomatis menjadi kartu di layar kecil */}
-      <Card>
+      <Card id="bmn-table-target">
         <ResponsiveTable
           data={paginatedAset}
           getKey={(row) => row.id}

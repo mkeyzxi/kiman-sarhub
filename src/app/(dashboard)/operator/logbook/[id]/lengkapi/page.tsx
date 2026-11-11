@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -34,6 +34,7 @@ import {
 import {
   simpanTahapAkhir,
   mergeLogbooksWithSupabase,
+  getLogbookById,
 } from "@/components/shared/logbook-store";
 import { useLogbooks } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
@@ -76,11 +77,33 @@ export default function LengkapiLogbookPage() {
   const logbooks = mergeLogbooksWithSupabase(
     supabaseLogbooks as unknown as LogbookPerjalanan[]
   );
-  const logbook = logbooks.find((l) => l.id === params.id);
+  /**
+   * Gabungan: cari di merged list (in-memory + Supabase), fallback ke in-memory
+   * store langsung bila `useLogbooks` belum selesai fetch. Ini menutup gap
+   * saat logbook baru dibuat (persistInsert async) tapi user langsung ke
+   * /lengkapi sebelum INSERT Supabase selesai.
+   */
+  const logbook =
+    logbooks.find((l) => l.id === params.id) ??
+    getLogbookById(params.id);
 
   const [form, setForm] = useState<FormLogbook | null>(() =>
     logbook ? logbookKeForm(logbook) : null
   );
+
+  // Bila form belum terisi (logbook belum tersedia saat mount) dan logbook
+  // baru saja muncul dari in-memory store / Supabase, sync ke form.
+  // Defer ke setTimeout(0) agar setState tidak dipanggil sinkron di dalam
+  // effect body — pola lint-safe untuk efek yang bergantung pada data
+  // asinkron dari hook.
+  useEffect(() => {
+    if (!form && logbook) {
+      const t = setTimeout(() => {
+        setForm(logbookKeForm(logbook));
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [form, logbook]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormLogbook, string>>>(
     {}
   );
