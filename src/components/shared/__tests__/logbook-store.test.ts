@@ -280,6 +280,92 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
     }
   });
 
+  it("mengadopsi fallback Supabase bila ID tidak ada di in-memory", () => {
+    // Skenario: logbook dibuat pada sesi browser sebelumnya (sudah persist ke
+    // Supabase), lalu user reload — in-memory store kosong. Halaman /lengkapi
+    // mendapat catatan dari merge Supabase dan mengoper kepadanya sebagai
+    // fallback; store harus mengadopsi, bukan menolak "tidak ditemukan".
+    resetLogbooksForTesting();
+
+    // Record dari Supabase (bukan hasil simpanTahapAwal sesi ini).
+    const dariSupabase: LogbookPerjalanan = {
+      id: "lp-1794282326078",
+      tanggal: "2026-11-10",
+      jamBerangkat: "07:42",
+      jamKembali: "",
+      rute: "Kantor SAR Mamuju - Kantor Gubernur",
+      tujuan: "Tugas kantor",
+      kategoriUnit: "Motor",
+      jenisUnit: "Sepeda Motor",
+      nahkoda: "Agan Kalana",
+      jumlahPersonel: 1,
+      bbmSebelum: "100%",
+      bbmSesudah: "",
+      bbmTambahan: "",
+      kmSebelum: "5360",
+      kmSesudah: "",
+      status: "Sedang Digunakan",
+      catatan: "",
+      tanggalSimpan: "2026-11-10T07:42:00",
+    };
+
+    const form = formValidDarat("07:42", "09:15");
+    form.jamBerangkat = "07:42";
+    form.kategoriUnit = "Motor";
+    form.jenisUnit = "Sepeda Motor";
+    form.nahkoda = "Agan Kalana";
+    form.jumlahPersonel = "1";
+    form.bbmSebelum = "100";
+    form.bbmSesudah = "85";
+    form.kmSebelum = "5360";
+    form.kmSesudah = "5412";
+    form.enduranceAwal = "";
+    form.enduranceAkhir = "";
+
+    const hasil = simpanTahapAkhir(dariSupabase.id, form, dariSupabase);
+    if ("error" in hasil) {
+      throw new Error(`Harusnya sukses tapi dapat: ${hasil.error}`);
+    }
+
+    // Tahap 2 memperbarui catatan yang sama (ID tidak berubah).
+    expect(hasil.logbook.id).toBe("lp-1794282326078");
+    expect(hasil.logbook.status).toBe("Selesai");
+    expect(hasil.logbook.jamKembali).toBe("09:15");
+    expect(hasil.logbook.kmSesudah).toBe("5412");
+    // Catatan teradopsi kini ada di store — operasi lanjutan konsisten.
+    expect(getLogbookById("lp-1794282326078")).toBeDefined();
+  });
+
+  it("fallback dengan ID berbeda tidak diadopsi → tetap error", () => {
+    // Fallback dgn ID lain tidak boleh dipakai — id harus cocok dengan target.
+    const dariSupabase: LogbookPerjalanan = {
+      id: "lp-1794282326078",
+      tanggal: "2026-11-10",
+      jamBerangkat: "07:42",
+      jamKembali: "",
+      rute: "Kantor SAR Mamuju - Kantor Gubernur",
+      tujuan: "Tugas kantor",
+      kategoriUnit: "Motor",
+      jenisUnit: "Sepeda Motor",
+      nahkoda: "Agan Kalana",
+      jumlahPersonel: 1,
+      bbmSebelum: "100%",
+      bbmSesudah: "",
+      status: "Sedang Digunakan",
+      catatan: "",
+      tanggalSimpan: "2026-11-10T07:42:00",
+    };
+    const hasil = simpanTahapAkhir(
+      "lp-id-berbeda",
+      formValidDarat(),
+      dariSupabase
+    );
+    expect("error" in hasil).toBe(true);
+    if ("error" in hasil) {
+      expect(hasil.error).toBe("Catatan logbook tidak ditemukan.");
+    }
+  });
+
   it("jamKembali tersimpan di catatan yang sama", () => {
     const form = formValidLaut("08:00", "14:00");
     const hasil = simpanTahapAkhir(idTarget, form);

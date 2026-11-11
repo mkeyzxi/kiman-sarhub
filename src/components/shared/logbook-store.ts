@@ -223,14 +223,25 @@ export function simpanTahapAwal(
  * Tidak pernah membuat catatan baru: entri dengan `id` yang sama diperbarui di
  * tempat. Status menjadi `Selesai` hanya bila seluruh data wajib tahap akhir
  * sudah terisi.
+ *
+ * @param fallback Catatan hasil fetch Supabase — dipakai bila ID tidak ada di
+ *   in-memory store (sesi browser baru: store hanya berisi catatan yang dibuat
+ *   pada sesi yang sama). Record diadopsi ke store sehingga update & operasi
+ *   lanjutan tetap konsisten tanpa membuat baris baru.
  */
 export function simpanTahapAkhir(
   id: string,
-  form: FormLogbook
+  form: FormLogbook,
+  fallback?: LogbookPerjalanan
 ):
   | { logbook: LogbookPerjalanan }
   | { error: string; errors: Record<string, string> } {
-  const existing = logbooks.find((l) => l.id === id);
+  let existing = logbooks.find((l) => l.id === id);
+  if (!existing && fallback && fallback.id === id) {
+    // Catatan hanya tersedia dari Supabase — adopsi ke in-memory store.
+    existing = fallback;
+    logbooks = [fallback, ...logbooks];
+  }
   if (!existing) {
     return { error: "Catatan logbook tidak ditemukan.", errors: {} };
   }
