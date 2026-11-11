@@ -168,7 +168,11 @@ export default function LengkapiLogbookPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const hasil = simpanTahapAkhir(logbook.id, form);
+    // Record `logbook` dioper sebagai fallback: bila catatan hanya ada di
+    // Supabase (sesi baru setelah reload), store mengadopsinya sehingga
+    // tahap 2 tetap memperbarui catatan yang sama — bukan gagal "tidak
+    // ditemukan".
+    const hasil = simpanTahapAkhir(logbook.id, form, logbook);
 
     if ("error" in hasil) {
       setErrors(hasil.errors as Partial<Record<keyof FormLogbook, string>>);
@@ -232,7 +236,12 @@ export default function LengkapiLogbookPage() {
           role="alert"
           className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
         >
-          {errorUmum} Lengkapi dulu kolom yang ditandai merah.
+          {/* Sufiks hanya relevan bila ada field yang gagal validasi
+              (errors tidak kosong). Error lain — mis. catatan tidak
+              ditemukan — tidak punya kolom merah untuk diisi. */}
+          {errorUmum}
+          {Object.keys(errors).length > 0 &&
+            " Lengkapi dulu kolom yang ditandai merah."}
         </div>
       )}
 
