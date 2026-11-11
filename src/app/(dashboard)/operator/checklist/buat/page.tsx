@@ -14,8 +14,6 @@ import {
   cariAsetDmUnit,
   bolehIsiChecklist,
   getUserById,
-  labelModelAset,
-  todayISODate,
   type Aset,
   type UserRole,
   type KondisiHasil,
@@ -96,10 +94,12 @@ function getUnitOptionsForArmada(
     })
     .map((a) => {
       const pj = getUserById(a.penanggungJawab)?.nama;
+      // Label format: "Nama Aset · PJ: NamaPenanggungJawab"
+      // Seperti tampilan logbook perjalanan — hanya nama unit + penanggung jawab
       const labelPj = role === "AKUNTOR" && pj ? ` · PJ: ${pj}` : "";
       return {
         value: a.kode,
-        label: `${a.nama}${labelModelAset(a) ? ` · ${labelModelAset(a)}` : ""}${labelPj} (${a.kode})`,
+        label: `${a.nama}${labelPj}`,
       };
     });
 }
