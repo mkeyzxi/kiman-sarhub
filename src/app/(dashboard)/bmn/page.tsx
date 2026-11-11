@@ -91,21 +91,27 @@ export default function MasterDataBMNPage() {
     asetList.filter((a) => statusEfektif(a) === status).length;
 
   /**
-   * Klik kartu statistik → langsung memfilter tabel di bawah, lalu
-   * auto-scroll supaya hasil filter terlihat. Kartu "Total Aset"
-   * (reset) tidak di-scroll karena tabel sudah terlihat dari atas.
+   * Pemetaan label kartu → nilai status sebenarnya (STATUS_ASET).
+   * WAJIB karena label tampilan dan nilai status beda kapital:
+   * kartu "Sedang Digunakan" vs status "Sedang digunakan" (d kecil).
+   * Tanpa pemetaan ini, klik kartu menyetel filter ke nilai yang tak
+   * pernah cocok → tabel selalu kosong.
    */
-  const statusKartuAktif =
-    statusFilter === "Semua" ? null : statusFilter;
+  const labelKeStatus: Record<string, string> = {
+    "Total Aset": "Semua",
+    Standby: "Standby",
+    "Sedang Digunakan": "Sedang digunakan",
+    "Rusak Berat": "Rusak Berat",
+  };
 
   const klikKartuStat = (label: string) => {
-    const statusTarget = label === "Total Aset" ? null : label;
-    const reset = statusKartuAktif === statusTarget;
-    if (reset) {
+    const statusTarget = labelKeStatus[label] ?? "Semua";
+    // Toggle: klik kartu yang statusnya sama dengan filter aktif → reset "Semua"
+    if (statusFilter === statusTarget) {
       setStatusFilter("Semua");
-      return;
+    } else {
+      setStatusFilter(statusTarget);
     }
-    setStatusFilter(statusTarget ?? "Semua");
     // Setelah re-render, scroll lembut ke area tabel supaya hasil
     // filter langsung terlihat tanpa harus mencari manual.
     requestAnimationFrame(() => {
@@ -180,7 +186,13 @@ export default function MasterDataBMNPage() {
       {/* Stats Cards — klik untuk memfilter tabel di bawah */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
-          const aktif = statusKartuAktif === stat.label;
+          // Kartu aktif bila filter saat ini = status target kartu.
+          // Pemetaan dipakai agar "Sedang Digunakan" (label) cocok dengan
+          // "Sedang digunakan" (nilai filter). Kartu "Total Aset" tidak
+          // pernah disorot karena "Semua" adalah kondisi default.
+          const aktif =
+            stat.label !== "Total Aset" &&
+            statusFilter === (labelKeStatus[stat.label] ?? "—");
           return (
             <button
               key={stat.label}
