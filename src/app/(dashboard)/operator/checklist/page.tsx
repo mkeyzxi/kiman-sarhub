@@ -21,6 +21,7 @@ import {
   FileText,
   RefreshCw,
   PenLine,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ import {
   countItemKritis,
   getUserById,
   labelModelAset,
+  type ChecklistHarian,
 } from "@/components/shared/mock-data";
 import {
   beritaAcaraByChecklist,
@@ -42,7 +44,7 @@ import {
 } from "@/components/shared/berita-acara-store";
 import { cn } from "@/lib/utils";
 import { useSesiUser } from "@/components/shared/use-session";
-import { useChecklistsCombined } from "@/components/shared/checklist-store";
+import { useChecklistsCombined, hapusChecklist } from "@/components/shared/checklist-store";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   useAsets,
@@ -219,10 +221,18 @@ export default function ChecklistPerawatanPage() {
   const ses = useSesiUser();
   const bolehBuatChecklist =
     ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR";
+  /** Hak kelola (hapus) checklist — khusus Admin IT. */
+  const bisaKelola = ses.role === "ADMIN_IT";
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
+
+  // Modal konfirmasi hapus + state proses (untuk mencegah klik dobel).
+  const [hapusTarget, setHapusTarget] = useState<ChecklistHarian | null>(null);
+  const [sedangMenghapus, setSedangMenghapus] = useState(false);
+  const [pesanGagalHapus, setPesanGagalHapus] = useState<string | null>(null);
+  const [pesanBerhasilHapus, setPesanBerhasilHapus] = useState<string | null>(null);
   
   // Debounce search query untuk performa yang lebih baik
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -353,6 +363,39 @@ export default function ChecklistPerawatanPage() {
     }
   }
 
+  // ── Management Admin IT: hapus checklist ──────────────────────────────────
+  /**
+   * Eksekusi penghapusan checklist: hapus dari in-memory + Supabase (RLS
+   * memastikan hanya ADMIN_IT yang bisa), lalu segarkan daftar agar
+   * statistik & tabel langsung mengikuti.
+   */
+  const eksekusiHapus = async () => {
+    if (!hapusTarget) return;
+    setSedangMenghapus(true);
+    setPesanGagalHapus(null);
+    try {
+      const ok = await hapusChecklist(hapusTarget.id);
+      if (!ok) {
+        setPesanGagalHapus(
+          "Penghapusan ditolak database (RLS). Pastikan Anda login sebagai Admin IT."
+        );
+        return;
+      }
+      setPesanBerhasilHapus(
+        `Checklist "${hapusTarget.unit}" (${hapusTarget.tanggal}) berhasil dihapus.`
+      );
+      setHapusTarget(null);
+      // Segarkan data Supabase agar statistik + tabel langsung terupdate.
+      refetch();
+    } catch (err) {
+      setPesanGagalHapus(
+        err instanceof Error ? err.message : "Gagal menghapus checklist."
+      );
+    } finally {
+      setSedangMenghapus(false);
+    }
+  };
+
   // Early return SETELAH semua hooks dipanggil
   if (loading) {
     return <DataLoading label="Memuat daftar checklist harian…" />;
@@ -430,6 +473,40 @@ export default function ChecklistPerawatanPage() {
           </Badge>
         )}
       </div>
+
+      {/* Toast hasil hapus / gagal */}
+      {pesanBerhasilHapus && (
+        <div
+          role="status"
+          className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700"
+        >
+          <p>{pesanBerhasilHapus}</p>
+          <button
+            type="button"
+            onClick={() => setPesanBerhasilHapus(null)}
+            className="text-emerald-600 hover:text-emerald-800"
+            aria-label="Tutup"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {pesanGagalHapus && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
+        >
+          <p>{pesanGagalHapus}</p>
+          <button
+            type="button"
+            onClick={() => setPesanGagalHapus(null)}
+            className="text-red-600 hover:text-red-800"
+            aria-label="Tutup"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -669,7 +746,10 @@ export default function ChecklistPerawatanPage() {
                 key: "aksi",
                 header: "Aksi",
                 render: (row) => (
-                  <div className="flex items-center justify-center gap-1">
+                  <div
+                    className="flex items-center justify-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Link href={`/operator/checklist/${row.id}`}>
                       <Button
                         variant="ghost"
@@ -705,6 +785,22 @@ export default function ChecklistPerawatanPage() {
                           )}
                         </Link>
                       )}
+                    {/* Aksi hapus — khusus Admin IT (management data). */}
+                    {bisaKelola && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:bg-red-50"
+                        aria-label={`Hapus checklist ${row.unit}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPesanGagalHapus(null);
+                          setHapusTarget(row);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 ),
                 headClassName: "text-center",
@@ -785,6 +881,82 @@ export default function ChecklistPerawatanPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Modal konfirmasi hapus (management Admin IT) ─────────────────── */}
+      {hapusTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-md p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-full bg-red-100">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">
+                  Hapus Checklist Perawatan
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Tindakan ini tidak dapat dibatalkan
+                </p>
+              </div>
+            </div>
+            <div className="mb-6 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Unit</span>
+                <span className="font-medium text-slate-800">
+                  {hapusTarget.unit}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Tanggal</span>
+                <span className="font-medium text-slate-800">
+                  {hapusTarget.tanggal}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Pemeriksa</span>
+                <span className="font-medium text-slate-800">
+                  {getUserById(hapusTarget.pemeriksa)?.nama ?? hapusTarget.pemeriksa}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Progress</span>
+                <span className="font-medium text-slate-800">
+                  {hapusTarget.itemChecked}/{hapusTarget.itemTotal}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Status</span>
+                <Badge
+                  variant={hapusTarget.status === "Lengkap" ? "success" : "warning"}
+                >
+                  {hapusTarget.status}
+                </Badge>
+              </div>
+            </div>
+            <p className="mb-6 text-sm text-slate-600">
+              Checklist ini akan dihapus dari database. Gunakan bila data
+              tercatat keliru (salah input / duplikat).
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setHapusTarget(null)}
+                disabled={sedangMenghapus}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="danger"
+                onClick={eksekusiHapus}
+                disabled={sedangMenghapus}
+              >
+                <Trash2 className="h-4 w-4" />
+                {sedangMenghapus ? "Menghapus..." : "Hapus Checklist"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
