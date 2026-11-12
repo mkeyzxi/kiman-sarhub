@@ -68,8 +68,11 @@ export default function EditChecklistPage() {
   /**
    * Penanggung jawab aset checklist ini boleh memvalidasi & mengedit
    * (koreksi item rusak menjadi Baik setelah cek langsung ke unit).
+   * Haknya baru bisa dipastikan setelah detail aset selesai dimuat.
    */
-  const { data: asetDetail } = useAsetById(checklist?.asetId);
+  const { data: asetDetail, loading: loadingAset } = useAsetById(
+    checklist?.asetId
+  );
   const isPJAset =
     ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR"
       ? asetDetail?.penanggungJawab === ses.nip
@@ -81,6 +84,16 @@ export default function EditChecklistPage() {
     ses.role === "ADMIN_IT" ||
     (ses.role === "OPERATOR_LAPANGAN" && (pemilik || isPJAset)) ||
     (ses.role === "AKUNTOR" && (pemilik || isPJAset));
+
+  /**
+   * Hak PJ baru bisa diputuskan setelah detail aset selesai dimuat.
+   * Selama masih loading, jangan tolak akses — halaman tetap loading.
+   * Tanpa guard ini, halaman sempat menampilkan "Akses Ditolak" sesaat
+   * (query aset belum selesai) lalu kembali normal, dan pemanggilan
+   * ulang komponen membuang state form (items/catatan) yang sedang
+   * diubah user — persis keluhan "bisa berubah lalu tiba-tiba hilang".
+   */
+  const aksesTetap = !loading && !loadingAset;
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [itemChecked, setItemChecked] = useState(0);
@@ -118,8 +131,31 @@ export default function EditChecklistPage() {
     }
   }, [checklist]);
 
+  // ── Guard akses ──────────────────────────────────────────────────────────────
+  // Cek "Akses Ditolak" HANYA setelah SEMUA data penentu hak selesai dimuat
+  // (daftar checklist + detail aset). Selama masih loading, tampilkan loading
+  // — bukan tolak. Ini mencegah flash "Akses Ditolak" palsu saat query aset
+  // belum balik (bug race-condition: guard lama mengecek `!bisaEdit` sebelum
+  // aset selesai dimuat, lalu halaman me-replace seluruh tree komponen dan
+  // membuang state form yang sedang diubah user).
+  if (loading || loadingAset) {
+    return <DataLoading label="Memuat checklist untuk edit…" />;
+  }
+  if (error) {
+    return (
+      <DataError
+        error={error}
+        onRetry={refetch}
+        label="Gagal memuat checklist dari database"
+      />
+    );
+  }
   // Guard: bukan pemilik/PJ & bukan admin → akses ditolak.
-  if (!bisaEdit) {
+  // Hanya aktif saat data sudah lengkap (aksesTetap) — agar tidak menolak
+  // sementara di antara dua query (checklist vs detail aset) yang belum
+  // selesai, yang dulu bikin "Akses Ditolak" nyelip lalu hilang sendiri
+  // sekaligus membuang state form user.
+  if (aksesTetap && !bisaEdit) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <ShieldAlert className="h-12 w-12 text-rose-300" />
@@ -135,18 +171,6 @@ export default function EditChecklistPage() {
     );
   }
 
-  if (loading) {
-    return <DataLoading label="Memuat checklist untuk edit…" />;
-  }
-  if (error) {
-    return (
-      <DataError
-        error={error}
-        onRetry={refetch}
-        label="Gagal memuat checklist dari database"
-      />
-    );
-  }
   if (!checklist) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">

@@ -16,6 +16,9 @@ import {
   FileText,
   Printer,
   PencilLine,
+  ShieldAlert,
+  Tag,
+  ShieldCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -28,6 +31,7 @@ import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   checklistTemplates,
   formatTanggal,
+  getUserById,
 } from "@/components/shared/mock-data";
 import { useAsets, useAsetById } from "@/components/shared/use-supabase-data";
 import {
@@ -60,9 +64,20 @@ export default function DetailChecklistPage() {
   // Checklist dari Supabase + data sesi berjalan (in-memory), digabung.
   const { data, loading, error, refetch } = useChecklistsCombined();
   // Master BMN untuk melengkapi identitas unit pada dokumen cetak.
-  const { data: asetList } = useAsets();
+  const { data: asetList, loading: loadingAsets } = useAsets();
   const checklist = data.find((c) => c.id === id);
-  const { data: asetDetail } = useAsetById(checklist?.asetId);
+  // Detail aset terkait — dipakai untuk menentukan hak PJ (isPJAset).
+  const { data: asetDetail, loading: loadingAset } = useAsetById(
+    checklist?.asetId
+  );
+
+  /**
+   * Hak PJ baru bisa diputuskan setelah daftar aset & detail aset selesai
+   * dimuat. Selama masih ada yang loading, akses masih "tidak pasti" —
+   * halaman tetap loading, JANGAN tolak. Ini mencegah flash "Akses
+   * Ditolak" sementara yang kemudian hilang sendiri (bug race-condition).
+   */
+  const aksesTetap = !loading && !loadingAsets && !loadingAset;
 
   // Identifikasi pemilik checklist (pemeriksaId === NIP user login).
   const pemilik = checklist?.pemeriksaId && checklist.pemeriksaId === ses.nip;
@@ -82,7 +97,7 @@ export default function DetailChecklistPage() {
     (ses.role === "OPERATOR_LAPANGAN" && (pemilik || isPJAset)) ||
     (ses.role === "AKUNTOR" && (pemilik || isPJAset));
 
-  if (loading) {
+  if (loading || loadingAsets || loadingAset) {
     return <DataLoading label="Memuat detail checklist…" />;
   }
   if (error) {
@@ -92,6 +107,27 @@ export default function DetailChecklistPage() {
         onRetry={refetch}
         label="Gagal memuat checklist dari database"
       />
+    );
+  }
+
+  // Akses ditolak HANYA bila data sudah lengkap dimuat (aksesTetap) —
+  // bukan saat query aset masih jalan. Tanpa kondisi ini, halaman sempat
+  // menampilkan "Akses Ditolak" sesaat lalu berganti normal sendiri,
+  // dan pemanggilan ulang komponen membuat state form/validasi terlempar.
+  if (aksesTetap && !bisaEdit) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <ShieldAlert className="h-12 w-12 text-rose-300" />
+        <h1 className="text-xl font-bold text-slate-800">Akses Ditolak</h1>
+        <p className="text-sm text-slate-500">
+          Anda tidak memiliki akses ke detail checklist ini. Hanya pemilik
+          checklist, penanggung jawab aset terkait, atau Admin IT yang dapat
+          membuka halaman ini.
+        </p>
+        <Link href="/operator/checklist">
+          <Button variant="outline">Kembali ke daftar checklist</Button>
+        </Link>
+      </div>
     );
   }
 
@@ -144,9 +180,24 @@ export default function DetailChecklistPage() {
       }
     : null;
 
+  // Nama penanggung jawab (PJ) aset — kolom master BMN menyimpan NIP;
+  // konversi ke nama via tabel users (fallback: NIP polos bila belum ada
+  // di database). Dipakai kartu ringkasan pemeriksaan.
+  const pjNama =
+    unitInfo?.penanggungJawab
+      ? getUserById(unitInfo.penanggungJawab)?.nama ??
+        unitInfo.penanggungJawab
+      : null;
+
   const info = [
     { icon: Calendar, label: "Tanggal", value: formatTanggal(checklist.tanggal) },
     { icon: User, label: "Pemeriksa", value: checklist.pemeriksa },
+    { icon: Tag, label: "Nama Referensi", value: unitInfo?.namaReferensi || "-" },
+    {
+      icon: ShieldCheck,
+      label: "PJ Kendaraan",
+      value: pjNama ?? "-",
+    },
     { icon: ClipboardCheck, label: "Template", value: template?.nama ?? "-" },
     {
       icon: CheckCircle2,
@@ -220,7 +271,7 @@ export default function DetailChecklistPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {info.map((item) => (
               <div key={item.label} className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-light">
