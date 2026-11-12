@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Plus, Trash2, PencilLine, FileText } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, CheckCircle2, AlertTriangle, Ship, Car, Bike, Anchor, Plus, Trash2, PencilLine, FileText, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -378,6 +378,28 @@ export default function BuatChecklistPage() {
     setModeManual(newJenis === "Lainnya");
     setItemManual([]);
     setChecklistBaruId(null);
+  };
+
+  /**
+   * Centang semua item template sekaligus dengan kondisi "Baik" —
+   * mempercepat pengisian checklist ketika seluruh item memang baik
+   * (kasus paling umum). Item yang sebelumnya sudah ditandai rusak
+   * juga ikut ter-overwrite menjadi "Baik", jadi gunakan dengan cermat.
+   */
+  const centangSemuaBaik = () => {
+    if (modeManual) {
+      setItemManual((prev) =>
+        prev.map((i) => ({ ...i, kondisi: "Baik", keterangan: "" }))
+      );
+    } else if (template) {
+      const semuaBaik: Record<string, KondisiHasil> = {};
+      for (const item of template.items) {
+        semuaBaik[item.label] = "Baik";
+      }
+      setHasil(semuaBaik);
+      // Keterangan di-reset: kondisi "Baik" tidak butuh keterangan.
+      setKeterangan({});
+    }
   };
 
   /** Tambah baris item baru pada mode input manual. */
@@ -793,18 +815,41 @@ export default function BuatChecklistPage() {
                 <h2 className="text-lg font-semibold text-slate-800">
                   Daftar Item yang Diperiksa
                 </h2>
-                <Badge
-                  variant={
-                    itemManual.length > 0 &&
-                    itemManualBelumSiap === 0 &&
-                    itemManualRusakTanpaKeterangan === 0
-                      ? "success"
-                      : "outline"
-                  }
-                >
-                  {itemManualTerisi} / {itemManual.length} item diisi
-                </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={
+                      itemManual.length > 0 &&
+                      itemManualBelumSiap === 0 &&
+                      itemManualRusakTanpaKeterangan === 0
+                        ? "success"
+                        : "outline"
+                    }
+                  >
+                    {itemManualTerisi} / {itemManual.length} item diisi
+                  </Badge>
+                  {itemManual.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={centangSemuaBaik}
+                      title="Setel semua item manual menjadi kondisi 'Baik' sekaligus"
+                      className="gap-1.5"
+                    >
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      Centang Semua Baik
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {itemManual.length > 0 && (
+                <p className="-mt-2 mb-4 text-[11px] text-slate-400">
+                  Tombol <strong>Centang Semua Baik</strong> menandai seluruh
+                  item manual sekaligus — gunakan bila kondisi keseluruhan
+                  memang baik.
+                </p>
+              )}
 
               {itemManual.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center">
@@ -936,10 +981,30 @@ export default function BuatChecklistPage() {
                 <h2 className="text-lg font-semibold text-slate-800">
                   Hasil Pemeriksaan
                 </h2>
-                <Badge variant={sudahDiperiksa === template.items.length ? "success" : "outline"}>
-                  {sudahDiperiksa} / {template.items.length} item diisi
-                </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={sudahDiperiksa === template.items.length ? "success" : "outline"}>
+                    {sudahDiperiksa} / {template.items.length} item diisi
+                  </Badge>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={centangSemuaBaik}
+                    title="Setel semua item template menjadi kondisi 'Baik' sekaligus"
+                    className="gap-1.5"
+                  >
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    Centang Semua Baik
+                  </Button>
+                </div>
               </div>
+
+              <p className="-mt-2 mb-4 text-[11px] text-slate-400">
+                Tombol <strong>Centang Semua Baik</strong> mengisi seluruh item
+                sekaligus — gunakan bila kondisi keseluruhan memang baik. Item
+                yang sudah ditandai Rusak Ringan/Berat akan ikut ter-overwrite
+                menjadi &quot;Baik&quot;, jadi sesuaikan bila perlu koreksi lagi.
+              </p>
 
               {template.items.some((i) => i.isKritis) && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
