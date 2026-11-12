@@ -250,6 +250,53 @@ export async function updateChecklistDraft(
   return { id, status, persisted, error };
 }
 
+// ── HAPUS (manajemen Admin IT) ───────────────────────────────────────────────
+
+/**
+ * Hapus checklist dari in-memory + Supabase (manajemen Admin IT).
+ *
+ * Hak hapus ada pada role ADMIN_IT (UI menahan aksi ini di tabel checklist;
+ * sisi RLS database juga hanya memberi izin delete ke `boleh_tulis_aset()`,
+ * yaitu ADMIN_IT & PENGELOLA_BMN — konsisten dengan alur logbook).
+ *
+ * Bila Supabase menolak (mis. RLS) maka baris in-memory dikembalikan —
+ * UI tetap konsisten dengan isi database.
+ *
+ * @returns `true` bila penghapusan berhasil (termasuk hanya in-memory
+ * ketika offline), `false` bila ditolak database.
+ */
+export async function hapusChecklist(id: string): Promise<boolean> {
+  const adaInMemory = memory.some((c) => c.id === id);
+  // Simpan item yang dihapus + index-nya agar bisa rollback bila DB menolak.
+  // `memory` adalah const array — tidak boleh di-reassign, jadi pakai splice.
+  const indexToDelete = memory.findIndex((c) => c.id === id);
+  const itemTersimpan = indexToDelete !== -1 ? memory[indexToDelete] : undefined;
+  if (indexToDelete !== -1) {
+    memory.splice(indexToDelete, 1);
+  }
+  emit();
+
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { error: err } = await supa
+      .from("checklist_harian")
+      .delete()
+      .eq("id", id);
+    if (err) {
+      // Database menolak hapus — kembalikan item ke array (posisi awal).
+      if (itemTersimpan && indexToDelete !== -1) {
+        memory.splice(indexToDelete, 0, itemTersimpan);
+      }
+      emit();
+      console.error("[checklist-store] DELETE ditolak RLS:", err.message, err.details);
+      return false;
+    }
+  } catch {
+    // Offline / Supabase belum dikonfigurasi — hapus in-memory saja.
+  }
+  return adaInMemory;
+}
+
 /**
  * Hook: checklist harian dari Supabase + in-memory, digabung.
  *

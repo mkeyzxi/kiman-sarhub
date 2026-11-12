@@ -2335,6 +2335,56 @@ export const checklistTemplates: ChecklistTemplate[] = [
     ],
   },
 
+  // ─── MOTOR TRAIL — HARIAN (19 item, sama dengan form mingguan) ─────────────
+  // Form fisik kantor hanya punya satu bentuk ceklist motor (B 3184 PKQ),
+  // jadi item harian mengikuti form yang sama dengan versi mingguan.
+  {
+    id: "arm-motor-harian",
+    nama: "Ceklist Perawatan Motor Trail (Harian)",
+    kategori: "Motor",
+    periode: "Harian",
+    jenisArmada: "Motor",
+    sumber: "Ceklist Perawatan Motor Trail B 3184 PKQ",
+    items: [
+      // Bagian 1 — Pemeriksaan Utama
+      { id: "arm-motor-harian-01", label: "Level Oli Mesin", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-02", label: "Kondisi Ban", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-03", label: "Tekanan Ban", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-04", label: "Keausan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-05", label: "Rantai Penggerak", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-06", label: "Baut Mur dan Pengencangan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-07", label: "Stang (Bergerak Lancar)", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-08", label: "Level Minyak Rem", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-09", label: "Kampas Rem", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-10", label: "Kerja Gas", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-11", label: "Tuas Kopling", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-12", label: "Klakson", wajib: true, kondisi: "Baik", keterangan: "" },
+      // Bagian 2 — Kelistrikan & Perlengkapan
+      { id: "arm-motor-harian-13", label: "Lampu Depan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-14", label: "Lampu Belakang / Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-15", label: "Lampu Sein", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-16", label: "Engine Stop Switch", wajib: true, kondisi: "Baik", keterangan: "", isKritis: true },
+      { id: "arm-motor-harian-17", label: "Standar Samping", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-18", label: "Indikator Spedometer", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-harian-19", label: "Kaca Spion", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+
+  // ─── MOTOR TRAIL — BULANAN (3 item) ────────────────────────────────────────
+  {
+    id: "arm-motor-bulanan",
+    nama: "Ceklist Perawatan Motor Trail (Bulanan)",
+    kategori: "Motor",
+    periode: "Bulanan",
+    jenisArmada: "Motor",
+    sumber: "Ceklist Perawatan Motor Trail B 3184 PKQ",
+    items: [
+      { id: "arm-motor-bulanan-01", label: "Baut Mur dan Pengencangan", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-bulanan-02", label: "Kondisi Rantai", wajib: true, kondisi: "Baik", keterangan: "" },
+      { id: "arm-motor-bulanan-03", label: "Kampas Rem", wajib: true, kondisi: "Baik", keterangan: "" },
+    ],
+  },
+
   // ─── MOBIL — HARIAN (35 item) ──────────────────────────────────────────────
   {
     id: "arm-mobil-harian",
@@ -2526,6 +2576,13 @@ export const BAGIAN_TEMPLATE: Record<string, ReadonlyArray<{ nama: string; upto:
   "arm-motor-mingguan": [
     { nama: "Bagian 1: Pemeriksaan Utama", upto: 12 },
     { nama: "Bagian 2: Kelistrikan & Perlengkapan", upto: 19 },
+  ],
+  "arm-motor-harian": [
+    { nama: "Bagian 1: Pemeriksaan Utama", upto: 12 },
+    { nama: "Bagian 2: Kelistrikan & Perlengkapan", upto: 19 },
+  ],
+  "arm-motor-bulanan": [
+    { nama: "Bagian 1: Perawatan Berkala", upto: 3 },
   ],
   "arm-mobil-harian": [
     { nama: "A. Menjungkitkan Kabin", upto: 4 },
@@ -2971,7 +3028,8 @@ export const complianceRanking: ComplianceRanking[] = [
 export type StatusPenggunaan =
   | "Menunggu Penggunaan"
   | "Sedang Digunakan"
-  | "Selesai";
+  | "Selesai"
+  | "SudahDiedit";
 
 /** Tahap pencatatan logbook perjalanan. */
 export type TahapLogbook = "Awal" | "Pelengkapan";
@@ -3017,6 +3075,11 @@ export interface LogbookPerjalanan {
   tanggalSimpan?: string;
   /** ISO timestamp saat tahap pelengkapan disimpan. */
   tanggalLengkap?: string;
+  /**
+   * NIP user yang membuat logbook ini (creator/penanggung jawab).
+   * Dipakai untuk mengidentifikasi owner saat edit oleh operator/akuntor.
+   */
+  createdBy?: string;
 }
 
 export const logbookPerjalananList: LogbookPerjalanan[] = [
@@ -3893,7 +3956,7 @@ export function statusPenggunaanOtomatis(form: FormLogbook): StatusPenggunaan {
 export function tahapYangTertunda(
   status: StatusPenggunaan
 ): TahapLogbook | null {
-  if (status === "Selesai") return null;
+  if (status === "Selesai" || status === "SudahDiedit") return null;
   return status === "Menunggu Penggunaan" ? "Awal" : "Pelengkapan";
 }
 

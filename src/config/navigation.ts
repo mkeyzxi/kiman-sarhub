@@ -287,11 +287,18 @@ export function canAccessPath(
   ) {
     return true;
   }
-  // Edit penuh logbook perjalanan (/operator/logbook/<id>/edit) hanya untuk
-  // ADMIN_IT — management data. Role lain tetap bisa LIHAT detail
-  // (/operator/logbook/<id>) dan Lengkapi pengisian (/lengkapi).
+  // Edit logbook perjalanan (/operator/logbook/<id>/edit):
+  // - ADMIN_IT: boleh edit semua logbook.
+  // - OPERATOR_LAPANGAN / AKUNTOR: boleh edit logbook yang mereka buat sendiri
+  //   (NIP ses harus sama dengan NIP logbook.createdBy).
   if (pathname.includes("/logbook/") && pathname.endsWith("/edit")) {
-    return role === "ADMIN_IT";
+    if (role === "ADMIN_IT") return true;
+    if (role === "OPERATOR_LAPANGAN" || role === "AKUNTOR") {
+      // Di sini kita hanya periksa dari sisi navigasi. Halaman edit sendiri
+      // akan menolak akses bila pemilik logbook tidak cocok.
+      return true;
+    }
+    return false;
   }
   return accessibleHrefs.some(
     (href) => pathname === href || pathname.startsWith(href + "/")

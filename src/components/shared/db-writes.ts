@@ -201,6 +201,23 @@ export async function serahkanKerusakanAset(
   if (error) throw new Error(pesan(error.message));
 }
 
+/**
+ * Operator PJ memulihkan aset ke status "Standby" / kondisi "Baik" setelah
+ * validasi: semua item checklist sudah Baik, tidak perlu Berita Acara.
+ * Lewat RPC SECURITY DEFINER (aman RLS) — hanya PJ aset atau admin boleh.
+ */
+export async function kembalikanAsetBaik(
+  asetId: string,
+  keterangan: string
+): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const { error } = await supa.rpc("kembalikan_aset_baik", {
+    p_aset_id: asetId,
+    p_keterangan: keterangan,
+  });
+  if (error) throw new Error(pesan(error.message));
+}
+
 /** UPDATE checklist harian (mis. tandai selesai diperiksa). */
 export async function updateChecklistItem(
   id: string,

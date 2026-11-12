@@ -255,6 +255,8 @@ export type LogbookPerjalananRow = {
   kecepatan_rata?: string | null;
   tanggal_simpan: string | null;
   tanggal_lengkap: string | null;
+  /** NIP creator/penyangga logbook (untuk identifikasi owner saat edit). */
+  created_by?: string | null;
   created_at: string;
 };
 
@@ -511,6 +513,15 @@ export type Database = {
           p_exclude_id?: string;
         };
         Returns: boolean;
+      };
+      /** PJ aset memulihkan aset ke status "Standby" / kondisi "Baik" setelah
+       *  validasi checklist — semua item Baik, tanpa Berita Acara. */
+      kembalikan_aset_baik: {
+        Args: {
+          p_aset_id: string;
+          p_keterangan?: string;
+        };
+        Returns: undefined;
       };
     };
     Enums: {

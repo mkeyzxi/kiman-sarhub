@@ -383,7 +383,7 @@ export default function TambahLogbookPage() {
     const hasil = simpanTahapAwal({
       ...formData,
       jenisUnit: jenisUnitTersimpan,
-    });
+    }, ses.nip);
 
     if ("error" in hasil) {
       setErrors(hasil.errors as Partial<Record<keyof FormLogbook, string>>);

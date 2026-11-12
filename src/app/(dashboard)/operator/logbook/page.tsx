@@ -72,11 +72,20 @@ const statusVariant: Record<StatusPenggunaan, "success" | "warning" | "default">
   Selesai: "success",
   "Sedang Digunakan": "warning",
   "Menunggu Penggunaan": "default",
+  SudahDiedit: "success",
+};
+
+/** Label status untuk tampilan (SudahDiedit → "Sudah Diedit"). */
+const labelStatus: Record<StatusPenggunaan, string> = {
+  Selesai: "Selesai",
+  "Sedang Digunakan": "Sedang Digunakan",
+  "Menunggu Penggunaan": "Menunggu Penggunaan",
+  SudahDiedit: "Sudah Diedit",
 };
 
 /** Badge status penggunaan — konsisten antara kartu mobile dan tabel desktop. */
 function StatusBadge({ status }: { status: StatusPenggunaan }) {
-  return <Badge variant={statusVariant[status]}>{status}</Badge>;
+  return <Badge variant={statusVariant[status]}>{labelStatus[status]}</Badge>;
 }
 
 /** Durasi tempuh sesuai jenis armadanya: jam operasi (laut) atau km (darat). */
@@ -103,6 +112,19 @@ export default function LogbookPerjalananPage() {
    * untuk mereka (guard navigasi juga memblokir akses halamannya).
    */
   const bisaTambah = ses.role !== "AKUNTOR";
+  /**
+   * Operator lapangan & akun kantor bisa melengkapi logbook yang mereka
+   * buat sendiri (createdBy = NIP mereka). Tombol "Lanjutkan Pengisian"
+   * hanya tampil untuk pemilik.
+   */
+  const bisaLengkapi = (log: LogbookPerjalanan): boolean => {
+    if (ses.role === "ADMIN_IT") return true;
+    if (ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") {
+      // Pemilik = log.createdBy === NIP user, atau fallback: nahkoda = nama user.
+      return log.createdBy === ses.nip || log.nahkoda === ses.nama;
+    }
+    return false;
+  };
 
   // Modal konfirmasi hapus + state proses (untuk mencegah klik dobel).
   const [hapusTarget, setHapusTarget] = useState<LogbookPerjalanan | null>(null);
@@ -339,6 +361,7 @@ export default function LogbookPerjalananPage() {
             <option value="Menunggu Penggunaan">Menunggu Penggunaan</option>
             <option value="Sedang Digunakan">Sedang Digunakan</option>
             <option value="Selesai">Selesai</option>
+            <option value="SudahDiedit">Sudah Diedit</option>
           </Select>
         </div>
       </Card>
@@ -476,7 +499,7 @@ export default function LogbookPerjalananPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
-                    {row.status !== "Selesai" && (
+                    {row.status !== "Selesai" && row.status !== "SudahDiedit" && bisaLengkapi(row) && (
                       <Link href={`/operator/logbook/${row.id}/lengkapi`}>
                         <Button
                           variant="ghost"
@@ -488,7 +511,7 @@ export default function LogbookPerjalananPage() {
                         </Button>
                       </Link>
                     )}
-                    {/* Aksi management — hanya untuk Admin IT */}
+                   
                     {bisaKelola && (
                       <>
                         <Link href={`/operator/logbook/${row.id}/edit`}>
@@ -516,6 +539,20 @@ export default function LogbookPerjalananPage() {
                         </Button>
                       </>
                     )}
+                    {/* Aksi edit — untuk operator/akuntor pemilik logbook */}
+                    {(ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") &&
+                      (row.createdBy === ses.nip || row.nahkoda === ses.nama) && (
+                        <Link href={`/operator/logbook/${row.id}/edit`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                            aria-label={`Edit logbook ${row.rute}`}
+                          >
+                            <PencilLine className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
                   </div>
                 ),
                 headClassName: "text-center",
