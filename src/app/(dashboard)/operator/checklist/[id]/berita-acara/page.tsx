@@ -88,6 +88,16 @@ export default function BeritaAcaraPage() {
   } = useAsetById(checklist?.asetId || undefined);
   const aset = asetDb;
 
+  /**
+   * User login adalah PENANGGUNG JAWAB aset checklist ini (PJ yang memvalidasi
+   * kerusakan setelah dicek langsung ke unit — alur: akuntor checklist harian
+   * → PJ laporkan kerusakan → PJ serahkan BA). Label penanda ditambahkan.
+   */
+  const sayaPemeriksa =
+    !checklist?.pemeriksaId || checklist.pemeriksaId === ses.id;
+  const sayaPJValidasi =
+    !sayaPemeriksa && aset?.penanggungJawab === ses.nip;
+
   // ── State form ───────────────────────────────────────────────────────────
   const [baId, setBaId] = useState("");
   const [nomor, setNomor] = useState("");
@@ -177,7 +187,9 @@ export default function BeritaAcaraPage() {
           return;
         }
 
-        // Bukan milik user ini — buat BA baru untuk checklist ini
+        // Bukan milik user ini — buat BA baru untuk checklist ini.
+        // Bila user adalah PJ aset (bukan pemeriksa), ia menjadi pengaju/
+        // penandatangan BA; pelapor tetap diperiksa dari checklist.
         const baru = tambahBeritaAcaraSupabase({
           tanggal: checklist.tanggal,
           namaAset: aset?.nama ?? checklist.unit,
@@ -185,6 +197,11 @@ export default function BeritaAcaraPage() {
           nomor: "",
           asetId: aset?.id ?? "",
           checklistId: checklist.id,
+          pengajuId: sayaPJValidasi ? ses.id : undefined,
+          pengajuNama: sayaPJValidasi ? ses.nama : undefined,
+          pengajuJabatan: sayaPJValidasi
+            ? jabatanUser(checklist.pemeriksaId ?? "")
+            : undefined,
           pelapor: checklist.pemeriksa,
           pelaporJabatan:
             jabatanUser(checklist.pemeriksaId ?? "") === "Petugas"
@@ -493,6 +510,18 @@ export default function BeritaAcaraPage() {
             <p className="text-xs text-slate-500">{pelaporJabatan}</p>
           </div>
         </div>
+
+        {sayaPJValidasi && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+            <p className="text-xs text-blue-800">
+              Anda memvalidasi checklist ini sebagai{" "}
+              <strong>Penanggung Jawab {namaAset}</strong> — tanda tangan /
+              penyerahan Berita Acara akan tercantum atas nama Anda (PJ), bukan
+              pemeriksa ({pelaporNama}).
+            </p>
+          </div>
+        )}
 
         {adaRusak ? (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">

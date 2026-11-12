@@ -19,21 +19,25 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import RincianItemTable from "./rincian-item-table";
 import TombolBeritaAcara from "./tombol-berita-acara";
 import { useChecklistsCombined } from "@/components/shared/checklist-store";
+import { kembalikanAsetBaik, serahkanKerusakanAset } from "@/components/shared/db-writes";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
   checklistTemplates,
   formatTanggal,
 } from "@/components/shared/mock-data";
-import { useAsets } from "@/components/shared/use-supabase-data";
+import { useAsets, useAsetById } from "@/components/shared/use-supabase-data";
 import {
   DokumenChecklist,
   type InfoUnitDokumen,
 } from "@/components/shared/dokumen-checklist";
+import { useSesiUser } from "@/components/shared/use-session";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { CheckCircle2 as CheckCircleIcon, RefreshCw, AlertTriangle as AlertTri, Loader2 } from "lucide-react";
 import "@/components/shared/berita-acara-print.css";
 import "@/components/shared/dokumen-cetak-print.css";
 
@@ -47,12 +51,36 @@ const unitIcon = {
 export default function DetailChecklistPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const ses = useSesiUser();
+
+  // State proses validasi / serah kerusakan (tombol khusus operator PJ).
+  const [prosesValidasi, setProsesValidasi] = useState<"baik" | "rusak" | null>(null);
+  const [pesanValidasi, setPesanValidasi] = useState<string | null>(null);
 
   // Checklist dari Supabase + data sesi berjalan (in-memory), digabung.
   const { data, loading, error, refetch } = useChecklistsCombined();
   // Master BMN untuk melengkapi identitas unit pada dokumen cetak.
   const { data: asetList } = useAsets();
   const checklist = data.find((c) => c.id === id);
+  const { data: asetDetail } = useAsetById(checklist?.asetId);
+
+  // Identifikasi pemilik checklist (pemeriksaId === NIP user login).
+  const pemilik = checklist?.pemeriksaId && checklist.pemeriksaId === ses.nip;
+
+  /**
+   * Operator lapangan / akun kantor yang menjadi PENANGGUNG JAWAB aset
+   * checklist ini boleh memvalidasi & mengedit (mis. koreksi item rusak
+   * menjadi Baik setelah dicek langsung ke unit).
+   */
+  const isPJAset =
+    ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR"
+      ? asetDetail?.penanggungJawab === ses.nip
+      : false;
+
+  const bisaEdit =
+    ses.role === "ADMIN_IT" ||
+    (ses.role === "OPERATOR_LAPANGAN" && (pemilik || isPJAset)) ||
+    (ses.role === "AKUNTOR" && (pemilik || isPJAset));
 
   if (loading) {
     return <DataLoading label="Memuat detail checklist…" />;
@@ -159,6 +187,22 @@ export default function DetailChecklistPage() {
           >
             {checklist.status}
           </Badge>
+          {bisaEdit && (
+            <>
+              {isPJAset && !pemilik && (
+                <span className="text-xs text-slate-500">
+                  Anda memvalidasi checklist atas nama penanggung jawab aset
+                </span>
+              )}
+              <Link
+                href={`/operator/checklist/${id}/edit`}
+                className={cn(buttonVariants({ variant: "outline" }), "w-fit gap-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700")}
+              >
+                <PencilLine className="h-4 w-4" />
+                {isPJAset && !pemilik ? "Validasi & Edit" : "Edit Checklist"}
+              </Link>
+            </>
+          )}
           <TombolBeritaAcara
             checklistId={id}
             adaRusak={rusakCount > 0}
@@ -250,6 +294,101 @@ export default function DetailChecklistPage() {
               </Button>
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* Aksi validasi PJ: kembalikan aset ke Baik atau laporkan kerusakan */}
+      {isPJAset && belumCount === 0 && (
+        <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            {prosesValidasi === null ? (
+              <>
+                {rusakCount > 0 ? (
+                  <AlertTri className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                ) : (
+                  <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                )}
+                <p className="text-sm text-blue-800">
+                  {rusakCount > 0
+                    ? `Terdeteksi ${rusakCount} item rusak. Silakan laporkan untuk tindak lanjut.`
+                    : "Semua item baik. Anda dapat mengonfirmasi aset kembali ke status Baik."}
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-blue-800">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <p className="text-sm">
+                  {prosesValidasi === "baik"
+                    ? "Mengembalikan aset ke status Baik…"
+                    : "Melaporkan kerusakan aset…"}
+                </p>
+              </div>
+            )}
+          </div>
+          {prosesValidasi === null && (
+            <div className="flex gap-2">
+              {rusakCount > 0 ? (
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-rose-600 hover:bg-rose-700"
+                  onClick={async () => {
+                    if (!checklist.asetId || !ses.nip) return;
+                    setProsesValidasi("rusak");
+                    setPesanValidasi(null);
+                    try {
+                      await serahkanKerusakanAset(
+                        checklist.asetId,
+                        "Rusak Ringan",
+                        `Validasi PJ ${ses.nama}: ${rusakCount} item rusak terdeteksi.`
+                      );
+                      await refetch();
+                    } catch (e) {
+                      setPesanValidasi(
+                        e instanceof Error ? e.message : "Gagal melaporkan kerusakan."
+                      );
+                    } finally {
+                      setProsesValidasi(null);
+                    }
+                  }}
+                >
+                  <AlertTri className="h-4 w-4" />
+                  Laporkan Kerusakan
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={async () => {
+                    if (!checklist.asetId || !ses.nip) return;
+                    setProsesValidasi("baik");
+                    setPesanValidasi(null);
+                    try {
+                      await kembalikanAsetBaik(
+                        checklist.asetId,
+                        `Validasi PJ ${ses.nama}: semua item baik, aset kembali Standby.`
+                      );
+                      await refetch();
+                    } catch (e) {
+                      setPesanValidasi(
+                        e instanceof Error ? e.message : "Gagal memulihkan aset."
+                      );
+                    } finally {
+                      setProsesValidasi(null);
+                    }
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Kembalikan Aset ke Baik
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {pesanValidasi && (
+        <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          <AlertTri className="h-4 w-4 shrink-0 text-rose-600" />
+          {pesanValidasi}
         </div>
       )}
 

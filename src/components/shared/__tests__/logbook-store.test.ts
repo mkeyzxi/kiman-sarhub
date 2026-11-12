@@ -20,6 +20,9 @@ import {
 } from "../logbook-store";
 import { type FormLogbook, type LogbookPerjalanan } from "../mock-data";
 
+// NIP mock untuk pengujian
+const nipMock = "199709262022031001";
+
 // ─── Form logbook valid helper ───────────────────────────────────────────────
 
 function formValidLaut(
@@ -76,14 +79,14 @@ function formValidDarat(
 
 /** Logbook berstatus "Sedang Digunakan" (tahap awal, jam berangkat terisi). */
 function buatLogbookSedang(jamBerangkat = "08:00"): LogbookPerjalanan {
-  const hasil = simpanTahapAwal(formValidLaut(jamBerangkat, ""));
+  const hasil = simpanTahapAwal(formValidLaut(jamBerangkat, ""), nipMock);
   if ("error" in hasil) throw new Error(`Fixture gagal: ${hasil.error}`);
   return hasil.logbook;
 }
 
 /** Logbook berstatus "Menunggu Penggunaan" (jam berangkat kosong). */
 function buatLogbookMenunggu(): LogbookPerjalanan {
-  const hasil = simpanTahapAwal(formValidLaut("", ""));
+  const hasil = simpanTahapAwal(formValidLaut("", ""), nipMock);
   if ("error" in hasil) throw new Error(`Fixture gagal: ${hasil.error}`);
   return hasil.logbook;
 }
@@ -108,7 +111,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("menciptakan logbook baru & mengembalikan objek hasil sukses", () => {
     const form = formValidLaut("08:00", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) {
       throw new Error(`Harusnya sukses tapi dapat: ${hasil.error}`);
@@ -122,7 +125,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("jamBerangkat tersimpan dengan benar", () => {
     const form = formValidLaut("14:30", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.jamBerangkat).toBe("14:30");
@@ -130,7 +133,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("jamKembali selalu kosong di tahap awal", () => {
     const form = formValidLaut("08:00", "10:30"); // jamKembali diisi juga di form
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     // SimpanTahapAwal mengabaikan jamKembali dari form — selalu ""
@@ -139,7 +142,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("status 'Menunggu Penggunaan' jika jamBerangkat kosong", () => {
     const form = formValidLaut("", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.status).toBe("Menunggu Penggunaan");
@@ -147,7 +150,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("status 'Sedang Digunakan' jika jamBerangkat terisi", () => {
     const form = formValidLaut("08:00", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.status).toBe("Sedang Digunakan");
@@ -155,7 +158,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("enduranceAwal disimpan untuk armada laut", () => {
     const form = formValidLaut("08:00", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.enduranceAwal).toBe("80:00");
@@ -164,7 +167,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
 
   it("enduranceAwal diabaikan untuk armada darat", () => {
     const form = formValidDarat("07:30", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.kmSebelum).toBe("45230");
@@ -176,7 +179,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
   it("bbmSebelum dikonversi ke format persen", () => {
     const form = formValidLaut("08:00", "");
     form.bbmSebelum = "90";
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.bbmSebelum).toBe("90%");
@@ -185,7 +188,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
   it("catatan di-trim", () => {
     const form = formValidLaut("08:00", "");
     form.catatan = "  Kondisi normal  ";
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.catatan).toBe("Kondisi normal");
@@ -194,7 +197,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
   it("jumlahPersonel dikonversi ke number", () => {
     const form = formValidLaut("08:00", "");
     form.jumlahPersonel = "6";
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(hasil.logbook.jumlahPersonel).toBe(6);
@@ -204,7 +207,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
     const form = formValidLaut("08:00", "");
     form.rute = ""; // wajib
     form.jenisUnit = ""; // wajib
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     expect("error" in hasil).toBe(true);
     if ("error" in hasil) {
@@ -216,7 +219,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
   it("catatan baru di-prepend ke daftar logbooks", () => {
     const sebelum = getAllLogbook().length;
     const form = formValidLaut("08:00", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     expect(getAllLogbook().length).toBe(sebelum + 1);
@@ -242,7 +245,7 @@ describe("simpanTahapAwal — penyimpanan data keberangkatan", () => {
     "jamBerangkat %s → save %s",
     (jam, shouldPass) => {
       const form = formValidLaut(jam, "");
-      const hasil = simpanTahapAwal(form);
+      const hasil = simpanTahapAwal(form, nipMock);
       if (shouldPass) {
         expect("error" in hasil).toBe(false);
       } else {
@@ -472,7 +475,7 @@ describe("simpanTahapAkhir — pelengkapan data kepulangan", () => {
 
   it("kmSesudah disimpan untuk armada darat", () => {
     // Buat logbook darat "Sedang Digunakan"
-    const hasilAwal = simpanTahapAwal(formValidDarat("07:30", ""));
+    const hasilAwal = simpanTahapAwal(formValidDarat("07:30", ""), nipMock);
     if ("error" in hasilAwal) throw new Error("Expected success");
 
     const form = formValidDarat("13:00", "16:00");
@@ -709,7 +712,7 @@ describe("State jam keberangkatan/kembali — tidak hilang setelah simpan", () =
 
   it("setelah simpanTahapAwal, jamBerangkat tersimpan di in-memory", () => {
     const form = formValidLaut("08:00", "");
-    const hasil = simpanTahapAwal(form);
+    const hasil = simpanTahapAwal(form, nipMock);
 
     if ("error" in hasil) throw new Error("Expected success");
     const id = hasil.logbook.id;
@@ -723,7 +726,7 @@ describe("State jam keberangkatan/kembali — tidak hilang setelah simpan", () =
   it("setelah simpanTahapAkhir, jamKembali tersimpan & status Selesai", () => {
     // Simpan tahap awal dulu
     const formAwal = formValidLaut("08:00", "");
-    const hasilAwal = simpanTahapAwal(formAwal);
+    const hasilAwal = simpanTahapAwal(formAwal, nipMock);
     if ("error" in hasilAwal) throw new Error("Expected success");
     const id = hasilAwal.logbook.id;
 

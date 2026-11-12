@@ -170,6 +170,8 @@ export interface LogbookMapped {
   catatan: string;
   tanggalSimpan?: string;
   tanggalLengkap?: string;
+  /** NIP creator/penyangga logbook (untuk identifikasi owner saat edit). */
+  createdBy?: string;
 }
 
 export function mapLogbooks(rows: LogbookPerjalananRow[]): LogbookMapped[] {
@@ -196,6 +198,8 @@ export function mapLogbooks(rows: LogbookPerjalananRow[]): LogbookMapped[] {
     catatan: r.catatan,
     tanggalSimpan: r.tanggal_simpan ?? undefined,
     tanggalLengkap: r.tanggal_lengkap ?? undefined,
+    // NIP creator/penyangga logbook (untuk identifikasi owner saat edit).
+    createdBy: r.created_by ?? undefined,
   }));
 }
 

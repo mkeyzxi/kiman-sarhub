@@ -52,12 +52,14 @@ const statusVariant: Record<
   Selesai: "success",
   "Sedang Digunakan": "warning",
   "Menunggu Penggunaan": "default",
+  SudahDiedit: "success",
 };
 
 const labelStatus: Record<StatusPenggunaan, string> = {
   Selesai: "Selesai",
   "Sedang Digunakan": "Sedang Digunakan",
   "Menunggu Penggunaan": "Menunggu Penggunaan",
+  SudahDiedit: "Sudah Diedit",
 };
 
 export default function DetailLogbookPage() {
@@ -78,6 +80,14 @@ export default function DetailLogbookPage() {
   const log =
     logbooks.find((l) => l.id === params.id) ??
     getLogbookById(params.id);
+  // Identifikasi apakah user adalah pemilik logbook ini (operator/akuntor).
+  // Fallback: cocokkan NIP, atau nama nahkoda (untuk logbook lama tanpa createdBy).
+  const pemilik =
+    (log?.createdBy && log.createdBy === ses.nip) ||
+    (log?.nahkoda === ses.nama);
+  const bisaEdit =
+    bisaKelola ||
+    ((ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") && pemilik);
   // Master BMN untuk melengkapi identitas unit pada dokumen cetak.
   const { data: asetList } = useAsets();
 
@@ -225,8 +235,8 @@ export default function DetailLogbookPage() {
             Lanjutkan Pengisian
           </Link>
         )}
-        {/* Tombol edit penuh — hanya untuk Admin IT */}
-        {bisaKelola && (
+        {/* Tombol edit penuh — Admin IT (semua logbook) atau owner (operator/akuntor logbook miliknya) */}
+        {bisaEdit && (
           <Link
             href={`/operator/logbook/${log.id}/edit`}
             className={cn(

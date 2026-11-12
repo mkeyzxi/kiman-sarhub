@@ -136,6 +136,7 @@ function toSupabaseRow(l: LogbookPerjalanan) {
     km_sesudah: l.kmSesudah ?? "",
     status: l.status,
     catatan: l.catatan,
+    created_by: l.createdBy ?? null,
     tanggal_simpan: l.tanggalSimpan ?? null,
     tanggal_lengkap: l.tanggalLengkap ?? null,
   };
@@ -177,7 +178,8 @@ async function persistUpdate(id: string, l: LogbookPerjalanan): Promise<void> {
  * @returns catatan yang tersimpan.
  */
 export function simpanTahapAwal(
-  form: FormLogbook
+  form: FormLogbook,
+  nip: string
 ): { logbook: LogbookPerjalanan } | { error: string; errors: Record<string, string> } {
   const errors = validasiTahapAwal(form);
   if (Object.keys(errors).length > 0) {
@@ -199,6 +201,8 @@ export function simpanTahapAwal(
     nahkoda: form.nahkoda.trim(),
     jumlahPersonel: Number(form.jumlahPersonel),
     bbmSebelum: angkaKePersen(form.bbmSebelum),
+    // NIP penyangga (creator) untuk identifikasi saat edit oleh operator/akuntor.
+    createdBy: nip,
     bbmSesudah: "",
     // BBM tambahan (isi ulang di perjalanan) diisi nanti pada tahap 2.
     bbmTambahan: "",

@@ -154,8 +154,9 @@ export default function EditLogbookPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const ses = useSesiUser();
+  // ADMIN_IT boleh edit semua logbook; OPERATOR_LAPANGAN/AKUNTOR hanya bisa
+  // edit logbook yang mereka buat sendiri.
   const bisaKelola = ses.role === "ADMIN_IT";
-
   const {
     data: supabaseLogbooks,
     loading,
@@ -168,6 +169,15 @@ export default function EditLogbookPage() {
     supabaseLogbooks as unknown as LogbookPerjalanan[]
   );
   const log = logbooks.find((l) => l.id === params.id);
+
+  // Identifikasi apakah user adalah pemilik logbook ini.
+  // Fallback: cocokkan NIP, atau nama nahkoda (untuk logbook lama tanpa createdBy).
+  const pemilik =
+    (log?.createdBy && log.createdBy === ses.nip) ||
+    (log?.nahkoda === ses.nama);
+  const bisaEdit =
+    bisaKelola ||
+    ((ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") && pemilik);
 
   // Isi form dari logbook yang ditemukan. Kategori kosong bila DB lama.
   const [form, setForm] = useState<FormLogbook | null>(() =>
@@ -229,14 +239,16 @@ export default function EditLogbookPage() {
     }
   }, [log]);
 
-  // Guard UI: non-admin tidak boleh membuka halaman ini.
-  if (!bisaKelola) {
+  // Guard UI: non-admin tidak boleh membuka halaman ini, kecuali operator/akuntor
+  // yang memiliki logbook ini.
+  if (!bisaEdit) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <ShieldAlert className="h-12 w-12 text-rose-300" />
         <h1 className="text-xl font-bold text-slate-800">Akses Ditolak</h1>
         <p className="text-sm text-slate-500">
-          Halaman edit logbook hanya untuk role Admin IT.
+          Halaman edit logbook hanya untuk role Admin IT atau pemilik logbook
+          (operator/akuntor yang membuat catatan ini).
         </p>
         <Link href="/operator/logbook">
           <Button variant="outline">Kembali ke daftar logbook</Button>
@@ -340,7 +352,11 @@ export default function EditLogbookPage() {
         enduranceAkhir: form.enduranceAkhir,
         kmSebelum: form.kmSebelum,
         kmSesudah: form.kmSesudah,
-        status,
+        // Pertahankan NIP creator — jangan di-reset saat edit.
+        createdBy: log.createdBy ?? ses.nip,
+        // Jika operator/akuntor melakukan edit, status otomatis menjadi "SudahDiedit"
+        // agar kentara ada perubahan setelah data terkirim. Admin tetap bebas memilih.
+        status: bisaKelola ? status : "SudahDiedit" as StatusPenggunaan,
         catatan: form.catatan.trim(),
         tanggalSimpan: log.tanggalSimpan,
         tanggalLengkap: status === "Selesai" ? log.tanggalLengkap ?? log.tanggalSimpan : log.tanggalLengkap,

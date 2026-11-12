@@ -20,6 +20,7 @@ import {
   Clock,
   FileText,
   RefreshCw,
+  PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -248,6 +249,18 @@ export default function ChecklistPerawatanPage() {
         : [],
     [carduPJ.data, ses.id]
   );
+
+  /**
+   * Map asetId → Penanggung Jawab (NIP) — dipakai menentukan apakah user
+   * login adalah PJ aset pada baris checklist ini (bisa validasi/edit).
+   */
+  const pjAsetByRow = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of asetRef.data) {
+      if (a.penanggungJawab) map.set(a.id, a.penanggungJawab);
+    }
+    return map;
+  }, [asetRef.data]);
 
   /**
    * Peta pencari "Nama Referensi" sebuah unit checklist:
@@ -601,7 +614,23 @@ export default function ChecklistPerawatanPage() {
               {
                 key: "pemeriksa",
                 header: "Pemeriksa",
-                render: (row) => getUserById(row.pemeriksa)?.nama ?? row.pemeriksa,
+                render: (row) => (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-slate-700">
+                      {getUserById(row.pemeriksa)?.nama ?? row.pemeriksa}
+                    </span>
+                    {row.asetId &&
+                      pjAsetByRow.get(row.asetId) === ses.nip &&
+                      row.pemeriksaId !== ses.nip && (
+                        <Badge
+                          variant="outline"
+                          className="mt-0.5 w-fit border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700"
+                        >
+                          Dipantau sebagai PJ
+                        </Badge>
+                      )}
+                  </div>
+                ),
                 cellClassName: "text-slate-700",
               },
               {
@@ -640,7 +669,7 @@ export default function ChecklistPerawatanPage() {
                 key: "aksi",
                 header: "Aksi",
                 render: (row) => (
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center gap-1">
                     <Link href={`/operator/checklist/${row.id}`}>
                       <Button
                         variant="ghost"
@@ -651,6 +680,31 @@ export default function ChecklistPerawatanPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
+                    {/* Aksi edit — untuk operator/akuntor pemilik checklist,
+                        atau penanggung jawab aset terkait (validasi & koreksi). */}
+                    {(ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") &&
+                      (row.pemeriksaId === ses.nip ||
+                        (row.asetId &&
+                          pjAsetByRow.get(row.asetId) === ses.nip)) && (
+                        <Link
+                          href={`/operator/checklist/${row.id}/edit`}
+                          className="relative group/edit"
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                            aria-label={`Edit checklist ${row.unit}`}
+                          >
+                            <PenLine className="h-4 w-4" />
+                          </Button>
+                          {row.pemeriksaId !== ses.nip && row.asetId && (
+                            <span className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-[10px] text-white group-hover/edit:block">
+                              Validasi (PJ aset)
+                            </span>
+                          )}
+                        </Link>
+                      )}
                   </div>
                 ),
                 headClassName: "text-center",

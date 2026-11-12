@@ -2971,7 +2971,8 @@ export const complianceRanking: ComplianceRanking[] = [
 export type StatusPenggunaan =
   | "Menunggu Penggunaan"
   | "Sedang Digunakan"
-  | "Selesai";
+  | "Selesai"
+  | "SudahDiedit";
 
 /** Tahap pencatatan logbook perjalanan. */
 export type TahapLogbook = "Awal" | "Pelengkapan";
@@ -3017,6 +3018,11 @@ export interface LogbookPerjalanan {
   tanggalSimpan?: string;
   /** ISO timestamp saat tahap pelengkapan disimpan. */
   tanggalLengkap?: string;
+  /**
+   * NIP user yang membuat logbook ini (creator/penanggung jawab).
+   * Dipakai untuk mengidentifikasi owner saat edit oleh operator/akuntor.
+   */
+  createdBy?: string;
 }
 
 export const logbookPerjalananList: LogbookPerjalanan[] = [
@@ -3893,7 +3899,7 @@ export function statusPenggunaanOtomatis(form: FormLogbook): StatusPenggunaan {
 export function tahapYangTertunda(
   status: StatusPenggunaan
 ): TahapLogbook | null {
-  if (status === "Selesai") return null;
+  if (status === "Selesai" || status === "SudahDiedit") return null;
   return status === "Menunggu Penggunaan" ? "Awal" : "Pelengkapan";
 }
 
