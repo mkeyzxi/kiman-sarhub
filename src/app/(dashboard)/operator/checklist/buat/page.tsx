@@ -550,19 +550,19 @@ export default function BuatChecklistPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Link href="/operator/checklist">
           <Button variant="ghost" size="icon" aria-label="Kembali">
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             {draftId ? "Lanjutkan Pengisian Checklist" : "Buat Checklist"}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500">
             {draftId
               ? "Melanjutkan draft yang belum lengkap — lengkapi item yang tersisa"
               : "Isi hasil pemeriksaan harian untuk unit yang akan diperiksa"}
@@ -570,15 +570,15 @@ export default function BuatChecklistPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Data Pemeriksaan */}
-        <Card className="p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-800">
+        <Card className="p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-800">
             Data Pemeriksaan
           </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="tanggal">Tanggal</Label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="tanggal" className="text-xs">Tanggal</Label>
               <Input
                 id="tanggal"
                 type="date"
@@ -587,25 +587,25 @@ export default function BuatChecklistPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="pemeriksa">Pemeriksa</Label>
+            <div className="space-y-1">
+              <Label htmlFor="pemeriksa" className="text-xs">Pemeriksa</Label>
               <Input
                 id="pemeriksa"
                 value={pemeriksa}
                 disabled
                 required
               />
-              <p className="text-xs text-slate-400">
-                Otomatis terisi dari akun yang sedang login
-                {unit && asetTerkait ? ` — Penanggung Jawab aset: ${pjAset?.nama ?? "-"}` : ""}
-              </p>
             </div>
           </div>
+          <p className="mt-1.5 text-[11px] text-slate-400">
+            Pemeriksa otomatis terisi dari akun login
+            {unit && asetTerkait ? ` — Penanggung Jawab aset: ${pjAset?.nama ?? "-"}` : ""}
+          </p>
 
           {/* Jenis Armada — Visual Toggle */}
-          <div className="mt-5">
-            <Label>Jenis Armada</Label>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="mt-4">
+            <Label className="text-xs">Jenis Armada</Label>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
               {jenisArmadaOptions.map((opt) => {
                 const isActive = jenisUnit === opt.value;
                 const templateCount = checklistTemplates.filter((t) => {
@@ -620,15 +620,15 @@ export default function BuatChecklistPage() {
                     type="button"
                     onClick={() => handleJenisArmadaChange(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center gap-1.5 rounded-lg border px-3 py-3 text-xs font-medium transition-all",
+                      "relative flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-medium transition-all",
                       isActive
-                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
+                        ? "border-primary bg-primary/10 text-primary"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                     )}
                   >
-                    <IconComp className="h-5 w-5" />
+                    <IconComp className="h-4 w-4" />
                     <span>{opt.label}</span>
-                    {templateCount > 0 && (
+                    {templateCount > 0 ? (
                       <span
                         className={cn(
                           "text-[10px] rounded-full px-1.5 py-0.5",
@@ -637,14 +637,13 @@ export default function BuatChecklistPage() {
                             : "bg-slate-100 text-slate-400"
                         )}
                       >
-                        {templateCount} template
+                        {templateCount}
                       </span>
-                    )}
-                    {templateCount === 0 && opt.value !== "Lainnya" && (
+                    ) : opt.value !== "Lainnya" ? (
                       <span className="text-[10px] text-slate-400">
                         Belum ada
                       </span>
-                    )}
+                    ) : null}
                   </button>
                 );
               })}
@@ -652,9 +651,9 @@ export default function BuatChecklistPage() {
           </div>
 
           {/* Unit Dropdown */}
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unit yang Diperiksa</Label>
+          <div className="mt-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="unit" className="text-xs">Unit yang Diperiksa</Label>
               {unitOptions.length > 0 ? (
                 <Select
                   id="unit"
@@ -721,19 +720,19 @@ export default function BuatChecklistPage() {
         </Card>
 
         {/* Template / Input Manual */}
-        <Card className="p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
+        <Card className="p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
             {modeManual ? (
-              <PencilLine className="h-5 w-5 text-primary" />
+              <PencilLine className="h-4 w-4 text-primary" />
             ) : (
-              <ClipboardCheck className="h-5 w-5 text-primary" />
+              <ClipboardCheck className="h-4 w-4 text-primary" />
             )}
             {modeManual ? "Input Manual" : "Template Checklist"}
           </h2>
 
           {modeManual ? (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
               <p className="text-xs text-amber-800">
                 Peralatan <strong>Medis</strong> dan <strong>Komunikasi</strong>{" "}
                 belum punya form template dari kantor. Tulis sendiri item yang
@@ -742,8 +741,8 @@ export default function BuatChecklistPage() {
             </div>
           ) : (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="templateId">Pilih Template</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="templateId" className="text-xs">Pilih Template</Label>
                 {templateTersedia.length > 0 ? (
                   <Select
                     id="templateId"
@@ -776,7 +775,7 @@ export default function BuatChecklistPage() {
                   </div>
                 )}
                 {template?.sumber && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-[11px] text-slate-500">
                     Sumber form: {template.sumber}. Daftar item mengikuti template
                     yang dipilih. Pilih ulang template akan mengosongkan hasil yang
                     sudah diisi.
@@ -786,7 +785,7 @@ export default function BuatChecklistPage() {
 
               {/* Info ringkasan template terpilih */}
               {template && (
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   <Badge variant="outline">
                     {template.jenisArmada}
                   </Badge>
@@ -810,9 +809,9 @@ export default function BuatChecklistPage() {
         {/* Hasil Pemeriksaan — mode input manual */}
         {modeManual && (
           <Card>
-            <CardContent className="p-6">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-slate-800">
+            <CardContent className="p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-800">
                   Daftar Item yang Diperiksa
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
@@ -844,7 +843,7 @@ export default function BuatChecklistPage() {
               </div>
 
               {itemManual.length > 0 && (
-                <p className="-mt-2 mb-4 text-[11px] text-slate-400">
+                <p className="-mt-1 mb-3 text-[11px] text-slate-400">
                   Tombol <strong>Centang Semua Baik</strong> menandai seluruh
                   item manual sekaligus — gunakan bila kondisi keseluruhan
                   memang baik.
@@ -852,15 +851,15 @@ export default function BuatChecklistPage() {
               )}
 
               {itemManual.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center">
-                  <PencilLine className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                  <p className="text-sm text-slate-500">
+                <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center">
+                  <PencilLine className="mx-auto mb-2 h-6 w-6 text-slate-300" />
+                  <p className="text-xs text-slate-500">
                     Belum ada item. Tekan &quot;Tambah Item&quot; untuk menulis
                     equipment yang diperiksa.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {itemManual.map((item, idx) => {
                     const perluKeterangan =
                       item.kondisi !== "Baik" &&
@@ -870,70 +869,68 @@ export default function BuatChecklistPage() {
                       <div
                         key={item.id}
                         className={cn(
-                          "rounded-lg border p-4",
+                          "rounded-lg border p-2.5",
                           item.kondisi === "Belum Diperiksa"
                             ? "border-slate-200 bg-slate-50"
                             : "border-slate-200 bg-white"
                         )}
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                          <div className="flex min-w-0 flex-1 items-start gap-3">
-                            <span className="mt-2 w-6 shrink-0 text-center text-xs font-semibold text-slate-400">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="shrink-0 text-center text-xs font-semibold text-slate-400">
                               {idx + 1}
                             </span>
                             <Input
                               placeholder="Contoh: Baterai AED terisi penuh"
                               aria-label={"Item pemeriksaan " + (idx + 1)}
-                              className="min-w-0"
+                              className="min-w-0 text-xs"
                               value={item.label}
                               onChange={(e) =>
                                 ubahItemManual(item.id, { label: e.target.value })
                               }
                             />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={"Hapus item " + (idx + 1)}
+                              onClick={() => hapusItemManual(item.id)}
+                              className="shrink-0 text-slate-400 hover:text-rose-600"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={"Hapus item " + (idx + 1)}
-                            onClick={() => hapusItemManual(item.id)}
-                            className="shrink-0 text-slate-400 hover:text-rose-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2 sm:pl-9">
-                          {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
-                            (k) => (
-                              <button
-                                key={k}
-                                type="button"
-                                onClick={() =>
-                                  ubahItemManual(item.id, { kondisi: k })
-                                }
-                                aria-pressed={item.kondisi === k}
-                                className={cn(
-                                  "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors sm:flex-none",
-                                  item.kondisi === k
-                                    ? k === "Baik"
-                                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                      : k === "Rusak Ringan"
-                                        ? "border-amber-500 bg-amber-50 text-amber-700"
-                                        : "border-rose-500 bg-rose-50 text-rose-700"
-                                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                )}
-                              >
-                                {item.kondisi === k && (
-                                  <CheckCircle2 className="h-3 w-3" />
-                                )}
-                                {k === "Rusak Ringan" ? "Ringan" : k}
-                              </button>
-                            )
-                          )}
-                        </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
+                              (k) => (
+                                <button
+                                  key={k}
+                                  type="button"
+                                  onClick={() =>
+                                    ubahItemManual(item.id, { kondisi: k })
+                                  }
+                                  aria-pressed={item.kondisi === k}
+                                  className={cn(
+                                    "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors sm:flex-none",
+                                    item.kondisi === k
+                                      ? k === "Baik"
+                                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                        : k === "Rusak Ringan"
+                                          ? "border-amber-500 bg-amber-50 text-amber-700"
+                                          : "border-rose-500 bg-rose-50 text-rose-700"
+                                      : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                  )}
+                                >
+                                  {item.kondisi === k && (
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  )}
+                                  {k === "Rusak Ringan" ? "Ringan" : k}
+                                </button>
+                              )
+                            )}
+                          </div>
 
-                        <div className="mt-3 sm:pl-9">
                           <Input
                             placeholder={
                               perluKeterangan
@@ -963,10 +960,11 @@ export default function BuatChecklistPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="mt-4"
+                size="sm"
+                className="mt-3"
                 onClick={tambahItemManual}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
                 Tambah Item
               </Button>
             </CardContent>
@@ -976,9 +974,9 @@ export default function BuatChecklistPage() {
         {/* Hasil Pemeriksaan */}
         {template && (
           <Card>
-            <CardContent className="p-6">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-slate-800">
+            <CardContent className="p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-800">
                   Hasil Pemeriksaan
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
@@ -999,7 +997,7 @@ export default function BuatChecklistPage() {
                 </div>
               </div>
 
-              <p className="-mt-2 mb-4 text-[11px] text-slate-400">
+              <p className="-mt-1 mb-3 text-[11px] text-slate-400">
                 Tombol <strong>Centang Semua Baik</strong> mengisi seluruh item
                 sekaligus — gunakan bila kondisi keseluruhan memang baik. Item
                 yang sudah ditandai Rusak Ringan/Berat akan ikut ter-overwrite
@@ -1007,8 +1005,8 @@ export default function BuatChecklistPage() {
               </p>
 
               {template.items.some((i) => i.isKritis) && (
-                <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
                   <p className="text-xs text-amber-800">
                     Item bertanda <strong>Kritis</strong>: bila berstatus
                     &quot;Rusak Berat&quot;, armada akan otomatis terkunci dan
@@ -1017,14 +1015,14 @@ export default function BuatChecklistPage() {
                 </div>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {kelompokItem.map((kelompok) => (
-                  <div key={kelompok.nama} className="space-y-3">
+                  <div key={kelompok.nama} className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-slate-700">
+                      <h3 className="text-xs font-semibold text-slate-700">
                         {kelompok.nama}
                       </h3>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-[11px] text-slate-400">
                         {kelompok.items.length} item
                       </span>
                     </div>
@@ -1040,68 +1038,61 @@ export default function BuatChecklistPage() {
                         <div
                           key={item.id}
                           className={cn(
-                            "rounded-lg border p-4",
+                            "rounded-lg border p-2.5",
                             kondisi && kondisi !== "Belum Diperiksa"
                               ? "border-slate-200 bg-white"
                               : "border-slate-200 bg-slate-50"
                           )}
                         >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                            <div className="flex min-w-0 flex-1 items-start gap-3">
-                              <div className="min-w-0">
-                                <p className="text-sm text-slate-700">
-                                  {item.label}
-                                </p>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {item.wajib && (
-                                    <Badge variant="outline" className="text-xs">
-                                      Wajib
-                                    </Badge>
-                                  )}
-                                  {item.isKritis && (
-                                    <Badge variant="warning" className="text-xs">
-                                      Kritis
-                                    </Badge>
-                                  )}
-                                </div>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="text-xs text-slate-700">
+                                {item.label}
+                              </p>
+                              {item.wajib && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  Wajib
+                                </Badge>
+                              )}
+                              {item.isKritis && (
+                                <Badge variant="warning" className="text-[10px] px-1.5 py-0">
+                                  Kritis
+                                </Badge>
+                              )}
+                              <div className="ml-auto flex shrink-0 gap-1.5">
+                                {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
+                                  (k) => (
+                                    <button
+                                      key={k}
+                                      type="button"
+                                      onClick={() =>
+                                        setHasil((prev) => ({
+                                          ...prev,
+                                          [item.label]: k,
+                                        }))
+                                      }
+                                      aria-pressed={kondisi === k}
+                                      className={cn(
+                                        "flex items-center justify-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors",
+                                        kondisi === k
+                                          ? k === "Baik"
+                                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                            : k === "Rusak Ringan"
+                                              ? "border-amber-500 bg-amber-50 text-amber-700"
+                                              : "border-rose-500 bg-rose-50 text-rose-700"
+                                          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      {kondisi === k && (
+                                        <CheckCircle2 className="h-3 w-3" />
+                                      )}
+                                      {k === "Rusak Ringan" ? "Ringan" : k}
+                                    </button>
+                                  )
+                                )}
                               </div>
                             </div>
 
-                            <div className="flex shrink-0 gap-2 sm:w-52">
-                              {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
-                                (k) => (
-                                  <button
-                                    key={k}
-                                    type="button"
-                                    onClick={() =>
-                                      setHasil((prev) => ({
-                                        ...prev,
-                                        [item.label]: k,
-                                      }))
-                                    }
-                                    aria-pressed={kondisi === k}
-                                    className={cn(
-                                      "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
-                                      kondisi === k
-                                        ? k === "Baik"
-                                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                          : k === "Rusak Ringan"
-                                            ? "border-amber-500 bg-amber-50 text-amber-700"
-                                            : "border-rose-500 bg-rose-50 text-rose-700"
-                                        : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                    )}
-                                  >
-                                    {kondisi === k && (
-                                      <CheckCircle2 className="h-3 w-3" />
-                                    )}
-                                    {k === "Rusak Ringan" ? "Ringan" : k}
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="mt-3 pl-9">
                             <Input
                               placeholder={
                                 kondisi && kondisi !== "Baik"
@@ -1132,9 +1123,9 @@ export default function BuatChecklistPage() {
         )}
 
         {/* Catatan */}
-        <Card className="p-6">
-          <div className="space-y-2">
-            <Label htmlFor="catatan">Catatan Pemeriksa</Label>
+        <Card className="p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="catatan" className="text-xs">Catatan Pemeriksa</Label>
             <Textarea
               id="catatan"
               rows={4}
@@ -1151,9 +1142,9 @@ export default function BuatChecklistPage() {
           (itemBelumDijawab > 0 ||
             itemRusakTanpaKeterangan > 0 ||
             itemManualRusakTanpaKeterangan > 0) && (
-          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-            <div className="text-sm text-amber-800">
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div className="text-xs text-amber-800">
               {itemBelumDijawab > 0 && (
                 <p>
                   <strong>{itemBelumDijawab} item</strong> belum dijawab. Checklist
@@ -1201,10 +1192,10 @@ export default function BuatChecklistPage() {
             - Lengkap + ada item rusak → tombol pengisian Berita Acara.
             - Lengkap + tanpa item rusak → unit siap operasional. */}
         {checklistBaruId && hasilBelumLengkap && (
-          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-800">
+              <p className="text-xs font-medium text-amber-800">
                 Checklist berhasil disimpan sebagai draft{" "}
                 <strong>Belum Lengkap</strong>.{" "}
                 {adaItemRusak
@@ -1223,10 +1214,10 @@ export default function BuatChecklistPage() {
         )}
 
         {checklistBaruId && !hasilBelumLengkap && adaItemRusak && (
-          <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-800">
+              <p className="text-xs font-medium text-emerald-800">
                 Checklist berhasil disimpan. Terdapat item rusak — silakan
                 lanjutkan pengisian Berita Acara.
               </p>
@@ -1241,10 +1232,10 @@ export default function BuatChecklistPage() {
         )}
 
         {checklistBaruId && !hasilBelumLengkap && !adaItemRusak && (
-          <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-800">
+              <p className="text-xs font-medium text-emerald-800">
                 Checklist berhasil disimpan. Tidak ada item rusak — unit siap
                 operasional.
               </p>

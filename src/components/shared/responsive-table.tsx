@@ -164,12 +164,12 @@ export function ResponsiveTable<T>({
       </div>
 
       {/* ── Mobile & tablet: daftar kartu ──────────────────────────────── */}
-      <ul className="space-y-3 lg:hidden">
+      <ul className="space-y-2 lg:hidden">
         {data.map((row) => (
           <li key={getKey(row)} className="relative">
             <div
               className={cn(
-                "rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors",
+                "rounded-lg border border-slate-200 bg-white p-3 transition-colors",
                 "hover:border-primary/40 hover:bg-slate-50 active:bg-slate-100",
                 "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2"
               )}
@@ -189,7 +189,7 @@ export function ResponsiveTable<T>({
               </div>
 
               {previewFields.length > 0 && (
-                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
                   {previewFields.map((field) => (
                     <div key={field.key} className="min-w-0">
                       <dt className="truncate text-[11px] uppercase tracking-wide text-slate-400">
@@ -203,7 +203,7 @@ export function ResponsiveTable<T>({
                 </dl>
               )}
 
-              <p className="mt-3 flex items-center gap-1 text-xs font-medium text-primary">
+              <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
                 {detailLabel}
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               </p>
@@ -213,7 +213,7 @@ export function ResponsiveTable<T>({
             <button
               type="button"
               onClick={() => setSelected(row)}
-              className="absolute inset-0 rounded-xl focus-visible:outline-none"
+              className="absolute inset-0 rounded-lg focus-visible:outline-none"
             >
               <span className="sr-only">
                 {detailLabel}: {cardTitle(row)}

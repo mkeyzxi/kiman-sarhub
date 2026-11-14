@@ -404,7 +404,7 @@ export default function EditLogbookPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Edit Logbook Perjalanan
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -436,7 +436,7 @@ export default function EditLogbookPage() {
 
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Jadwal */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Jadwal & Rute
           </h2>
@@ -484,7 +484,7 @@ export default function EditLogbookPage() {
         </Card>
 
         {/* Unit & Operator */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Unit &amp; Operator
           </h2>
@@ -546,7 +546,7 @@ export default function EditLogbookPage() {
         </Card>
 
         {/* BBM & Endurance / Kilometer */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             BBM &amp; Bacaan Armada
           </h2>
@@ -661,7 +661,7 @@ export default function EditLogbookPage() {
         </Card>
 
         {/* Status & Catatan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Status &amp; Catatan
           </h2>

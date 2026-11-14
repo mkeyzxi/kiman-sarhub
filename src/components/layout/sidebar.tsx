@@ -31,8 +31,8 @@ function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void})
   return (
     <>
       {/* Logo */}
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-200 shrink-0">
-        <div className="w-10 h-10 rounded-lg  flex items-center justify-center">
+      <div className="h-14 md:h-16 flex items-center gap-3 px-4 md:px-6 border-b border-slate-200 shrink-0">
+        <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center">
           {/* <LifeBuoy className="h-6 w-6 text-white" /> */}
           {/* public\logo-transparant.png */}
           <Image src="/logo-transparant.png" alt="Logo" width={40} height={40} />

@@ -109,7 +109,7 @@ export default function DashboardLayout({
           {/* Konten halaman — hanya area ini yang scroll.
               `min-w-0` + `overflow-x-clip` menjaga agar tidak ada
               elemen yang membuat halaman bisa digeser ke samping. */}
-          <main className="flex-1 overflow-y-auto overflow-x-clip min-w-0 bg-slate-50 p-4 md:p-6 pb-20 md:pb-6 app-main">
+          <main className="flex-1 overflow-y-auto overflow-x-clip min-w-0 bg-slate-50 p-3 md:p-4 pb-20 md:pb-4 app-main">
             {children}
           </main>
         </div>

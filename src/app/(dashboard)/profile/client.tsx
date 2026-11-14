@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { User, Lock, Loader2, Save, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { roleLabels } from "@/config/navigation";
 import { notifyLocalStorageChange } from "@/lib/use-local-storage";
 import type { UserProfile } from "@/types/supabase";
@@ -162,11 +161,13 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Profil Saya</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Kelola informasi akun Anda
-        </p>
+      <div className="sm:flex sm:items-center sm:justify-between sm:gap-4">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800">Profil Saya</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Kelola informasi akun Anda
+          </p>
+        </div>
       </div>
 
       {/* Success Message */}
@@ -177,45 +178,38 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
       )}
 
       {/* Info Akun */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Informasi Akun
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-lg bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-wider text-slate-500">
-                Role
-              </p>
-              <p className="mt-1 font-medium text-slate-800">{roleLabel}</p>
-            </div>
-            <div className="rounded-lg bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-wider text-slate-500">
-                Status Akun
-              </p>
-              <p className="mt-1 font-medium text-slate-800">
-                {profile.aktif ? "Aktif" : "Nonaktif"}
-              </p>
-            </div>
+      <div className="sm:px-2">
+        <div className="sm:flex sm:items-center sm:gap-2 sm:mb-3">
+          <User className="sm:h-5 sm:w-5 sm:text-primary" />
+          <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Informasi Akun</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg bg-slate-50 p-3 sm:p-4">
+            <p className="text-xs uppercase tracking-wider text-slate-500">
+              Role
+            </p>
+            <p className="mt-1 font-medium text-slate-800">{roleLabel}</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="rounded-lg bg-slate-50 p-3 sm:p-4">
+            <p className="text-xs uppercase tracking-wider text-slate-500">
+              Status Akun
+            </p>
+            <p className="mt-1 font-medium text-slate-800">
+              {profile.aktif ? "Aktif" : "Nonaktif"}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Form Edit Profil */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Informasi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleProfileSubmit} className="space-y-4">
+      <div className="sm:px-2">
+        <h2 className="sm:text-base sm:font-semibold sm:text-slate-800 sm:mb-3">Edit Informasi</h2>
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleProfileSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="profile-nama">Nama Lengkap</Label>
@@ -271,18 +265,14 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Ganti Password */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-primary" />
-            Keamanan Akun
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="sm:px-2">
+        <div className="sm:flex sm:items-center sm:gap-2 sm:mb-3">
+          <KeyRound className="sm:h-5 sm:w-5 sm:text-primary" />
+          <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Keamanan Akun</h2>
+        </div>
           {!showPasswordForm ? (
             <div className="flex items-center justify-between">
               <div>
@@ -389,8 +379,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
               </div>
             </form>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }

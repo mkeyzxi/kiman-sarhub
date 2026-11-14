@@ -38,13 +38,13 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
   iconColor: string;
 }) {
   return (
-    <Card className="p-6">
+    <Card className="p-4">
       <div className="flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", iconBg)}>
           <Icon className={cn("h-6 w-6", iconColor)} />
         </div>
         <div className="flex-1">
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
+          <p className="text-lg font-bold text-slate-800">{value}</p>
           <p className="text-sm text-slate-500">{label}</p>
         </div>
       </div>
@@ -109,11 +109,11 @@ export default function LaporanPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Laporan & Analisis</h1>
+          <h1 className="text-lg font-bold text-slate-800">Laporan & Analisis</h1>
           <p className="text-sm text-slate-500 mt-1">
             Laporan kesiapan SAR dan rekap riwayat operasi
           </p>
@@ -131,7 +131,7 @@ export default function LaporanPage() {
       </div>
 
       {/* Stats Cards — Readiness focused */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="sm:grid sm:grid-cols-4 gap-4 grid grid-cols-1 sm:grid-cols-2">
         <StatCard
           label="Readiness Index"
           value={`${readinessStats.readinessIndex}%`}
@@ -163,24 +163,23 @@ export default function LaporanPage() {
       </div>
 
       {/* Riwayat Operasi — Event Log */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Riwayat Operasi
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {riwayatOperasi.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm font-medium">Belum ada operasi tercatat</p>
-              <p className="text-xs mt-1">Riwayat operasi akan muncul di sini setelah kejadian dicatat.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {riwayatOperasi.map((op) => (
-                <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
+      <div className="sm:px-2">
+        <div className="sm:flex sm:items-center sm:justify-between sm:mb-3">
+          <div className="sm:flex sm:items-center sm:gap-2">
+            <FileText className="sm:h-5 sm:w-5 sm:text-primary" />
+            <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Riwayat Operasi</h2>
+          </div>
+        </div>
+        {riwayatOperasi.length === 0 ? (
+          <div className="text-center py-12 text-slate-400">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-medium">Belum ada operasi tercatat</p>
+            <p className="text-xs mt-1">Riwayat operasi akan muncul di sini setelah kejadian dicatat.</p>
+          </div>
+        ) : (
+          <div className="sm:space-y-3 space-y-2">
+            {riwayatOperasi.map((op) => (
+              <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
                   <div className="text-center shrink-0 w-14">
                     <p className="text-xl font-bold text-slate-800">
                       {new Date(op.tanggal).getDate()}
@@ -213,19 +212,15 @@ export default function LaporanPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Performa Unit — Dipertahankan */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            Performa Unit
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+      <div className="sm:px-2">
+        <div className="sm:flex sm:items-center sm:gap-2 sm:mb-3">
+          <Package className="sm:h-5 sm:w-5 sm:text-primary" />
+          <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Performa Unit</h2>
+        </div>
+        <div className="sm:space-y-3 space-y-2">
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -272,8 +267,7 @@ export default function LaporanPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }

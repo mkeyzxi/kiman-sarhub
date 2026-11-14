@@ -207,11 +207,11 @@ export default function DetailChecklistPage() {
   ];
 
   return (
-    <div className="ba-page space-y-6">
-      <div className="no-print space-y-6">
+    <div className="ba-page space-y-4">
+      <div className="no-print space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           <Link
             href="/operator/checklist"
             aria-label="Kembali ke daftar checklist"
@@ -219,15 +219,15 @@ export default function DetailChecklistPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary-light">
-              <Icon className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary-light">
+              <Icon className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">
+              <h1 className="text-lg font-bold text-slate-800">
                 Detail Checklist
               </h1>
-              <p className="mt-0.5 text-sm text-slate-500">{checklist.unit}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{checklist.unit}</p>
             </div>
           </div>
         </div>
@@ -270,15 +270,15 @@ export default function DetailChecklistPage() {
             Ringkasan Pemeriksaan
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {info.map((item) => (
-              <div key={item.label} className="flex items-start gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-light">
-                  <item.icon className="h-5 w-5 text-primary" />
+              <div key={item.label} className="flex items-start gap-2.5">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-light">
+                  <item.icon className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-slate-500">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500">
                     {item.label}
                   </p>
                   <p className="text-sm font-medium text-slate-800">
@@ -327,10 +327,10 @@ export default function DetailChecklistPage() {
 
       {/* Peringatan belum lengkap */}
       {belumCount > 0 && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <div className="flex-1">
-            <p className="text-sm text-amber-800">
+            <p className="text-xs text-amber-800">
               Checklist belum lengkap. Terdapat{" "}
               <strong>{belumCount} item</strong> yang belum diperiksa dan harus
               dilengkapi sebelum unit dinyatakan siap operasional.
@@ -350,7 +350,7 @@ export default function DetailChecklistPage() {
 
       {/* Aksi validasi PJ: kembalikan aset ke Baik atau laporkan kerusakan */}
       {isPJAset && belumCount === 0 && (
-        <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             {prosesValidasi === null ? (
               <>
@@ -459,7 +459,7 @@ export default function DetailChecklistPage() {
           <CardTitle>Catatan Pemeriksa</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+          <p className="rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
             {checklist.catatan || "Tidak ada catatan."}
           </p>
         </CardContent>

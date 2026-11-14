@@ -48,13 +48,13 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
   iconColor: string;
 }) {
   return (
-    <Card className="p-6">
+    <Card className="p-4">
       <div className="flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", iconBg)}>
           <Icon className={cn("h-6 w-6", iconColor)} />
         </div>
         <div className="flex-1">
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
+          <p className="text-lg font-bold text-slate-800">{value}</p>
           <p className="text-sm text-slate-500">{label}</p>
         </div>
       </div>
@@ -137,10 +137,10 @@ export default function PimpinanPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard Pimpinan</h1>
+        <h1 className="text-lg font-bold text-slate-800">Dashboard Pimpinan</h1>
         <p className="text-sm text-slate-500 mt-1">
           Monitoring kesiapsiagaan SAR dan catatan operasional
         </p>

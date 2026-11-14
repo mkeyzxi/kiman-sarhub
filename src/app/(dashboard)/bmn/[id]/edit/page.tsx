@@ -198,7 +198,7 @@ export default function EditAsetPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Edit Aset</h1>
+          <h1 className="text-lg font-bold text-slate-800">Edit Aset</h1>
           <p className="mt-1 text-sm text-slate-500">
             {aset.nama}
             {labelModelAset(aset) && ` · ${labelModelAset(aset)}`} · {aset.kode}
@@ -234,7 +234,7 @@ export default function EditAsetPage() {
         )}
 
         {/* Informasi Dasar */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Informasi Dasar
           </h2>
@@ -357,7 +357,7 @@ export default function EditAsetPage() {
         </Card>
 
         {/* Detail */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">Detail</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -442,7 +442,7 @@ export default function EditAsetPage() {
         </Card>
 
         {/* Keterangan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Keterangan
           </h2>

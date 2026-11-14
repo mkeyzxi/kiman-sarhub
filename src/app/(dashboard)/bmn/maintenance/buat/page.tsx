@@ -206,7 +206,7 @@ function BuatTiketForm() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Buat Tiket Maintenance</h1>
+          <h1 className="text-lg font-bold text-slate-800">Buat Tiket Maintenance</h1>
           <p className="mt-1 text-sm text-slate-500">
             Laporkan kerusakan atau kebutuhan perawatan sebuah aset
           </p>
@@ -215,7 +215,7 @@ function BuatTiketForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Aset */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Package className="h-5 w-5 text-primary" />
             Aset Bermasalah
@@ -332,7 +332,7 @@ function BuatTiketForm() {
         </Card>
 
         {/* Detail Kerusakan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Wrench className="h-5 w-5 text-primary" />
             Detail Kerusakan
@@ -367,7 +367,7 @@ function BuatTiketForm() {
         </Card>
 
         {/* Severity & Petugas */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <AlertTriangle className="h-5 w-5 text-primary" />
             Severity &amp; Penanggung Jawab

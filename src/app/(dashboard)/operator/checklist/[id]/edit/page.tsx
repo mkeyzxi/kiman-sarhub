@@ -330,28 +330,28 @@ export default function EditChecklistPage() {
   ).length;
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Link href={`/operator/checklist/${id}`}>
           <Button variant="ghost" size="icon" aria-label="Kembali ke detail">
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Edit Checklist Perawatan
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500">
             {checklist.unit} · {checklist.tanggal} · ID{" "}
-            <span className="font-mono text-xs">{checklist.id}</span>
+            <span className="font-mono text-[11px]">{checklist.id}</span>
           </p>
         </div>
       </div>
 
       {/* Info ringkas */}
-      <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-        <PencilLine className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+      <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+        <PencilLine className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
         <p>
           Anda sedang <strong>memperbaiki data</strong> checklist yang sudah
           ada — ubah kondisi item, keterangan, dan catatan. Tanggal, unit,
@@ -368,13 +368,13 @@ export default function EditChecklistPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {/* ── Mode Template: item dari template, kondisi bisa diubah ──────── */}
         {!isManual && items.length > 0 && (
           <Card>
-            <CardContent className="p-6">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-slate-800">
+            <CardContent className="p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-800">
                   Hasil Pemeriksaan
                 </h2>
                 <Badge
@@ -387,8 +387,8 @@ export default function EditChecklistPage() {
               </div>
 
               {belumDiperiksa > 0 && (
-                <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
                   <p className="text-xs text-amber-800">
                     <strong>{belumDiperiksa} item</strong> masih{" "}
                     &quot;Belum Diperiksa&quot; — status checklist akan
@@ -397,14 +397,14 @@ export default function EditChecklistPage() {
                 </div>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {kelompokItem.map((kelompok) => (
-                  <div key={kelompok.nama} className="space-y-3">
+                  <div key={kelompok.nama} className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-slate-700">
+                      <h3 className="text-xs font-semibold text-slate-700">
                         {kelompok.nama}
                       </h3>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-[11px] text-slate-400">
                         {items.filter(
                           (i) =>
                             kelompok.items.some(
@@ -427,56 +427,51 @@ export default function EditChecklistPage() {
                         <div
                           key={item.label}
                           className={cn(
-                            "rounded-lg border p-4",
+                            "rounded-lg border p-2.5",
                             item.kondisi !== "Belum Diperiksa"
                               ? "border-slate-200 bg-white"
                               : "border-slate-200 bg-slate-50"
                           )}
                         >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm text-slate-700">
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="text-xs text-slate-700">
                                 {item.label}
                               </p>
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {item.wajib && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Wajib
-                                  </Badge>
+                              {item.wajib && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  Wajib
+                                </Badge>
+                              )}
+                              <div className="ml-auto flex shrink-0 gap-1.5">
+                                {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
+                                  (k) => (
+                                    <button
+                                      key={k}
+                                      type="button"
+                                      onClick={() => ubahKondisi(idx, k)}
+                                      aria-pressed={item.kondisi === k}
+                                      className={cn(
+                                        "flex items-center justify-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors",
+                                        item.kondisi === k
+                                          ? k === "Baik"
+                                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                            : k === "Rusak Ringan"
+                                              ? "border-amber-500 bg-amber-50 text-amber-700"
+                                              : "border-rose-500 bg-rose-50 text-rose-700"
+                                          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      {item.kondisi === k && (
+                                        <CheckCircle2 className="h-3 w-3" />
+                                      )}
+                                      {k === "Rusak Ringan" ? "Ringan" : k}
+                                    </button>
+                                  )
                                 )}
                               </div>
                             </div>
 
-                            <div className="flex shrink-0 gap-2 sm:w-52">
-                              {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
-                                (k) => (
-                                  <button
-                                    key={k}
-                                    type="button"
-                                    onClick={() => ubahKondisi(idx, k)}
-                                    aria-pressed={item.kondisi === k}
-                                    className={cn(
-                                      "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
-                                      item.kondisi === k
-                                        ? k === "Baik"
-                                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                          : k === "Rusak Ringan"
-                                            ? "border-amber-500 bg-amber-50 text-amber-700"
-                                            : "border-rose-500 bg-rose-50 text-rose-700"
-                                        : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                    )}
-                                  >
-                                    {item.kondisi === k && (
-                                      <CheckCircle2 className="h-3 w-3" />
-                                    )}
-                                    {k === "Rusak Ringan" ? "Ringan" : k}
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="mt-3 pl-0 sm:pl-9">
                             <Input
                               placeholder={
                                 perluKeterangan
@@ -510,8 +505,8 @@ export default function EditChecklistPage() {
                   );
                   if (sisa.length === 0) return null;
                   return (
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-slate-700">
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-semibold text-slate-700">
                         Item Lain
                       </h3>
                       {items.map((item, idx) => {
@@ -524,47 +519,45 @@ export default function EditChecklistPage() {
                           <div
                             key={item.label}
                             className={cn(
-                              "rounded-lg border p-4",
+                              "rounded-lg border p-2.5",
                               item.kondisi !== "Belum Diperiksa"
                                 ? "border-slate-200 bg-white"
                                 : "border-slate-200 bg-slate-50"
                             )}
                           >
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm text-slate-700">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <p className="text-xs text-slate-700">
                                   {item.label}
                                 </p>
+                                <div className="ml-auto flex shrink-0 gap-1.5">
+                                  {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
+                                    (k) => (
+                                      <button
+                                        key={k}
+                                        type="button"
+                                        onClick={() => ubahKondisi(idx, k)}
+                                        aria-pressed={item.kondisi === k}
+                                        className={cn(
+                                          "flex items-center justify-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors",
+                                          item.kondisi === k
+                                            ? k === "Baik"
+                                              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                              : k === "Rusak Ringan"
+                                                ? "border-amber-500 bg-amber-50 text-amber-700"
+                                                : "border-rose-500 bg-rose-50 text-rose-700"
+                                            : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                        )}
+                                      >
+                                        {item.kondisi === k && (
+                                          <CheckCircle2 className="h-3 w-3" />
+                                        )}
+                                        {k === "Rusak Ringan" ? "Ringan" : k}
+                                      </button>
+                                    )
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex shrink-0 gap-2 sm:w-52">
-                                {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
-                                  (k) => (
-                                    <button
-                                      key={k}
-                                      type="button"
-                                      onClick={() => ubahKondisi(idx, k)}
-                                      aria-pressed={item.kondisi === k}
-                                      className={cn(
-                                        "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
-                                        item.kondisi === k
-                                          ? k === "Baik"
-                                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                            : k === "Rusak Ringan"
-                                              ? "border-amber-500 bg-amber-50 text-amber-700"
-                                              : "border-rose-500 bg-rose-50 text-rose-700"
-                                          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                      )}
-                                    >
-                                      {item.kondisi === k && (
-                                        <CheckCircle2 className="h-3 w-3" />
-                                      )}
-                                      {k === "Rusak Ringan" ? "Ringan" : k}
-                                    </button>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                            <div className="mt-3">
                               <Input
                                 placeholder={
                                   perluKeterangan
@@ -596,9 +589,9 @@ export default function EditChecklistPage() {
         {/* ── Mode Manual: item ditulis sendiri, bisa tambah/hapus ─────────── */}
         {isManual && (
           <Card>
-            <CardContent className="p-6">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-slate-800">
+            <CardContent className="p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-800">
                   Daftar Item yang Diperiksa
                 </h2>
                 <Badge
@@ -611,15 +604,15 @@ export default function EditChecklistPage() {
               </div>
 
               {items.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center">
-                  <PencilLine className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                  <p className="text-sm text-slate-500">
+                <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center">
+                  <PencilLine className="mx-auto mb-2 h-6 w-6 text-slate-300" />
+                  <p className="text-xs text-slate-500">
                     Belum ada item. Tekan &quot;Tambah Item&quot; untuk
                     menulis item yang diperiksa.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {items.map((item, idx) => {
                     const perluKeterangan =
                       item.kondisi !== "Baik" &&
@@ -629,68 +622,66 @@ export default function EditChecklistPage() {
                       <div
                         key={idx}
                         className={cn(
-                          "rounded-lg border p-4",
+                          "rounded-lg border p-2.5",
                           item.kondisi === "Belum Diperiksa"
                             ? "border-slate-200 bg-slate-50"
                             : "border-slate-200 bg-white"
                         )}
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                          <div className="flex min-w-0 flex-1 items-start gap-3">
-                            <span className="mt-2 w-6 shrink-0 text-center text-xs font-semibold text-slate-400">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="shrink-0 text-center text-xs font-semibold text-slate-400">
                               {idx + 1}
                             </span>
                             <Input
                               placeholder="Contoh: Baterai AED terisi penuh"
                               aria-label={`Item pemeriksaan ${idx + 1}`}
-                              className="min-w-0"
+                              className="min-w-0 text-xs"
                               value={item.label}
                               onChange={(e) =>
                                 ubahLabelManual(idx, e.target.value)
                               }
                             />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Hapus item ${idx + 1}`}
+                              onClick={() => hapusItemManual(idx)}
+                              className="shrink-0 text-slate-400 hover:text-rose-600"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Hapus item ${idx + 1}`}
-                            onClick={() => hapusItemManual(idx)}
-                            className="shrink-0 text-slate-400 hover:text-rose-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2 sm:pl-9">
-                          {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
-                            (k) => (
-                              <button
-                                key={k}
-                                type="button"
-                                onClick={() => ubahKondisi(idx, k)}
-                                aria-pressed={item.kondisi === k}
-                                className={cn(
-                                  "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors sm:flex-none",
-                                  item.kondisi === k
-                                    ? k === "Baik"
-                                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                      : k === "Rusak Ringan"
-                                        ? "border-amber-500 bg-amber-50 text-amber-700"
-                                        : "border-rose-500 bg-rose-50 text-rose-700"
-                                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                )}
-                              >
-                                {item.kondisi === k && (
-                                  <CheckCircle2 className="h-3 w-3" />
-                                )}
-                                {k === "Rusak Ringan" ? "Ringan" : k}
-                              </button>
-                            )
-                          )}
-                        </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(["Baik", "Rusak Ringan", "Rusak Berat"] as const).map(
+                              (k) => (
+                                <button
+                                  key={k}
+                                  type="button"
+                                  onClick={() => ubahKondisi(idx, k)}
+                                  aria-pressed={item.kondisi === k}
+                                  className={cn(
+                                    "flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors sm:flex-none",
+                                    item.kondisi === k
+                                      ? k === "Baik"
+                                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                        : k === "Rusak Ringan"
+                                          ? "border-amber-500 bg-amber-50 text-amber-700"
+                                          : "border-rose-500 bg-rose-50 text-rose-700"
+                                      : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                  )}
+                                >
+                                  {item.kondisi === k && (
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  )}
+                                  {k === "Rusak Ringan" ? "Ringan" : k}
+                                </button>
+                              )
+                            )}
+                          </div>
 
-                        <div className="mt-3 sm:pl-9">
                           <Input
                             placeholder={
                               perluKeterangan
@@ -718,10 +709,11 @@ export default function EditChecklistPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="mt-4"
+                size="sm"
+                className="mt-3"
                 onClick={tambahItemManual}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
                 Tambah Item
               </Button>
             </CardContent>
@@ -729,9 +721,9 @@ export default function EditChecklistPage() {
         )}
 
         {/* Catatan */}
-        <Card className="p-6">
-          <div className="space-y-2">
-            <Label htmlFor="catatan">Catatan Pemeriksa</Label>
+        <Card className="p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="catatan" className="text-xs">Catatan Pemeriksa</Label>
             <Textarea
               id="catatan"
               rows={4}

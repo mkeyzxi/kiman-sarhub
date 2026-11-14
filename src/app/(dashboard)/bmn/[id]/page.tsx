@@ -238,7 +238,7 @@ export default function DetailAsetPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -250,7 +250,7 @@ export default function DetailAsetPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Detail Aset</h1>
+            <h1 className="text-lg font-bold text-slate-800">Detail Aset</h1>
             <p className="text-sm text-slate-500 mt-1">
               {aset.nama}
               {labelModelAset(aset) && ` · ${labelModelAset(aset)}`} · {aset.kode}
@@ -583,7 +583,7 @@ export default function DetailAsetPage() {
 
       {/* Form Selesai Digunakan — aksi ubah status, hanya Pengelola BMN */}
       {bolehKelola && aset.status === "Sedang digunakan" && (
-        <Card className="p-6">
+        <Card className="p-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-warning" />

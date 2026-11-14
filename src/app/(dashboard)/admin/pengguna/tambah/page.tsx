@@ -120,7 +120,7 @@ export default function TambahPenggunaPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Tambah Pengguna Baru
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -145,7 +145,7 @@ export default function TambahPenggunaPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Data Utama */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Data Utama
           </h2>
@@ -195,7 +195,7 @@ export default function TambahPenggunaPage() {
         </Card>
 
         {/* Hak Akses */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Hak Akses
           </h2>
@@ -224,7 +224,7 @@ export default function TambahPenggunaPage() {
         </Card>
 
         {/* Keamanan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Keamanan
           </h2>

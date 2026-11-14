@@ -195,7 +195,7 @@ export default function LengkapiLogbookPage() {
           </Button>
         </Link>
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Lengkapi Pencatatan
           </h1>
           <p className="mt-1 truncate text-sm text-slate-500">
@@ -254,7 +254,7 @@ export default function LengkapiLogbookPage() {
         </div>
 
         {/* Ringkasan tahap awal (read-only) */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Lock className="h-4 w-4 text-slate-400" />
             Data Keberangkatan (Tersimpan)
@@ -291,7 +291,7 @@ export default function LengkapiLogbookPage() {
         </Card>
 
         {/* Data kepulangan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Clock className="h-5 w-5 text-primary" />
             Data Saat Kembali
@@ -431,7 +431,7 @@ export default function LengkapiLogbookPage() {
         </Card>
 
         {/* Ringkasan kelengkapan + actions */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h3 className="mb-3 text-sm font-semibold text-slate-800">
             Kelengkapan Tahap Akhir
           </h3>
