@@ -39,7 +39,7 @@ function SidebarContent({role, onClose}: {role: UserRole; onClose?: () => void})
         </div>
         <div className="min-w-0">
           <h1 className="text-sm font-bold text-slate-800 truncate">Siap SAR</h1>
-          <p className="text-xs text-slate-500 truncate">Kantor P3KB Mamuju</p>
+          <p className="text-xs text-slate-500 truncate">Kantor SAR Mamuju</p>
         </div>
         {/* Close button — mobile only */}
         {onClose && (
