@@ -211,7 +211,7 @@ export default function DetailLogbookPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-lg font-bold text-slate-800">
               Detail Logbook Perjalanan
             </h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -274,7 +274,7 @@ export default function DetailLogbookPage() {
         </CardContent>
       </Card>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Endurance — hanya untuk armada laut */}
         {laut && (
           <div>

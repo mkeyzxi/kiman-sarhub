@@ -72,7 +72,7 @@ export function MobileNav({ role }: { role?: UserRole }) {
         isVisible ? "translate-y-0" : "translate-y-full"
       )}
     >
-      <div className="flex items-center justify-around h-16">
+      <div className="flex items-center justify-around h-14">
         {items.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
@@ -90,7 +90,7 @@ export function MobileNav({ role }: { role?: UserRole }) {
               {isActive && (
                 <span className="absolute left-1/2 top-0 h-0.5 w-8 -translate-x-1/2 rounded-full " />
               )}
-              <Icon className="h-5 w-5" />
+              <Icon className="h-4 w-4" />
               <span className="text-[10px] font-medium leading-tight">
                 {item.label}
               </span>

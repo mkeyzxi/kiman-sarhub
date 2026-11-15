@@ -133,13 +133,13 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   subText?: string;
 }) {
   return (
-    <Card className="p-6">
+    <Card className="p-4">
       <div className="flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", iconBg)}>
           <Icon className={cn("h-6 w-6", iconColor)} />
         </div>
         <div>
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
+          <p className="text-lg font-bold text-slate-800">{value}</p>
           <p className="text-sm text-slate-500">{label}</p>
           {subText && <p className="text-xs text-slate-400">{subText}</p>}
         </div>
@@ -169,11 +169,11 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard Admin</h1>
+          <h1 className="text-lg font-bold text-slate-800">Dashboard Admin</h1>
           <p className="text-sm text-slate-500 mt-1">
             Monitoring sistem, konfigurasi, dan aktivitas pengguna
           </p>

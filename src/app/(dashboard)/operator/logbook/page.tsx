@@ -52,13 +52,13 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   subText?: string;
 }) {
   return (
-    <Card className="p-6">
+    <Card className="p-4">
       <div className="flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", iconBg)}>
           <Icon className={cn("h-6 w-6", iconColor)} />
         </div>
         <div>
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
+          <p className="text-lg font-bold text-slate-800">{value}</p>
           <p className="text-sm text-slate-500">{label}</p>
           {subText && <p className="text-xs text-slate-400">{subText}</p>}
         </div>
@@ -145,8 +145,7 @@ export default function LogbookPerjalananPage() {
   // Master aset — sumber "Nama Referensi" per unit di daftar perjalanan.
   const { data: asetList } = useAsets();
 
-  /**
-   * Cocokkan nama unit tersimpan di logbook (`jenis_unit`) kembali ke baris
+  /** Cocokkan nama unit tersimpan di logbook (`jenis_unit`) kembali ke baris
    * master aset — memakai resolver yang SAMA dengan status live dashboard
    * (no. polisi → kode → nama referensi → tipe/merk → nama), sehingga nama
    * referensi yang tampil selalu sepadan dengan unit yang ditandai dipakai.
@@ -249,11 +248,11 @@ export default function LogbookPerjalananPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="sm:space-y-4 sm:mb-6 space-y-4">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Logbook Perjalanan</h1>
+          <h1 className="text-lg font-bold text-slate-800">Logbook Perjalanan</h1>
           <p className="text-sm text-slate-500 mt-1">
             Catatan perjalanan operasional SAR
           </p>
@@ -272,13 +271,13 @@ export default function LogbookPerjalananPage() {
       {pesanBerhasilHapus && (
         <div
           role="status"
-          className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700"
+          className="sm:rounded-lg sm:border sm:border-emerald-200 sm:bg-emerald-50 p-3 text-sm font-medium text-emerald-700"
         >
           <p>{pesanBerhasilHapus}</p>
           <button
             type="button"
             onClick={() => setPesanBerhasilHapus(null)}
-            className="text-emerald-600 hover:text-emerald-800"
+            className="sm:text-emerald-600 hover:text-emerald-800 sm:ml-3"
             aria-label="Tutup"
           >
             ✕
@@ -288,13 +287,13 @@ export default function LogbookPerjalananPage() {
       {pesanGagalHapus && (
         <div
           role="alert"
-          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
+          className="sm:rounded-lg sm:border sm:border-red-200 sm:bg-red-50 p-3 text-sm font-medium text-red-700"
         >
           <p>{pesanGagalHapus}</p>
           <button
             type="button"
             onClick={() => setPesanGagalHapus(null)}
-            className="text-red-600 hover:text-red-800"
+            className="sm:text-red-600 hover:text-red-800 sm:ml-3"
             aria-label="Tutup"
           >
             ✕
@@ -303,7 +302,7 @@ export default function LogbookPerjalananPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+      <div className="sm:grid sm:grid-cols-4 gap-3 grid grid-cols-1">
         <StatCard
           label="Total Perjalanan"
           value={totalPerjalanan}
@@ -341,13 +340,13 @@ export default function LogbookPerjalananPage() {
       </div>
 
       {/* Search + Filter */}
-      <Card className="p-4">
+      <div className="sm:px-2 pt-3 pb-4 border-t sm:border-t-sm sm:border-slate-200">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
               placeholder="Cari rute, tujuan, atau nahkoda..."
-              className="pl-9"
+              className="pl-7"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -364,382 +363,372 @@ export default function LogbookPerjalananPage() {
             <option value="SudahDiedit">Sudah Diedit</option>
           </Select>
         </div>
-      </Card>
+      </div>
 
-      {/* Tabel Logbook — otomatis menjadi kartu di layar kecil */}
-      <Card>
-        <CardContent className="pt-0">
-          <ResponsiveTable
-            data={paginatedLogbook}
-            getKey={(row) => row.id}
-            cardTitle={(row) => row.rute}
-            cardSubtitle={(row) => row.tujuan}
-            cardBadge={(row) => <StatusBadge status={row.status} />}
-            cardPreviewCount={3}
-            detailLabel="Lihat detail perjalanan"
-            emptyMessage="Tidak ada logbook yang ditemukan"
-            fields={[
-              {
-                key: "tanggal",
-                header: "Tanggal",
-                render: (row) => row.tanggal,
-                cellClassName: "text-slate-700",
-              },
-              {
-                key: "jam",
-                header: "Jam",
-                render: (row) => (
+      {/* Tabel Logbook - flat layout */}
+      <div className="sm:px-2">
+        <ResponsiveTable
+          data={paginatedLogbook}
+          getKey={(row) => row.id}
+          cardTitle={(row) => row.rute}
+          cardSubtitle={(row) => row.tujuan}
+          cardBadge={(row) => <StatusBadge status={row.status} />}
+          cardPreviewCount={3}
+          detailLabel="Lihat detail perjalanan"
+          emptyMessage="Tidak ada logbook yang ditemukan"
+          fields={[
+            {
+              key: "jam",
+              header: "Jam",
+              render: (row) => (
+                <div className="text-sm">
+                  <p className="font-mono">{row.jamBerangkat}</p>
+                  {row.jamKembali && (
+                    <p className="font-mono text-slate-400">{row.jamKembali}</p>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "rute",
+              header: "Rute / Tujuan",
+              render: (row) => (
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{row.rute}</p>
+                  <p className="text-xs text-slate-500">{row.tujuan}</p>
+                </div>
+              ),
+              hideOnCard: true,
+            },
+            {
+              key: "jenisUnit",
+              header: "Unit",
+              render: (row) => (
+                <div className="min-w-0">
+                  <Badge variant="outline" className="text-xs">
+                    {row.jenisUnit}
+                  </Badge>
+                  {referensiUnit(row.jenisUnit) && (
+                    <span className="mt-0.5 block text-xs font-medium text-emerald-600">
+                      {referensiUnit(row.jenisUnit)}
+                    </span>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "nahkoda",
+              header: "Nahkoda",
+              render: (row) => row.nahkoda,
+              cellClassName: "text-slate-700",
+            },
+            {
+              key: "jumlahPersonel",
+              header: "Personel",
+              render: (row) => (
+                <div className="flex items-center justify-center gap-1">
+                  <Users className="h-3 w-3 text-slate-400" />
+                  <span className="text-sm">{row.jumlahPersonel}</span>
+                </div>
+              ),
+              headClassName: "text-center",
+              cellClassName: "text-center",
+            },
+            {
+              key: "endurance",
+              header: "Endurance",
+              render: (row) =>
+                row.enduranceAwal === undefined ? (
+                  <span className="text-xs text-slate-400">-</span>
+                ) : (
                   <div className="text-sm">
-                    <p className="font-mono">{row.jamBerangkat}</p>
-                    {row.jamKembali && (
-                      <p className="font-mono text-slate-400">{row.jamKembali}</p>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                key: "rute",
-                header: "Rute / Tujuan",
-                render: (row) => (
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{row.rute}</p>
-                    <p className="text-xs text-slate-500">{row.tujuan}</p>
-                  </div>
-                ),
-                hideOnCard: true,
-              },
-              {
-                key: "jenisUnit",
-                header: "Unit",
-                render: (row) => (
-                  <div className="min-w-0">
-                    <Badge variant="outline" className="text-xs">
-                      {row.jenisUnit}
-                    </Badge>
-                    {referensiUnit(row.jenisUnit) && (
-                      <span className="mt-0.5 block text-xs font-medium text-emerald-600">
-                        {referensiUnit(row.jenisUnit)}
-                      </span>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                key: "nahkoda",
-                header: "Nahkoda",
-                render: (row) => row.nahkoda,
-                cellClassName: "text-slate-700",
-              },
-              {
-                key: "jumlahPersonel",
-                header: "Personel",
-                render: (row) => (
-                  <div className="flex items-center justify-center gap-1">
-                    <Users className="h-3 w-3 text-slate-400" />
-                    <span className="text-sm">{row.jumlahPersonel}</span>
-                  </div>
-                ),
-                headClassName: "text-center",
-                cellClassName: "text-center",
-                hideBelowXl: true,
-              },
-              {
-                key: "endurance",
-                header: "Endurance",
-                render: (row) =>
-                  row.enduranceAwal === undefined ? (
-                    <span className="text-xs text-slate-400">-</span>
-                  ) : (
-                    <div className="text-sm">
-                      <p className="text-slate-700">
-                        {formatEndurance(row.enduranceAwal)}
+                    <p className="text-slate-700">
+                      {formatEndurance(row.enduranceAwal)}
+                    </p>
+                    {row.enduranceAkhir ? (
+                      <p className="text-slate-400">
+                        {formatEndurance(row.enduranceAkhir)}
                       </p>
-                      {row.enduranceAkhir ? (
-                        <p className="text-slate-400">
-                          {formatEndurance(row.enduranceAkhir)}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-slate-400">Belum kembali</p>
-                      )}
-                    </div>
-                  ),
-                hideBelowXl: true,
-              },
-              {
-                key: "durasi",
-                header: "Durasi Tempuh",
-                render: (row) => (
-                  <span className="text-sm text-slate-700">
-                    {formatDurasiTempuh(row)}
-                  </span>
+                    ) : (
+                      <p className="text-xs text-slate-400">Belum kembali</p>
+                    )}
+                  </div>
                 ),
-                hideBelowXl: true,
-              },
-              {
-                key: "status",
-                header: "Status Penggunaan",
-                render: (row) => <StatusBadge status={row.status} />,
-                hideOnCard: true,
-              },
-              {
-                key: "aksi",
-                header: "Aksi",
-                render: (row) => (
-                  <div
-                    className="flex items-center justify-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Link href={`/operator/logbook/${row.id}`}>
+              hideBelowXl: true,
+            },
+            {
+              key: "durasi",
+              header: "Durasi Tempuh",
+              render: (row) => (
+                <span className="text-sm text-slate-700">
+                  {formatDurasiTempuh(row)}
+                </span>
+              ),
+              hideBelowXl: true,
+            },
+            {
+              key: "status",
+              header: "Status Penggunaan",
+              render: (row) => <StatusBadge status={row.status} />,
+              hideOnCard: true,
+            },
+            {
+              key: "aksi",
+              header: "Aksi",
+              render: (row) => (
+                <div
+                  className="flex items-center justify-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Link href={`/operator/logbook/${row.id}`}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-label={`Lihat detail ${row.rute}`}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                  {row.status !== "Selesai" && row.status !== "SudahDiedit" && bisaLengkapi(row) && (
+                    <Link href={`/operator/logbook/${row.id}/lengkapi`}>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
-                        aria-label={`Lihat detail ${row.rute}`}
+                        className="h-7 w-7 text-amber-600 hover:bg-amber-50"
+                        aria-label={`Lanjutkan pengisian ${row.rute}`}
                       >
-                        <Eye className="h-4 w-4" />
+                        <PencilLine className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
-                    {row.status !== "Selesai" && row.status !== "SudahDiedit" && bisaLengkapi(row) && (
-                      <Link href={`/operator/logbook/${row.id}/lengkapi`}>
+                  )}
+                  {bisaKelola && (
+                    <>
+                      <Link href={`/operator/logbook/${row.id}/edit`}>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-amber-600 hover:bg-amber-50"
-                          aria-label={`Lanjutkan pengisian ${row.rute}`}
+                          className="h-7 w-7 text-blue-600 hover:bg-blue-50"
+                          aria-label={`Edit logbook ${row.rute}`}
                         >
-                          <PencilLine className="h-4 w-4" />
+                          <PencilLine className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-600 hover:bg-red-50"
+                        aria-label={`Hapus logbook ${row.rute}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPesanGagalHapus(null);
+                          setHapusTarget(row as LogbookPerjalanan);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
+                  {/* Aksi edit — untuk operator/akuntor pemilik logbook */}
+                  {(ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") &&
+                    (row.createdBy === ses.nip || row.nahkoda === ses.nama) && (
+                      <Link href={`/operator/logbook/${row.id}/edit`}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-600 hover:bg-blue-50"
+                          aria-label={`Edit logbook ${row.rute}`}
+                        >
+                          <PencilLine className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
                     )}
-                   
-                    {bisaKelola && (
-                      <>
-                        <Link href={`/operator/logbook/${row.id}/edit`}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                            aria-label={`Edit logbook ${row.rute}`}
-                          >
-                            <PencilLine className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-600 hover:bg-red-50"
-                          aria-label={`Hapus logbook ${row.rute}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPesanGagalHapus(null);
-                            setHapusTarget(row as LogbookPerjalanan);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                </div>
+              ),
+              headClassName: "text-center",
+              hideBelowLg: true,
+            },
+          ]}
+          onRowClick={(row) => router.push(`/operator/logbook/${row.id}`)}
+        />
+
+        {/* Pagination Controls */}
+        {filteredLogbook.length > 0 && (
+          <div className="sm:px-2 pt-3">
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              startItem={pagination.startItem}
+              endItem={pagination.endItem}
+              hasPrevious={pagination.hasPrevious}
+              hasNext={pagination.hasNext}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Detail Logbook Terbaru */}
+      <div className="sm:px-2 pt-3 border-t sm:border-t-sm sm:border-slate-200">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Detail Logbook Terbaru
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const terbaru = logbookPerjalananList[0];
+              if (!terbaru) {
+                return (
+                  <p className="text-sm text-slate-500">
+                    Belum ada catatan perjalanan.
+                  </p>
+                );
+              }
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-slate-500">Tanggal</p>
+                      <p className="font-medium text-slate-800">
+                        {terbaru.tanggal}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Jam Berangkat</p>
+                      <p className="font-medium text-slate-800">
+                        {terbaru.jamBerangkat || "Belum berangkat"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Jam Kembali</p>
+                      <p className="font-medium text-slate-800">
+                        {terbaru.jamKembali || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Unit</p>
+                      <p className="font-medium text-slate-800">
+                        {terbaru.jenisUnit}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="mb-1 text-xs text-slate-500">Rute</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {terbaru.rute}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="mb-1 text-xs text-slate-500">Tujuan</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {terbaru.tujuan}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="mb-1 text-xs text-slate-500">Operator</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {terbaru.nahkoda}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="mb-1 text-xs text-slate-500">Jumlah Personel</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {terbaru.jumlahPersonel} orang
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <p className="mb-1 text-xs text-blue-600">Catatan</p>
+                    <p className="text-sm text-blue-800">
+                      {terbaru.catatan || "Tidak ada catatan"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">Status:</span>
+                      <StatusBadge status={terbaru.status} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/operator/logbook/${terbaru.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-3.5 w-3.5" />
+                          Detail
                         </Button>
-                      </>
-                    )}
-                    {/* Aksi edit — untuk operator/akuntor pemilik logbook */}
-                    {(ses.role === "OPERATOR_LAPANGAN" || ses.role === "AKUNTOR") &&
-                      (row.createdBy === ses.nip || row.nahkoda === ses.nama) && (
-                        <Link href={`/operator/logbook/${row.id}/edit`}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                            aria-label={`Edit logbook ${row.rute}`}
-                          >
-                            <PencilLine className="h-4 w-4" />
+                      </Link>
+                      {terbaru.status !== "Selesai" && (
+                        <Link href={`/operator/logbook/${terbaru.id}/lengkapi`}>
+                          <Button size="sm">
+                            <PencilLine className="h-3.5 w-3.5" />
+                            Lanjutkan Pengisian
                           </Button>
                         </Link>
                       )}
+                    </div>
                   </div>
-                ),
-                headClassName: "text-center",
-                hideBelowLg: true,
-              },
-            ]}
-            onRowClick={(row) => router.push(`/operator/logbook/${row.id}`)}
-          />
-          
-          {/* Pagination Controls */}
-          {filteredLogbook.length > 0 && (
-            <div className="mt-4">
-              <Pagination
-                currentPage={pagination.currentPage}
-                totalPages={pagination.totalPages}
-                totalItems={pagination.totalItems}
-                pageSize={pagination.pageSize}
-                startItem={pagination.startItem}
-                endItem={pagination.endItem}
-                hasPrevious={pagination.hasPrevious}
-                hasNext={pagination.hasNext}
-                onPageChange={pagination.goToPage}
-                onPageSizeChange={pagination.setPageSize}
-                pageSizeOptions={[10, 20, 50, 100]}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Detail Logbook Terbaru */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Detail Logbook Terbaru
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(() => {
-            const terbaru = logbookPerjalananList[0];
-            if (!terbaru) {
-              return (
-                <p className="text-sm text-slate-500">
-                  Belum ada catatan perjalanan.
-                </p>
+                </div>
               );
-            }
-            return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-slate-500">Tanggal</p>
-                    <p className="font-medium text-slate-800">
-                      {terbaru.tanggal}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Jam Berangkat</p>
-                    <p className="font-medium text-slate-800">
-                      {terbaru.jamBerangkat || "Belum berangkat"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Jam Kembali</p>
-                    <p className="font-medium text-slate-800">
-                      {terbaru.jamKembali || "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Unit</p>
-                    <p className="font-medium text-slate-800">
-                      {terbaru.jenisUnit}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="mb-1 text-xs text-slate-500">Rute</p>
-                    <p className="text-sm font-medium text-slate-800">
-                      {terbaru.rute}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="mb-1 text-xs text-slate-500">Tujuan</p>
-                    <p className="text-sm font-medium text-slate-800">
-                      {terbaru.tujuan}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="mb-1 text-xs text-slate-500">Operator</p>
-                    <p className="text-sm font-medium text-slate-800">
-                      {terbaru.nahkoda}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="mb-1 text-xs text-slate-500">
-                      Jumlah Personel
-                    </p>
-                    <p className="text-sm font-medium text-slate-800">
-                      {terbaru.jumlahPersonel} orang
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <p className="mb-1 text-xs text-blue-600">Catatan</p>
-                  <p className="text-sm text-blue-800">
-                    {terbaru.catatan || "Tidak ada catatan"}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500">Status:</span>
-                    <StatusBadge status={terbaru.status} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link href={`/operator/logbook/${terbaru.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
-                        Detail
-                      </Button>
-                    </Link>
-                    {terbaru.status !== "Selesai" && (
-                      <Link href={`/operator/logbook/${terbaru.id}/lengkapi`}>
-                        <Button size="sm">
-                          <PencilLine className="h-4 w-4" />
-                          Lanjutkan Pengisian
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
+            })()}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* ── Modal konfirmasi hapus (management Admin IT) ─────────────────── */}
       {hapusTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-md p-6">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-red-100">
-                <Trash2 className="h-5 w-5 text-red-600" />
+        <div className="sm:fixed inset-0 sm:z-50 sm:flex sm:items-center sm:justify-center bg-black/50 sm:p-4">
+          <Card className="sm:w-full sm:max-w-md sm:p-6">
+            <div className="mb-3 sm:flex sm:items-center gap-3">
+              <div className="sm:flex sm:size-9 items-center justify-center rounded-sm sm:bg-red-100">
+                <Trash2 className="sm:h-4 sm:w-4 sm:text-red-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-800">
+                <h3 className="sm-font-semibold text-slate-800">
                   Hapus Logbook Perjalanan
                 </h3>
-                <p className="text-sm text-slate-500">
+                <p className="sm-text-sm sm:text-slate-500">
                   Tindakan ini tidak dapat dibatalkan
                 </p>
               </div>
             </div>
-            <div className="mb-6 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Rute</span>
-                <span className="font-medium text-slate-800">
+            <div className="mb-5 sm:rounded-sm sm:border sm:border-slate-200 sm:bg-slate-50 sm:p-3 text-sm">
+              <div className="sm:flex sm-items-center sm-justify-between">
+                <span className="sm:text-slate-500">Rute</span>
+                <span className="sm.font-medium text-slate-800">
                   {hapusTarget.rute}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Unit</span>
-                <span className="font-medium text-slate-800">
+              <div className="sm:flex sm-items-center sm-justify-between">
+                <span className="sm:text-slate-500">Unit</span>
+                <span className="sm.font-medium text-slate-800">
                   {hapusTarget.jenisUnit}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Nahkoda</span>
-                <span className="font-medium text-slate-800">
+              <div className="sm:flex sm-items-center sm-justify-between">
+                <span className="sm:text-slate-500">Nahkoda</span>
+                <span className="sm.font-medium text-slate-800">
                   {hapusTarget.nahkoda}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Status</span>
+              <div className="sm:flex sm-items-center sm-justify-between">
+                <span className="sm:text-slate-500">Status</span>
                 <StatusBadge status={hapusTarget.status} />
               </div>
             </div>
-            <p className="mb-6 text-sm text-slate-600">
+            <p className="sm:text-sm sm:text-slate-600">
               Catatan perjalanan ini akan dihapus dari database. Gunakan bila
               data tercatat keliru (salah input / duplikat).
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="sm:flex sm-justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => setHapusTarget(null)}
@@ -752,7 +741,7 @@ export default function LogbookPerjalananPage() {
                 onClick={eksekusiHapus}
                 disabled={sedangMenghapus}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="sm:h-3.5 sm:w-3.5" />
                 {sedangMenghapus ? "Menghapus..." : "Hapus Logbook"}
               </Button>
             </div>

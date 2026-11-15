@@ -78,7 +78,7 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
@@ -101,7 +101,7 @@ export function UserDetailClient({ user }: { user: UserProfile }) {
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">{user.nama}</h1>
+              <h1 className="text-lg font-bold text-slate-800">{user.nama}</h1>
               <p className="mt-0.5 text-sm text-slate-500">
                 {roleLabels[user.role]}
               </p>

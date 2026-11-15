@@ -160,7 +160,7 @@ export default function DetailTiketPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
@@ -172,7 +172,7 @@ export default function DetailTiketPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">{ticket.judul}</h1>
+            <h1 className="text-lg font-bold text-slate-800">{ticket.judul}</h1>
             <p className="mt-1 font-mono text-sm text-slate-500">{ticket.id}</p>
           </div>
         </div>

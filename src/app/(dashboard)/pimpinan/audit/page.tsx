@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, TrendingUp, AlertOctagon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -35,6 +35,14 @@ interface BarisRanking extends BarisAuditKepatuhan {
   rank: number;
 }
 
+/**
+ * Filter yang berasal dari kartu statistik (diklik → tabel difilter).
+ *  - "semua"       → semua personel (kondisi awal / reset)
+ *  - "rata-rata"   → personel dengan skor kepatuhan ≥ rata-rata
+ *  - "pelanggaran" → personel yang tercatat punya pelanggaran di periode ini
+ */
+type FilterKartu = "semua" | "rata-rata" | "pelanggaran";
+
 export default function AuditPage() {
   // Skor dinilai per bulan — default bulan berjalan, dan tiap tanggal 1 skor
   // mulai lagi dari 100 (recovery otomatis). Dropdown periode untuk melihat
@@ -43,6 +51,10 @@ export default function AuditPage() {
   const [periode, setPeriode] = useState(bulanSekarang);
   const [kategori, setKategori] = useState("Semua");
   const [cari, setCari] = useState("");
+  /** Filter aktif dari kartu statistik. */
+  const [filterKartu, setFilterKartu] = useState<FilterKartu>("semua");
+  /** Token pemicu scroll ke tabel setelah kartu statistik diklik. */
+  const [tokenScroll, setTokenScroll] = useState(0);
   
   // Debounce search
   const debouncedCari = useDebounce(cari, 300);
@@ -61,8 +73,19 @@ export default function AuditPage() {
     if (kategori === "perlu") return skor < 75;
     return true;
   };
+  /**
+   * Filter tambahan dari kartu statistik — berjalan berdampingan dengan
+   * filter kategori skor & pencarian (filter kartu tidak menimpa keduanya).
+   */
+  const cocokFilterKartu = (r: BarisAuditKepatuhan): boolean => {
+    if (filterKartu === "rata-rata") return r.skorKepatuhan >= rataSkor;
+    if (filterKartu === "pelanggaran")
+      return r.telatBulanIni + r.abaikanBulanIni > 0;
+    return true;
+  };
   const ranking: BarisRanking[] = data
     .filter((r) => cocokKategori(r.skorKepatuhan))
+    .filter(cocokFilterKartu)
     .filter(
       (r) =>
         kataKunci === "" ||
@@ -86,13 +109,48 @@ export default function AuditPage() {
       ? "Pelanggaran Bulan Ini"
       : `Pelanggaran ${labelPeriode(periode)}`;
 
-  const stats = [
+  /**
+   * Klik kartu statistik → tabel difilter sesuai kartu tersebut.
+   * Klik kartu yang sedang aktif → kembali ke "semua" (toggle).
+   */
+  const klikKartuStat = (filter: FilterKartu) => {
+    setFilterKartu((f) => (f === filter ? "semua" : filter));
+    // Kembali ke halaman pertama supaya hasil filter langsung terlihat
+    // (bukan halaman terakhir dari daftar sebelumnya).
+    pagination.goToPage(1);
+    // Naikkan token scroll → efek di bawah menjalankan scroll SETELAH tabel
+    // selesai di-render ulang dengan hasil filter terbaru.
+    setTokenScroll((t) => t + 1);
+  };
+
+  /**
+   * Scroll ke tabel kepatuhan setelah kartu statistik diklik.
+   * Dipakai token (angka) alih-alih boolean supaya scroll tetap berjalan
+   * walau filter tidak berubah (mis. klik "Total Personel" saat sudah
+   * "semua"). Efek berjalan setelah commit render, jadi tabel sudah
+   * menampilkan data terfilter saat digulir.
+   */
+  useEffect(() => {
+    if (tokenScroll === 0) return;
+    const el = document.getElementById("audit-table-target");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tokenScroll]);
+
+  const stats: {
+    label: string;
+    value: number;
+    icon: typeof Users;
+    iconBg: string;
+    iconColor: string;
+    filter: FilterKartu;
+  }[] = [
     {
       label: "Total Personel",
       value: totalPersonel,
       icon: Users,
       iconBg: "bg-primary-light",
       iconColor: "text-primary",
+      filter: "semua",
     },
     {
       label: "Rata-rata Skor",
@@ -100,6 +158,7 @@ export default function AuditPage() {
       icon: TrendingUp,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
+      filter: "rata-rata",
     },
     {
       label: labelPelanggaran,
@@ -107,8 +166,16 @@ export default function AuditPage() {
       icon: AlertOctagon,
       iconBg: "bg-rose-50",
       iconColor: "text-rose-600",
+      filter: "pelanggaran",
     },
   ];
+
+  /** Label ringkas filter kartu aktif (untuk penanda di bawah filter). */
+  const labelFilterKartu: Record<FilterKartu, string> = {
+    semua: "Semua personel",
+    "rata-rata": `Skor ≥ rata-rata (${rataSkor})`,
+    pelanggaran: "Punya pelanggaran",
+  };
 
   // Early return setelah semua hooks
   if (loading) {
@@ -125,10 +192,10 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Pemantauan Kepatuhan</h1>
+        <h1 className="text-lg font-bold text-slate-800">Pemantauan Kepatuhan</h1>
         <p className="text-sm text-slate-500 mt-1">
           Evaluasi kepatuhan personel terhadap prosedur operasional SAR
         </p>
@@ -142,27 +209,56 @@ export default function AuditPage() {
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards — klik = filter tabel + scroll ke hasil */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="p-6">
-            <div className="flex items-center gap-4">
-              <div
-                className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.iconBg}`}
+        {stats.map((stat) => {
+          // Kartu aktif bila filter kartu saat ini = filter kartu ini.
+          const aktif = filterKartu === stat.filter;
+          return (
+            <button
+              key={stat.label}
+              type="button"
+              onClick={() => klikKartuStat(stat.filter)}
+              aria-pressed={aktif}
+              className={`group relative w-full cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                // z-10 agar shadow & ring kartu yang disorot menggambar di
+                // atas kartu tetangga (bg-white tetangga tidak menutupi
+                // border bawahnya).
+                aktif ? "z-10" : "hover:z-10"
+              }`}
+            >
+              <Card
+                className={`h-full w-full p-6 sm:p-4 transition-all ${
+                  aktif
+                    ? "border-primary ring-2 ring-primary shadow-md"
+                    : "border-slate-200 group-hover:border-primary/60 group-hover:shadow-md"
+                }`}
               >
-                <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-                <p className="text-sm text-slate-500">{stat.label}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.iconBg}`}
+                  >
+                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold text-slate-800">{stat.value}</p>
+                    <p
+                      className={`text-sm ${
+                        aktif ? "font-semibold text-primary" : "text-slate-500"
+                      }`}
+                    >
+                      {stat.label}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter: cari personel · periode bulan · kategori skor */}
-      <Card className="p-4">
+      <div className="sm:px-2 pt-2 pb-3 border-t sm:border-t-sm sm:border-slate-200">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -196,10 +292,26 @@ export default function AuditPage() {
             <option value="perlu">Perlu Perbaikan — skor di bawah 75</option>
           </Select>
         </div>
-      </Card>
+        {/* Penanda filter kartu yang sedang aktif (diklik di kartu statistik). */}
+        {filterKartu !== "semua" && (
+          <p className="mt-2 text-xs text-slate-500">
+            Filter kartu:{" "}
+            <span className="font-semibold text-primary">
+              {labelFilterKartu[filterKartu]}
+            </span>{" "}
+            — klik kartu statistik yang sama lagi untuk menghapus filter.
+          </p>
+        )}
+      </div>
 
       {/* Compliance Table */}
-      <Card>
+      {/* id dipakai sebagai target scroll saat kartu statistik diklik.
+          `scroll-mt-14 md:scroll-mt-16` menyisakan ruang untuk header
+          sticky agar judul tabel tidak tertutup saat digulir. */}
+      <div
+        id="audit-table-target"
+        className="sm:px-2 scroll-mt-14 md:scroll-mt-16"
+      >
         <ResponsiveTable
           data={paginatedRanking}
           getKey={(row) => row.personelId}
@@ -271,7 +383,7 @@ export default function AuditPage() {
             },
             {
               key: "abaikanChecklist",
-              header: "Checklist Belum Dilengkapi",
+              header: "Checklist Belengkapi",
               render: (row) => (
                 <span
                   className={`font-medium ${
@@ -319,7 +431,7 @@ export default function AuditPage() {
         
         {/* Pagination Controls */}
         {ranking.length > 0 && (
-          <div className="p-4 border-t border-slate-100">
+          <div className="sm:px-2 pt-3 border-t sm:border-t-sm sm:border-slate-200">
             <Pagination
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
@@ -335,7 +447,7 @@ export default function AuditPage() {
             />
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

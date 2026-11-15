@@ -447,28 +447,28 @@ export default function BeritaAcaraPage() {
   }
 
   return (
-    <div className="space-y-6 ba-page">
+    <div className="space-y-4 ba-page">
       {/* Page Header */}
-      <div className="no-print flex items-center gap-4">
+      <div className="no-print flex items-center gap-3">
         <Link href={`/operator/checklist/${checklistId}`}>
           <Button variant="ghost" size="icon" aria-label="Kembali">
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Pengisian Berita Acara
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500">
             Berita acara kerusakan — {checklist.unit}
           </p>
         </div>
       </div>
 
       {/* Info Pemeriksaan */}
-      <Card className="no-print p-6">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-800">
+      <Card className="no-print p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <h2 className="text-sm font-semibold text-slate-800">
             Data Pemeriksaan
           </h2>
           {baId && (
@@ -524,8 +524,8 @@ export default function BeritaAcaraPage() {
         )}
 
         {adaRusak ? (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-2.5">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600" />
             <p className="text-xs text-rose-800">
               <strong>{rusakItems.length} item</strong> berstatus rusak (Rusak
               Ringan/Berat) — wajib dilaporkan melalui berita acara. Tindak
@@ -534,8 +534,8 @@ export default function BeritaAcaraPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
             <p className="text-xs text-emerald-800">
               Tidak ada item rusak pada checklist ini. Berita acara tidak
               diperlukan.
@@ -549,14 +549,14 @@ export default function BeritaAcaraPage() {
         <Card className="no-print">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              <FileText className="h-4 w-4 text-primary" />
               Berita Acara Kerusakan
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Nomor (ditulis Pengelola BMN setelah BA diserahkan) */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="nomor">Nomor Berita Acara</Label>
                 <Input
                   id="nomor"
@@ -583,8 +583,8 @@ export default function BeritaAcaraPage() {
             </div>
 
             {/* Nama aset (otomatis dari master aset) */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="namaAset">Nama Kendaraan / Alat</Label>
                 <Input id="namaAset" value={namaAset} disabled />
                 <p className="text-xs text-slate-400">
@@ -599,10 +599,10 @@ export default function BeritaAcaraPage() {
 
             {/* Tabel Informasi Kendala */}
             <div>
-              <h3 className="mb-1 text-sm font-semibold text-slate-700">
+              <h3 className="mb-1 text-xs font-semibold text-slate-700">
                 1. Informasi Kendala
               </h3>
-              <p className="mb-3 text-xs text-slate-400">
+              <p className="mb-2 text-xs text-slate-400">
                 Diisi otomatis dari item checklist yang berstatus rusak.
               </p>
               <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -693,7 +693,7 @@ export default function BeritaAcaraPage() {
             </div>
 
             {/* Uraian / Analisa */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="uraian">2. Hasil Pemeriksaan / Analisa</Label>
               <Textarea
                 id="uraian"
@@ -710,7 +710,7 @@ export default function BeritaAcaraPage() {
             </div>
 
             {/* Upload Foto Bukti */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>3. Foto Bukti ({fotoBukti.length} foto)</Label>
               <div
                 className={cn(
@@ -768,7 +768,7 @@ export default function BeritaAcaraPage() {
             </div>
 
             {/* Penyerahan */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Penyerahan ke Tempat Service</Label>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <p className="text-sm font-medium text-slate-800">
@@ -783,21 +783,21 @@ export default function BeritaAcaraPage() {
             </div>
 
             {pesan && (
-              <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
                 <p className="text-xs text-emerald-800">{pesan}</p>
               </div>
             )}
 
             {gagal && (
-              <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+              <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-2.5">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600" />
                 <p className="text-xs text-rose-800">{gagal}</p>
               </div>
             )}
 
             {/* Aksi */}
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-4">
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-3">
               <Button variant="outline" onClick={() => window.print()}>
                 <Printer className="h-4 w-4" />
                 Cetak

@@ -128,7 +128,7 @@ export default function TambahAsetPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Tambah Aset Baru</h1>
+          <h1 className="text-lg font-bold text-slate-800">Tambah Aset Baru</h1>
           <p className="text-sm text-slate-500 mt-1">
             Lengkapi informasi aset BMN yang akan ditambahkan
           </p>
@@ -163,7 +163,7 @@ export default function TambahAsetPage() {
         )}
 
         {/* Informasi Dasar */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">
             Informasi Dasar
           </h2>
@@ -288,7 +288,7 @@ export default function TambahAsetPage() {
         </Card>
 
         {/* Detail */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Detail</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -378,7 +378,7 @@ export default function TambahAsetPage() {
         </Card>
 
         {/* Keterangan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">
             Keterangan
           </h2>
@@ -401,7 +401,7 @@ export default function TambahAsetPage() {
         </Card>
 
         {/* Dokumen */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="text-lg font-semibold text-slate-800 mb-4">
             Dokumen
           </h2>

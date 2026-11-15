@@ -426,7 +426,7 @@ export default function TambahLogbookPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Tambah Logbook Perjalanan
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -482,7 +482,7 @@ export default function TambahLogbookPage() {
         </div>
 
         {/* Jadwal */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">
             Jadwal Perjalanan
           </h2>
@@ -520,7 +520,7 @@ export default function TambahLogbookPage() {
         </Card>
 
         {/* Rute & Tujuan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <MapPin className="h-5 w-5 text-primary" />
             Rute &amp; Tujuan
@@ -552,7 +552,7 @@ export default function TambahLogbookPage() {
         </Card>
 
         {/* Unit & Personel */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <KategoriIcon className="h-5 w-5 text-primary" />
             Unit &amp; Personel
@@ -663,7 +663,7 @@ export default function TambahLogbookPage() {
         </Card>
 
         {/* Kondisi Armada saat keberangkatan */}
-        <Card className="p-6">
+        <Card className="p-4">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
             <Fuel className="h-5 w-5 text-primary" />
             Kondisi Saat Berangkat

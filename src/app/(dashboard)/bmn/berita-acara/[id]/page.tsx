@@ -205,7 +205,7 @@ export default function DetailBeritaAcaraBmnPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-slate-800">
             Berita Acara — {ba.namaAset}
           </h1>
           <p className="mt-1 text-sm text-slate-500">

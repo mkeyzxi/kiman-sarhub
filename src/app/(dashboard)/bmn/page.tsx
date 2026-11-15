@@ -1,17 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Plus,
-  Search,
-  Eye,
-  Pencil,
-  Package,
-  ShieldCheck,
-  Users,
-  Wrench,
-} from "lucide-react";
+import { Plus, Search, Eye, Pencil, Package, ShieldCheck, Users, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
@@ -20,35 +11,31 @@ import { Pagination } from "@/components/ui/pagination";
 import { Card } from "@/components/ui/card";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
+import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
+import { DataLoading, DataError, DataEmpty } from "@/components/shared/data-state";
 import {
   STATUS_ASET,
   STATUS_ASET_VARIANT,
   hitungStatusAsetLive,
   labelModelAset,
-  namaReferensiAset,
   nupTampil,
-
+  namaReferensiAset,
 } from "@/components/shared/mock-data";
-import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
-import {
-  DataLoading,
-  DataError,
-  DataEmpty,
-} from "@/components/shared/data-state";
 
 export default function MasterDataBMNPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
-  
+  /** Token pemicu scroll ke tabel aset setelah kartu statistik diklik. */
+  const [tokenScroll, setTokenScroll] = useState(0);
+
   // Debounce search query
   const debouncedSearch = useDebounce(searchQuery, 300);
-  
+
   // Aset dari Supabase + logbook perjalanan (untuk status "hidup").
   const { data: asetList, loading, error, refetch } = useAsets();
   const { data: logbookList } = useLogbooks();
 
-  /**
-   * Status aset secara live: turunkan "Sedang digunakan" dari logbook yang
+  /** Status aset secara live: turunkan "Sedang digunakan" dari logbook yang
    * belum kembali, bukan semata kolom status di database — sama persis dengan
    * statistik /operator/logbook. Statistik kartu, filter, dan tabel tabel di
    * bawah memakai nilai ini supaya selalu sepadan.
@@ -58,12 +45,10 @@ export default function MasterDataBMNPage() {
   const statusEfektif = (aset: (typeof asetList)[number]) =>
     statusLive[aset.id] ?? aset.status;
 
-  // Filter aset dengan debounced search — status memakai nilai **live**
-  // (turunan logbook berjalan) agar filter "Sedang digunakan" juga menemukan
-  // unit yang sedang dipakai walau kolom DB masih "Standby".
+  // Filter aset dengan debounced search — status memakai nilai **live** (turunan logbook berjalan)
+  // agar filter "Sedang digunakan" juga menemukan unit yang sedang dipakai walau kolom DB masih "Standby".
   const filteredAset = asetList.filter((aset) => {
     const q = debouncedSearch.toLowerCase();
-    const statusEfektif = statusLive[aset.id] ?? aset.status;
     const matchSearch =
       aset.nama.toLowerCase().includes(q) ||
       aset.kode.toLowerCase().includes(q) ||
@@ -73,7 +58,7 @@ export default function MasterDataBMNPage() {
       (aset.merk ?? "").toLowerCase().includes(q) ||
       (aset.tipe ?? "").toLowerCase().includes(q);
     const matchStatus =
-      statusFilter === "Semua" || statusEfektif === statusFilter;
+      statusFilter === "Semua" || statusEfektif(aset) === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -90,8 +75,7 @@ export default function MasterDataBMNPage() {
   const hitung = (status: string) =>
     asetList.filter((a) => statusEfektif(a) === status).length;
 
-  /**
-   * Pemetaan label kartu → nilai status sebenarnya (STATUS_ASET).
+  /** Pemetaan label kartu → nilai status sebenarnya (STATUS_ASET).
    * WAJIB karena label tampilan dan nilai status beda kapital:
    * kartu "Sedang Digunakan" vs status "Sedang digunakan" (d kecil).
    * Tanpa pemetaan ini, klik kartu menyetel filter ke nilai yang tak
@@ -102,6 +86,7 @@ export default function MasterDataBMNPage() {
     Standby: "Standby",
     "Sedang Digunakan": "Sedang digunakan",
     "Rusak Berat": "Rusak Berat",
+    "Rusak Ringan": "Rusak Ringan",
   };
 
   const klikKartuStat = (label: string) => {
@@ -112,13 +97,23 @@ export default function MasterDataBMNPage() {
     } else {
       setStatusFilter(statusTarget);
     }
-    // Setelah re-render, scroll lembut ke area tabel supaya hasil
-    // filter langsung terlihat tanpa harus mencari manual.
-    requestAnimationFrame(() => {
-      const el = document.getElementById("bmn-table-target");
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    // Naikkan token scroll → efek di bawah menjalankan scroll SETELAH tabel
+    // selesai di-render ulang dengan hasil filter terbaru.
+    setTokenScroll((t) => t + 1);
   };
+
+  /**
+   * Scroll ke tabel aset setelah kartu statistik diklik.
+   * Dipakai token (angka) alih-alih boolean supaya scroll tetap berjalan
+   * walau nilai filter tidak berubah (mis. klik "Total Aset" saat filter
+   * sudah "Semua"). Efek berjalan setelah commit render, jadi tabel sudah
+   * menampilkan data terfilter saat digulir.
+   */
+  useEffect(() => {
+    if (tokenScroll === 0) return;
+    const el = document.getElementById("bmn-table-target");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tokenScroll]);
 
   const stats = [
     {
@@ -149,6 +144,13 @@ export default function MasterDataBMNPage() {
       iconBg: "bg-rose-100",
       iconColor: "text-rose-600",
     },
+    {
+      label: "Rusak Ringan",
+      value: hitung("Rusak Ringan"),
+      icon: Wrench,
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+    },
   ];
 
   // Early return setelah semua hooks
@@ -166,11 +168,11 @@ export default function MasterDataBMNPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Master Data BMN</h1>
+          <h1 className="text-lg font-bold text-slate-800">Master Data BMN</h1>
           <p className="text-sm text-slate-600 mt-1">
             Kelola dan pantau seluruh aset BMN yang dimiliki
           </p>
@@ -183,7 +185,11 @@ export default function MasterDataBMNPage() {
         </Link>
       </div>
 
-      {/* Stats Cards — klik untuk memfilter tabel di bawah */}
+      {/* Stats Cards - responsive grid */}
+      {/* `grid grid-cols-1` sebagai basis WAJIB: tanpa itu kontainer hanya
+          jadi grid pada >= sm, sehingga di mobile ia tetap <div> block dan
+          `gap-4` tidak berlaku — kartu saling menempel dan border bawahnya
+          tertutup kartu berikutnya (yang punya bg-white). */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           // Kartu aktif bila filter saat ini = status target kartu.
@@ -198,23 +204,28 @@ export default function MasterDataBMNPage() {
               key={stat.label}
               type="button"
               onClick={() => klikKartuStat(stat.label)}
-              className="w-full cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              aria-pressed={aktif}
+              className={`group relative w-full cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                // z-10 membuat kartu yang disorot/hover menggambar shadow &
+                // ring-nya di ATAS kartu tetangga (bg-white tetangga tidak
+                // lagi menutupi border bawahnya).
+                aktif ? "z-10" : "hover:z-10"
+              }`}
             >
               <Card
                 className={`h-full w-full p-6 transition-all ${
                   aktif
-                    ? "ring-2 ring-primary shadow-md"
-                    : "hover:shadow-md hover:-translate-y-0.5"
+                    ? "border-primary ring-2 ring-primary shadow-md"
+                    : "border-slate-200 group-hover:border-primary/60 group-hover:shadow-md"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.iconBg}`}
-                  >
-                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.iconBg}`} >
+                    <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
+                    <p className="text-lg font-bold text-slate-800">{stat.value}</p>
                     <p className={`text-sm ${aktif ? "font-semibold text-primary" : "text-slate-600"}`}>
                       {stat.label}
                     </p>
@@ -226,8 +237,8 @@ export default function MasterDataBMNPage() {
         })}
       </div>
 
-      {/* Search + Filter */}
-      <Card className="p-4">
+      {/* Search + Filter - flat layout, no card wrapper */}
+      <div className="sm:px-2 pt-4 pb-4 border-t sm:border-t-sm sm:border-slate-200">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
@@ -251,15 +262,16 @@ export default function MasterDataBMNPage() {
             ))}
           </Select>
         </div>
-      </Card>
+      </div>
 
-      {/* Kosong total (bukan karena filter) → bimbingan aktif */}
-      {asetList.length === 0 && (
-        <DataEmpty message="Database Supabase terhubung, tetapi tidak ada baris aset yang dapat Anda baca. Cek: (1) Anda sudah login di aplikasi; (2) scripts/rls-policies.sql sudah dijalankan di SQL Editor Supabase." className="mb-4" />
-      )}
-
-      {/* Table — otomatis menjadi kartu di layar kecil */}
-      <Card id="bmn-table-target">
+      {/* Data aset - flat layout, no card wrapper */}
+      {/* id dipakai sebagai target scroll saat kartu statistik diklik.
+          `scroll-mt-14 md:scroll-mt-16` menyisakan ruang untuk header
+          sticky agar judul tabel tidak tertutup saat digulir. */}
+      <div
+        id="bmn-table-target"
+        className="sm:px-2 pt-4 pb-4 border-t sm:border-t-sm sm:border-slate-200 scroll-mt-14 md:scroll-mt-16"
+      >
         <ResponsiveTable
           data={paginatedAset}
           getKey={(row) => row.id}
@@ -280,12 +292,6 @@ export default function MasterDataBMNPage() {
           detailLabel="Lihat detail aset"
           emptyMessage="Tidak ada aset yang ditemukan"
           fields={[
-            {
-              key: "kode",
-              header: "Kode",
-              render: (row) => row.kode,
-              cellClassName: "font-mono text-xs text-slate-600",
-            },
             {
               key: "nup",
               header: "NUP",
@@ -376,10 +382,10 @@ export default function MasterDataBMNPage() {
             },
           ]}
         />
-        
+
         {/* Pagination Controls */}
         {filteredAset.length > 0 && (
-          <div className="p-4 border-t border-slate-100">
+          <div className="sm:px-2 pt-4 border-t sm:border-t-sm sm:border-slate-200">
             <Pagination
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
@@ -395,7 +401,7 @@ export default function MasterDataBMNPage() {
             />
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

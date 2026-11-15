@@ -551,7 +551,7 @@ function KartuJurnalRIBUnit({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* Info RIB */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
           <div>
@@ -748,7 +748,7 @@ function KartuLogbookKapal({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* I. Informasi Operasional Kapal */}
         <div>
           <SectionTitle>
@@ -969,7 +969,7 @@ function KartuLogbookDarat({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* I. Informasi Kendaraan */}
         <div>
           <SectionTitle>
@@ -1364,10 +1364,10 @@ export default function OperatorPage() {
   const pengisianRIB02 = daftarPengisianRIB02[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard Operasional</h1>
+        <h1 className="text-lg font-bold text-slate-800">Dashboard Operasional</h1>
         <p className="text-sm text-slate-500 mt-1">
           Monitor kondisi armada &amp; logbook kapal dan sarana darat
         </p>
@@ -1531,7 +1531,7 @@ export default function OperatorPage() {
 
       {/* Tab Content */}
       {tabAktif === "rib" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {unitsTab("rib").map((aset) => {
             const trips = urutkanPerjalanan(perjalananUnit(logbookQuery.data, aset));
             const instance = ceklistQuery.data.find((c) => c.asetId === aset.id);
@@ -1552,7 +1552,7 @@ export default function OperatorPage() {
       )}
 
       {tabAktif === "kapal" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {unitsTab("kapal").map((aset) => {
             const trips = urutkanPerjalanan(perjalananUnit(logbookQuery.data, aset));
             const instance = ceklistQuery.data.find((c) => c.asetId === aset.id);
@@ -1570,7 +1570,7 @@ export default function OperatorPage() {
       )}
 
       {(tabAktif === "mobil" || tabAktif === "motor") && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {unitsTab(tabAktif).map((aset) => (
             <KartuLogbookDarat
               key={aset.id}
