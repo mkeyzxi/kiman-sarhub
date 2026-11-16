@@ -12,14 +12,14 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   hitungReadinessStats,
   hitungStatusAsetLive,
+  riwayatOperasi as mockRiwayatOperasi,
 } from "@/components/shared/mock-data";
 import {
   useRiwayatOperasi,
@@ -28,6 +28,16 @@ import {
   useSupabaseUsers,
 } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
+import {
+  eksporLaporanExcel,
+  eksporLaporanCSV,
+} from "@/lib/export-laporan";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
@@ -87,6 +97,13 @@ export default function LaporanPage() {
     );
   }
 
+  // Fallback: bila database `riwayat_operasi` kosong (mis. belum di-seed),
+  // tampilkan data contoh dari mock agar halaman tetap terbaca. Tandai
+  // sumbernya dengan badge kecil agar pengguna paham ini data ilustratif.
+  const riwayatSumber: "database" | "contoh" = riwayatOperasi.length > 0 ? "database" : "contoh";
+  const riwayatTampil = riwayatSumber === "database" ? riwayatOperasi : mockRiwayatOperasi;
+  const isContoh = riwayatSumber === "contoh";
+
   // Rekap perjalanan diturunkan dari logbook agar angkanya selalu sinkron.
   const perjalananAir = logbookPerjalananList.filter(
     (l) =>
@@ -118,15 +135,53 @@ export default function LaporanPage() {
             Laporan kesiapan SAR dan rekap riwayat operasi
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-2">
           <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
             <option value="2026">Tahun 2026</option>
             <option value="2025">Tahun 2025</option>
           </Select>
-          <Button variant="outline">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:ring-offset-2">
+              <Download className="h-4 w-4" />
+              Export
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="absolute right-0 z-50 mt-2 min-w-[10rem] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+              <DropdownMenuItem
+                onSelect={() =>
+                  void eksporLaporanExcel({
+                    tahun: selectedYear,
+                    readinessStats,
+                    asets: asetLive,
+                    riwayatOperasi: riwayatTampil,
+                    logbookPerjalanan: logbookPerjalananList,
+                    daftarUsers: daftarUsers ?? [],
+                    personelAktif,
+                  })
+                }
+                className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+              >
+                <FileText className="h-4 w-4 text-slate-400" />
+                Unduh sebagai Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  eksporLaporanCSV({
+                    tahun: selectedYear,
+                    readinessStats,
+                    asets: asetLive,
+                    riwayatOperasi: riwayatTampil,
+                    logbookPerjalanan: logbookPerjalananList,
+                    daftarUsers: daftarUsers ?? [],
+                    personelAktif,
+                  })
+                }
+                className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+              >
+                <Package className="h-4 w-4 text-slate-400" />
+                Unduh sebagai CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -148,7 +203,7 @@ export default function LaporanPage() {
         />
         <StatCard
           label="Total Riwayat Operasi"
-          value={riwayatOperasi.length}
+          value={riwayatTampil.length}
           icon={FileText}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
@@ -168,9 +223,23 @@ export default function LaporanPage() {
           <div className="sm:flex sm:items-center sm:gap-2">
             <FileText className="sm:h-5 sm:w-5 sm:text-primary" />
             <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Riwayat Operasi</h2>
+            {isContoh && (
+              <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                Data contoh
+              </span>
+            )}
           </div>
+          {riwayatSumber === "database" ? (
+            <p className="text-xs text-slate-400 sm:mt-0 mt-2">
+              {riwayatTampil.length} operasi tercatat
+            </p>
+          ) : (
+            <p className="text-xs text-amber-600 sm:mt-0 mt-2">
+              Database kosong — menampilkan data ilustratif
+            </p>
+          )}
         </div>
-        {riwayatOperasi.length === 0 ? (
+        {riwayatTampil.length === 0 ? (
           <div className="text-center py-12 text-slate-400">
             <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="text-sm font-medium">Belum ada operasi tercatat</p>
@@ -178,7 +247,7 @@ export default function LaporanPage() {
           </div>
         ) : (
           <div className="sm:space-y-3 space-y-2">
-            {riwayatOperasi.map((op) => (
+            {riwayatTampil.map((op) => (
               <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
                   <div className="text-center shrink-0 w-14">
                     <p className="text-xl font-bold text-slate-800">
