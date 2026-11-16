@@ -256,3 +256,32 @@ export function updateTicketStatus(id: string, status: EWSTicket["status"]): voi
   const updated = tickets.find((t) => t.id === id);
   if (updated) void persistUpdate(id, updated);
 }
+
+/** Hapus tiket dari in-memory + Supabase (hanya ADMIN_IT & PENGELOLA_BMN). */
+export async function hapusTiket(id: string): Promise<boolean> {
+  const adaInMemory = tickets.some((t) => t.id === id);
+  // Simpan tiket yang dihapus untuk rollback bila DB menolak.
+  const indexToDelete = tickets.findIndex((t) => t.id === id);
+  const itemTersimpan = indexToDelete !== -1 ? tickets[indexToDelete] : undefined;
+  if (indexToDelete !== -1) {
+    tickets.splice(indexToDelete, 1);
+  }
+  emit();
+
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { error } = await supa.from("ews_tickets").delete().eq("id", id);
+    if (error) {
+      // Database menolak hapus — kembalikan item ke array (posisi awal).
+      if (itemTersimpan && indexToDelete !== -1) {
+        tickets.splice(indexToDelete, 0, itemTersimpan);
+      }
+      emit();
+      console.error("[ticket-store] DELETE ditolak RLS:", error.message, error.details);
+      return false;
+    }
+  } catch {
+    // Offline / Supabase belum dikonfigurasi — hapus in-memory saja.
+  }
+  return adaInMemory;
+}

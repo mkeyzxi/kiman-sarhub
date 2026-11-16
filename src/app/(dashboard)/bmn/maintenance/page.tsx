@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Wrench, Plus, Search, Eye, Clock, CheckCircle2, AlertTriangle, Calendar, Package } from "lucide-react";
+import { Wrench, Plus, Search, Eye, Clock, CheckCircle2, AlertTriangle, Calendar, Package, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -12,10 +12,11 @@ import { Pagination } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal, labelModelAset } from "@/components/shared/mock-data";
-import { useTicketsCombined } from "@/components/shared/ticket-store";
+import { useTicketsCombined, hapusTiket } from "@/components/shared/ticket-store";
 import { useAsets, useSupabaseUsers } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
+import { useLocalStorageValue } from "@/lib/use-local-storage";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText, aktif, onClick }: {
@@ -84,6 +85,8 @@ export default function TiketMaintenancePage() {
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
   /** Token pemicu scroll ke tabel tiket setelah kartu statistik diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
+  // Role user untuk tombol delete
+  const userRole = useLocalStorageValue("userRole") as string | null;
 
   // Debounce search
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -157,6 +160,20 @@ export default function TiketMaintenancePage() {
       />
     );
   }
+
+  const handleHapusTiket = async (id: string) => {
+    const konfirmasi = window.confirm(
+      "Apakah Anda yakin ingin menghapus tiket ini?\nTindakan ini tidak dapat dibatalkan."
+    );
+    if (!konfirmasi) return;
+    const berhasil = await hapusTiket(id);
+    if (berhasil) {
+      // Reset token scroll agar scroll kembali ke atas setelah hapus
+      setTokenScroll((t) => t + 1);
+      // Refetch data agar tabel update
+      void refetch();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -366,15 +383,29 @@ export default function TiketMaintenancePage() {
             {
               key: "aksi",
               header: "Aksi",
-              render: (row) => (
-                <div className="flex items-center justify-center gap-1">
-                  <Link href={`/bmn/maintenance/${row.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              ),
+              render: (row) => {
+                // Hanya ADMIN_IT dan PENGELOLA_BMN yang boleh hapus tiket
+                const boleHapus = userRole === "ADMIN_IT" || userRole === "PENGELOLA_BMN";
+                return (
+                  <div className="flex items-center justify-center gap-1">
+                    <Link href={`/bmn/maintenance/${row.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    {boleHapus && (
+                      <Button
+                        variant="danger"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleHapusTiket(row.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              },
               headClassName: "text-center",
               hideBelowLg: true,
             },

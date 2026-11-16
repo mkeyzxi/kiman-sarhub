@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
-  users,
   STATUS_ASET,
   normalizeNup,
   NUP_MAX_DIGIT,
@@ -26,7 +25,7 @@ import {
   nupTampil,
 } from "@/components/shared/mock-data";
 import { updateAsetRow } from "@/components/shared/db-writes";
-import { useAsetById } from "@/components/shared/use-supabase-data";
+import { useAsetById, useSupabaseUsers } from "@/components/shared/use-supabase-data";
 import { useSesiUser } from "@/components/shared/use-session";
 
 /** Field yang punya pesan error; key tidak ada berarti valid. */
@@ -40,6 +39,8 @@ export default function EditAsetPage() {
   const ses = useSesiUser();
   // Aset dari Supabase.
   const { data: aset, loading: asetLoading } = useAsetById(params.id);
+  // User dari Supabase - sumber daftar penanggung jawab.
+  const { data: userSemua } = useSupabaseUsers();
 
   const [formData, setFormData] = useState({
     nama: "",
@@ -426,7 +427,7 @@ export default function EditAsetPage() {
                 required
               >
                 <option value="">Pilih penanggung jawab</option>
-                {users
+                {userSemua
                   .filter(
                     (user) =>
                       user.role === "OPERATOR_LAPANGAN" && user.aktif

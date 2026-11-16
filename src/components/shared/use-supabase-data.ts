@@ -484,6 +484,27 @@ export function useAntreanVerifikasi(): SupabaseQueryResult<AntreanVerifikasiMap
   );
 }
 
+/** Hapus berita acara dari in-memory + Supabase (hanya ADMIN_IT & PENGELOLA_BMN). */
+export async function hapusBeritaAcara(id: string): Promise<boolean> {
+  // Note: useBeritaAcara hook uses useSupabaseTable internally,
+  // so we need to fetch and delete directly here.
+  // The hook's data is managed by useSupabaseTable, which we cannot
+  // easily mutate from outside. Instead, we'll refetch after delete.
+  // This function is meant to be called from the page component.
+  
+  try {
+    const supa = getSupabaseBrowserClient();
+    const { error } = await supa.from("berita_acara").delete().eq("id", id);
+    if (error) {
+      console.error("[use-supabase-data] DELETE berita_acara ditolak RLS:", error.message, error.details);
+      return false;
+    }
+  } catch {
+    // Offline / Supabase belum dikonfigurasi — tetap return true (in-memory tidak diubah di sini)
+  }
+  return true;
+}
+
 /** Daftar pengguna (dipakai halaman Admin IT). */
 export function useSupabaseUsers(): SupabaseQueryResult<UserInfo> {
   return useSupabaseTable<UserRow, UserInfo>(
