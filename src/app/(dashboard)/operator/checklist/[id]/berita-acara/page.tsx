@@ -165,15 +165,17 @@ export default function BeritaAcaraPage() {
             (ada.status === "Draf" &&
               (!ada.pengajuId || sayaPemeriksa)));
         if (adopsiMilikSaya) {
+          // SYNC: Selalu ambil item rusak terbaru dari checklist agar BA mengikuti
+          // perubahan yang dibuat setelah BA pertama kali disimpan. Jika BA masih
+          // kosong (belum ada kendala yang diinput), gunakan item checklist terbaru.
+          const kendalaTerbaru = ekstrakItemRusak(checklist.items);
           setBaId(ada.id);
           setNomor(ada.nomor);
           setUraian(ada.uraian);
           setFotoBukti(ada.fotoBukti);
-          setKendala(
-            ada.kendala.length > 0
-              ? ada.kendala
-              : ekstrakItemRusak(checklist.items)
-          );
+          // Gunakan kendala checklist terbaru - ini akan memaksa BA mengikuti
+          // perubahan kondisi checklist (muncul/disembunyikan item rusak).
+          setKendala(kendalaTerbaru.length > 0 ? kendalaTerbaru : (ada.kendala ?? []));
           return;
         }
 

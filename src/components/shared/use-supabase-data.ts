@@ -628,14 +628,13 @@ export function useKartuPenanggungJawab(): HasilKartuPJ {
       // Cari BA terkait aset ini — tahap BA: Diserahkan→1, Diproses→2,
       // Disetujui/Ditolak→3 (diteruskan ke tiket).
       let tahapBA = 0;
+      // Hanya hitung BA yang sudah DISERAKAN ke BMN (bukan Draf).
+      // Draf = belum masuk alur BMN, jadi tidak ditampilkan di kartu.
       const baAset = baData
-        .filter((b) => b.asetId === aset.id)
+        .filter((b) => b.asetId === aset.id && b.status !== "Draf")
         .sort((a, b) => (b.tanggalBuat ?? "").localeCompare(a.tanggalBuat ?? ""))[0];
       if (baAset) {
         switch (baAset.status) {
-          case "Draf":
-            tahapBA = 0;
-            break;
           case "Diserahkan":
             tahapBA = 1;
             break;
