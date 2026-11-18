@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -21,6 +21,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
@@ -103,6 +104,8 @@ export default function LogbookPerjalananPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const ses = useSesiUser();
   /** Hak kelola logbook (hapus/edit) — khusus Admin IT. */
   const bisaKelola = ses.role === "ADMIN_IT";
@@ -145,6 +148,11 @@ export default function LogbookPerjalananPage() {
   // Master aset — sumber "Nama Referensi" per unit di daftar perjalanan.
   const { data: asetList } = useAsets();
 
+  // Gabungkan logbook in-memory (baru disimpan sesi ini) + Supabase.
+  const logbookPerjalananList = mergeLogbooksWithSupabase(
+    supabaseLogbooks as unknown as LogbookPerjalanan[]
+  );
+
   /** Cocokkan nama unit tersimpan di logbook (`jenis_unit`) kembali ke baris
    * master aset — memakai resolver yang SAMA dengan status live dashboard
    * (no. polisi → kode → nama referensi → tipe/merk → nama), sehingga nama
@@ -159,13 +167,23 @@ export default function LogbookPerjalananPage() {
     const referensi = aset?.namaReferensi?.trim() ?? "";
     return referensi && referensi !== unitNama ? referensi : "";
   };
-  // Gabungkan logbook in-memory (baru disimpan sesi ini) + Supabase.
-  const logbookPerjalananList = mergeLogbooksWithSupabase(
-    supabaseLogbooks as unknown as LogbookPerjalanan[]
-  );
+  // Urutkan data logbook: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  const sortedLogbook = useMemo(() => {
+    return [...logbookPerjalananList].sort((a, b) => {
+      if (sortBy === "tanggal") {
+        const aTgl = new Date(a.tanggal).getTime();
+        const bTgl = new Date(b.tanggal).getTime();
+        return sortDir === "desc" ? aTgl - bTgl : bTgl - aTgl;
+      }
+      // Fallback: sort by rute alphabetically
+      const aRute = a.rute.toLowerCase();
+      const bRute = b.rute.toLowerCase();
+      return sortDir === "desc" ? bRute.localeCompare(aRute) : aRute.localeCompare(bRute);
+    });
+  }, [logbookPerjalananList, sortBy, sortDir]);
 
   // Filter berdasarkan search query yang sudah di-debounce dan status
-  const filteredLogbook = logbookPerjalananList.filter((log) => {
+  const filteredLogbook = sortedLogbook.filter((log) => {
     const matchSearch =
       log.rute.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       log.tujuan.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
@@ -362,6 +380,18 @@ export default function LogbookPerjalananPage() {
             <option value="Selesai">Selesai</option>
             <option value="SudahDiedit">Sudah Diedit</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "tanggal", label: "Tanggal" },
+              { value: "rute", label: "Rute" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Wrench, Plus, Search, Eye, Clock, CheckCircle2, AlertTriangle, Calendar, Package, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal, labelModelAset } from "@/components/shared/mock-data";
@@ -83,6 +84,8 @@ export default function TiketMaintenancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   /** Token pemicu scroll ke tabel tiket setelah kartu statistik diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
   // Role user untuk tombol delete
@@ -97,7 +100,22 @@ export default function TiketMaintenancePage() {
   /** Asset lookup in-memory (id Supabase). */
   const asetById = new Map(asetSemua.map((a) => [a.id, a]));
 
-  const filteredTickets = tickets.filter((ticket) => {
+  // Urutkan data tiket: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  const sortedTickets = useMemo(() => {
+    return [...tickets].sort((a, b) => {
+      if (sortBy === "tanggal") {
+        const aTgl = new Date(a.tanggalBuat).getTime();
+        const bTgl = new Date(b.tanggalBuat).getTime();
+        return sortDir === "desc" ? aTgl - bTgl : bTgl - aTgl;
+      }
+      // Fallback: sort by judul alphabetically
+      const aJudul = a.judul.toLowerCase();
+      const bJudul = b.judul.toLowerCase();
+      return sortDir === "desc" ? bJudul.localeCompare(aJudul) : aJudul.localeCompare(bJudul);
+    });
+  }, [tickets, sortBy, sortDir]);
+
+  const filteredTickets = sortedTickets.filter((ticket) => {
     const matchSearch =
       ticket.judul.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       ticket.deskripsi.toLowerCase().includes(debouncedSearch.toLowerCase());
@@ -107,7 +125,7 @@ export default function TiketMaintenancePage() {
   });
 
   // Pagination - panggil sebelum early return
-  const pagination = usePagination(filteredTickets.length, 20);
+  const pagination = usePagination(sortedTickets.length, 20);
   const paginatedTickets = filteredTickets.slice(
     pagination.startIndex,
     pagination.endIndex
@@ -268,6 +286,18 @@ export default function TiketMaintenancePage() {
             <option value="Diproses">Diproses</option>
             <option value="Selesai">Selesai</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "tanggal", label: "Tanggal" },
+              { value: "judul", label: "Judul" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
         {/* Penanda filter kartu yang sedang aktif (diklik di kartu statistik). */}
         {statusFilter !== "Semua" && (

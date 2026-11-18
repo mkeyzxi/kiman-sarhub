@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
@@ -103,15 +104,32 @@ export default function DaftarBeritaAcaraPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   /** Token pemicu scroll ke tabel berita acara setelah kartu diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
 
   // Debounce search
   const debouncedSearch = useDebounce(searchQuery, 300);
 
+  // Urutkan data berita acara: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  const sortedBA = useMemo(() => {
+    return [...data].filter((ba) => ba.status !== "Draf").sort((a, b) => {
+      if (sortBy === "tanggal") {
+        const aTgl = new Date(a.tanggal).getTime();
+        const bTgl = new Date(b.tanggal).getTime();
+        return sortDir === "desc" ? aTgl - bTgl : bTgl - aTgl;
+      }
+      // Fallback: sort by namaAset alphabetically
+      const aAset = a.namaAset.toLowerCase();
+      const bAset = b.namaAset.toLowerCase();
+      return sortDir === "desc" ? bAset.localeCompare(aAset) : aAset.localeCompare(bAset);
+    });
+  }, [data, sortBy, sortDir]);
+
   const baList = useMemo(
     () =>
-      data.filter((ba) => {
+      sortedBA.filter((ba) => {
         // Draf operator TIDAK ditampilkan — aset milik PJ sampai operator
         // menyerahkan berita acara ke BMN.
         if (ba.status === "Draf") return false;
@@ -126,7 +144,7 @@ export default function DaftarBeritaAcaraPage() {
           statusFilter === "Semua" || ba.status === statusFilter;
         return matchQuery && matchStatus;
       }),
-    [data, debouncedSearch, statusFilter]
+    [sortedBA, debouncedSearch, statusFilter]
   );
 
   // Pagination - panggil sebelum early return
@@ -274,6 +292,18 @@ export default function DaftarBeritaAcaraPage() {
             <option value="Disetujui">Disetujui</option>
             <option value="Ditolak">Ditolak</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "tanggal", label: "Tanggal" },
+              { value: "namaAset", label: "Aset" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
         {/* Penanda filter kartu yang sedang aktif (diklik di kartu statistik). */}
         {statusFilter !== "Semua" && (

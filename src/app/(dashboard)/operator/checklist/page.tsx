@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -29,6 +29,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import {
@@ -205,29 +206,6 @@ function KartuPJItem({ card }: { card: KartuPJ }) {
 
 // ─── Data Checklist Perawatan ────────────────────────────────────────────────
 // ─── Komponen ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  subText?: string;
-}) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", iconBg)}>
-          <Icon className={cn("h-4.5 w-4.5", iconColor)} />
-        </div>
-        <div>
-          <p className="text-lg font-bold text-slate-800">{value}</p>
-          <p className="text-xs text-slate-500">{label}</p>
-          {subText && <p className="text-[11px] text-slate-400">{subText}</p>}
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function ChecklistPerawatanPage() {
@@ -240,6 +218,10 @@ export default function ChecklistPerawatanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  /** Token pemicu scroll ke tabel setelah kartu statistik diklik. */
+  const [tokenScroll, setTokenScroll] = useState(0);
 
   // Modal konfirmasi hapus + state proses (untuk mencegah klik dobel).
   const [hapusTarget, setHapusTarget] = useState<ChecklistHarian | null>(null);
@@ -310,25 +292,82 @@ export default function ChecklistPerawatanPage() {
   // Berlangganan store berita acara: memicu hidrasi Supabase sekali per sesi
   // dan re-render setelah data database masuk — status draft selalu segar
   // tanpa useEffect + setState (pemicu "Maximum update depth exceeded").
-  useBeritaAcara();
+  const baList = useBeritaAcara();
+
+  // ── Helper: info kerusakan & status berita acara per baris checklist ─────
+  /**
+   * Hitung jumlah item rusak (Rusak Ringan + Rusak Berat) pada satu checklist.
+   */
+  const hitungRusak = (row: ChecklistHarian): number =>
+    row.items.filter(
+      (i) => i.kondisi === "Rusak Ringan" || i.kondisi === "Rusak Berat"
+    ).length;
+
+  /**
+   * Status berita acara terkait satu checklist:
+   * - `null` = belum ada BA
+   * - "Draf" = BA dibuat tapi belum diserahkan ke BMN
+   * - lain  = BA sudah di proses BMN (Diserahkan/Diproses/Disetujui/Ditolak)
+   */
+  const baStatus = (row: ChecklistHarian): string | null => {
+    const ba = beritaAcaraByChecklist(row.id);
+    return ba ? ba.status : null;
+  };
+
+  /**
+   * Checklist "Perlu Tindakan": status Lengkap, ada item rusak, dan
+   * berita acaranya belum diserahkan ke BMN (belum ada / masih Draf).
+   */
+  const perluTindakan = (row: ChecklistHarian): boolean => {
+    if (row.status !== "Lengkap") return false;
+    if (hitungRusak(row) === 0) return false;
+    const status = baStatus(row);
+    return status === null || status === "Draf";
+  };
 
   // Filter dengan debounced search - hitung sebelum early return
+  // `baCount` = jumlah BA di store (berubah saat hidrasi Supabase / BA baru
+  // ditambahkan) — dipakai sebagai pemicu re-komputasi filter "Perlu Tindakan".
+  const baCount = baList.length;
   const filteredChecklist = useMemo(() => {
     return checklistHarianList.filter((item) => {
       const matchSearch =
         item.unit.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         item.pemeriksa.toLowerCase().includes(debouncedSearch.toLowerCase());
-      const matchStatus = statusFilter === "Semua" || item.status === statusFilter;
-      const matchJenis = jenisFilter === "Semua" || item.jenisUnit === jenisFilter;
+      const matchStatus =
+        statusFilter === "Semua" ||
+        item.status === statusFilter ||
+        (statusFilter === "Perlu Tindakan" && perluTindakan(item));
+      const matchJenis =
+        jenisFilter === "Semua" || item.jenisUnit === jenisFilter;
       return matchSearch && matchStatus && matchJenis;
     });
-  }, [checklistHarianList, debouncedSearch, statusFilter, jenisFilter]);
+    // `baCount` di-deps sebagai pemicu re-komputasi: setiap kali jumlah
+    // berita acara berubah (hidrasi Supabase / BA baru dibuat), filter
+    // "Perlu Tindakan" menghitung ulang otomatis.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- perluTindakan & hitungRusak & baStatus adalah fungsi stabil (baca module-level, tanpa dep React state)
+  }, [checklistHarianList, debouncedSearch, statusFilter, jenisFilter, baCount]);
+
+  // Urutkan data checklist: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  const sortedChecklist = useMemo(() => {
+    return [...checklistHarianList].sort((a, b) => {
+      if (sortBy === "tanggal") {
+        const aTgl = new Date(a.tanggal).getTime();
+        const bTgl = new Date(b.tanggal).getTime();
+        return sortDir === "desc" ? aTgl - bTgl : bTgl - aTgl;
+      }
+      // Fallback: sort by unit alphabetically
+      const aUnit = a.unit.toLowerCase();
+      const bUnit = b.unit.toLowerCase();
+      return sortDir === "desc" ? bUnit.localeCompare(aUnit) : aUnit.localeCompare(bUnit);
+    });
+  }, [checklistHarianList, sortBy, sortDir]);
 
   // Pagination - HARUS dipanggil sebelum conditional return
-  const pagination = usePagination(filteredChecklist.length, 20);
+  const pagination = usePagination(sortedChecklist.length, 20);
   const paginatedChecklist = useMemo(() => {
-    return filteredChecklist.slice(pagination.startIndex, pagination.endIndex);
-  }, [filteredChecklist, pagination.startIndex, pagination.endIndex]);
+    return sortedChecklist.slice(pagination.startIndex, pagination.endIndex);
+  }, [sortedChecklist, pagination.startIndex, pagination.endIndex]);
 
   /**
    * Draft milik user yang sedang login — dihitung langsung saat render
@@ -409,6 +448,40 @@ export default function ChecklistPerawatanPage() {
     }
   };
 
+  /**
+   * Klik kartu statistik → filter status tabel + scroll ke hasil.
+   * Toggle: klik kartu yang sedang aktif → kembali ke "Semua".
+   */
+  const labelKeStatus: Record<string, string> = {
+    "Total Checklist": "Semua",
+    "Lengkap": "Lengkap",
+    "Belum Lengkap": "Belum Lengkap",
+    "Perlu Tindakan": "Perlu Tindakan",
+  };
+
+  const klikKartuStat = (label: string) => {
+    const statusTarget = labelKeStatus[label] ?? "Semua";
+    if (statusFilter === statusTarget) {
+      setStatusFilter("Semua");
+    } else {
+      setStatusFilter(statusTarget);
+    }
+    // Kembali ke halaman pertama supaya hasil filter langsung terlihat.
+    pagination.goToPage(1);
+    setTokenScroll((t) => t + 1);
+  };
+
+  /**
+   * Scroll ke tabel checklist setelah kartu statistik diklik.
+   * Token (angka) alih-alih boolean — scroll tetap jalan walau filter
+   * tidak berubah (mis. klik "Total Checklist" saat sudah "Semua").
+   */
+  useEffect(() => {
+    if (tokenScroll === 0) return;
+    const el = document.getElementById("checklist-table-target");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tokenScroll]);
+
   // Early return SETELAH semua hooks dipanggil
   if (loading) {
     return <DataLoading label="Memuat daftar checklist harian…" />;
@@ -426,6 +499,7 @@ export default function ChecklistPerawatanPage() {
   const totalChecklist = checklistHarianList.length;
   const checklistLengkap = checklistHarianList.filter((c) => c.status === "Lengkap").length;
   const checklistBelumLengkap = checklistHarianList.filter((c) => c.status === "Belum Lengkap").length;
+  const checklistPerluTindakan = checklistHarianList.filter((c) => perluTindakan(c)).length;
   // "Minggu ini" dihitung nyata dari database: sejak Senin pekan berjalan.
   const sekarang = new Date();
   const geserKeSenin = (sekarang.getDay() + 6) % 7; // Senin = 0 … Minggu = 6
@@ -522,30 +596,93 @@ export default function ChecklistPerawatanPage() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="sm:grid sm:grid-cols-3 gap-3 grid grid-cols-1">
-        <StatCard
-          label="Total Checklist"
-          value={totalChecklist}
-          icon={ClipboardCheck}
-          iconBg="bg-primary-light"
-          iconColor="text-primary"
-          subText={`${checklistMingguIni} minggu ini`}
-        />
-        <StatCard
-          label="Lengkap"
-          value={checklistLengkap}
-          icon={CheckCircle2}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
-        />
-        <StatCard
-          label="Belum Lengkap"
-          value={checklistBelumLengkap}
-          icon={AlertTriangle}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-        />
+      {/* Stats Cards — klik = filter tabel + scroll ke hasil */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {([
+          {
+            label: "Total Checklist",
+            value: totalChecklist,
+            icon: ClipboardCheck,
+            iconBg: "bg-primary-light",
+            iconColor: "text-primary",
+            subText: `${checklistMingguIni} minggu ini`,
+          },
+          {
+            label: "Lengkap",
+            value: checklistLengkap,
+            icon: CheckCircle2,
+            iconBg: "bg-emerald-50",
+            iconColor: "text-emerald-600",
+            subText: undefined,
+          },
+          {
+            label: "Belum Lengkap",
+            value: checklistBelumLengkap,
+            icon: AlertTriangle,
+            iconBg: "bg-amber-50",
+            iconColor: "text-amber-600",
+            subText: undefined,
+          },
+          {
+            label: "Perlu Tindakan",
+            value: checklistPerluTindakan,
+            icon: FileText,
+            iconBg: "bg-rose-50",
+            iconColor: "text-rose-600",
+            subText: "Rusak, BA belum dibuat",
+          },
+        ] as {
+          label: string;
+          value: number;
+          icon: React.ElementType;
+          iconBg: string;
+          iconColor: string;
+          subText?: string;
+        }[]).map((stat) => {
+          const aktif =
+            stat.label !== "Total Checklist" &&
+            statusFilter === (labelKeStatus[stat.label] ?? "—");
+          return (
+            <button
+              key={stat.label}
+              type="button"
+              onClick={() => klikKartuStat(stat.label)}
+              aria-pressed={aktif}
+              className={`group relative w-full cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                aktif ? "z-10" : "hover:z-10"
+              }`}
+            >
+              <Card
+                className={`h-full w-full p-4 sm:p-4 transition-all ${
+                  aktif
+                    ? "border-primary ring-2 ring-primary shadow-md"
+                    : "border-slate-200 group-hover:border-primary/60 group-hover:shadow-md"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${stat.iconBg}`}
+                  >
+                    <stat.icon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${stat.iconColor}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-bold text-slate-800">{stat.value}</p>
+                    <p
+                      className={`text-xs sm:text-sm ${
+                        aktif ? "font-semibold text-primary" : "text-slate-500 sm:text-slate-600"
+                      }`}
+                    >
+                      {stat.label}
+                    </p>
+                    {stat.subText && (
+                      <p className="text-[11px] text-slate-400">{stat.subText}</p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </button>
+          );
+        })}
       </div>
 
       {/* Kartu monitor alur kerusakan — hanya milik user yang login */}
@@ -628,12 +765,31 @@ export default function ChecklistPerawatanPage() {
             <option value="Semua">Semua Status</option>
             <option value="Lengkap">Lengkap</option>
             <option value="Belum Lengkap">Belum Lengkap</option>
+            <option value="Perlu Tindakan">Perlu Tindakan</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "tanggal", label: "Tanggal" },
+              { value: "unit", label: "Unit" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
       </div>
 
       {/* Tabel Checklist - flat layout */}
-      <div className="sm:px-2">
+      {/* id dipakai sebagai target scroll saat kartu statistik diklik.
+          `scroll-mt-14 md:scroll-mt-16` menyisakan ruang untuk header
+          sticky agar judul tabel tidak tertutup saat digulir. */}
+      <div
+        id="checklist-table-target"
+        className="sm:px-2 scroll-mt-14 md:scroll-mt-16"
+      >
         <ResponsiveTable
           data={paginatedChecklist}
           getKey={(row) => row.id}
@@ -648,11 +804,27 @@ export default function ChecklistPerawatanPage() {
             </span>
           )}
           cardSubtitle={(row) => row.tanggal}
-          cardBadge={(row) => (
-            <Badge variant={row.status === "Lengkap" ? "success" : "warning"}>
-              {row.status}
-            </Badge>
-          )}
+          cardBadge={(row) => {
+            const nRusak = hitungRusak(row);
+            const status = baStatus(row);
+            // Tandai checklist yang perlu tindakan: lengkap + rusak + BA belum
+            // diserahkan (belum ada / masih Draf).
+            if (row.status === "Lengkap" && nRusak > 0 && (status === null || status === "Draf")) {
+              return (
+                <div className="flex flex-col gap-0.5">
+                  <Badge variant="success" className="text-xs">Lengkap</Badge>
+                  <Badge variant="danger" className="text-[10px]">
+                    Perlu Tindakan
+                  </Badge>
+                </div>
+              );
+            }
+            return (
+              <Badge variant={row.status === "Lengkap" ? "success" : "warning"}>
+                {row.status}
+              </Badge>
+            );
+          }}
           cardPreviewCount={2}
           detailLabel="Lihat detail checklist"
           emptyMessage="Tidak ada checklist yang ditemukan"
@@ -745,6 +917,91 @@ export default function ChecklistPerawatanPage() {
                   {row.status}
                 </Badge>
               ),
+              hideOnCard: true,
+            },
+            {
+              key: "kerusakan",
+              header: "Kerusakan",
+              render: (row) => {
+                const nRusak = hitungRusak(row);
+                if (nRusak === 0) {
+                  return (
+                    <span className="text-xs text-slate-400">
+                      Tidak ada
+                    </span>
+                  );
+                }
+                return (
+                  <Badge
+                    variant={nRusak > 0 ? "danger" : "outline"}
+                    className="text-xs"
+                  >
+                    {nRusak} item rusak
+                  </Badge>
+                );
+              },
+              headClassName: "text-center",
+              cellClassName: "text-center",
+              hideBelowLg: true,
+              hideOnCard: true,
+            },
+            {
+              key: "beritaAcara",
+              header: "Berita Acara",
+              render: (row) => {
+                const nRusak = hitungRusak(row);
+                // Jika tidak ada item rusak, BA tidak relevan — tampilkan "-"
+                if (nRusak === 0) {
+                  return (
+                    <span className="text-xs text-slate-400">—</span>
+                  );
+                }
+                const status = baStatus(row);
+                if (status === null) {
+                  // Belum ada BA sama sekali → tandai "Belum Dibuat" + tombol
+                  // langsung ke halaman BA supaya operator bisa buat.
+                  return (
+                    <div className="flex flex-col items-center gap-1">
+                      <Badge variant="danger" className="text-xs">
+                        Belum Dibuat
+                      </Badge>
+                      <Link
+                        href={`/operator/checklist/${row.id}/berita-acara`}
+                        className="text-[11px] font-medium text-primary hover:underline"
+                      >
+                        Buat sekarang
+                      </Link>
+                    </div>
+                  );
+                }
+                // BA sudah ada — tampilkan statusnya
+                const variant: "success" | "warning" | "default" | "danger" =
+                  status === "Disetujui"
+                    ? "success"
+                    : status === "Ditolak"
+                      ? "danger"
+                      : status === "Diserahkan"
+                        ? "warning"
+                        : "default";
+                return (
+                  <div className="flex flex-col items-center gap-1">
+                    <Badge variant={variant} className="text-xs">
+                      {status}
+                    </Badge>
+                    {status === "Draf" && (
+                      <Link
+                        href={`/operator/checklist/${row.id}/berita-acara`}
+                        className="text-[11px] font-medium text-primary hover:underline"
+                      >
+                        Lanjutkan
+                      </Link>
+                    )}
+                  </div>
+                );
+              },
+              headClassName: "text-center",
+              cellClassName: "text-center",
+              hideBelowLg: true,
               hideOnCard: true,
             },
             {

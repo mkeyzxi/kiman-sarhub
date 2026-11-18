@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import Link from "next/link";
 import {
@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { SortControl } from "@/components/ui/sort-control";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   formatTanggal,
@@ -64,6 +65,8 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PimpinanPage() {
   const [asetFilter, setAsetFilter] = useState<"Semua" | "Standby" | "Belum Lengkap">("Semua");
+  const [sortBy, setSortBy] = useState("nama");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   // Data master dari Supabase.
   const {
     data: asetList,
@@ -98,10 +101,14 @@ export default function PimpinanPage() {
    * `asets.status` di database yang hanya berubah lewat aksi manual.
    */
   const statusLive = hitungStatusAsetLive(asetList, logbookList);
-  const asetLive = asetList.map((aset) => ({
-    ...aset,
-    status: statusLive[aset.id] ?? aset.status,
-  }));
+  const asetLive = useMemo(
+    () =>
+      asetList.map((aset) => ({
+        ...aset,
+        status: statusLive[aset.id] ?? aset.status,
+      })),
+    [asetList, statusLive]
+  );
 
   // Readiness dihitung dari data aset Supabase (bukan mock statis).
   const readinessStats = hitungReadinessStats(asetLive);
@@ -112,7 +119,21 @@ export default function PimpinanPage() {
 
   // Status aset yang dihitung "lengkap" = benar-benar siap operasional.
   const siap = (status: StatusAset) => STATUS_ASET_STANDBY.includes(status);
-  const filteredAset = asetLive.filter((aset) => {
+  const sortedAset = useMemo(() => {
+    return [...asetLive].sort((a, b) => {
+      if (sortBy === "nama") {
+        const aVal = a.nama.toLowerCase();
+        const bVal = b.nama.toLowerCase();
+        return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+      }
+      // Fallback: sort by kode
+      const aVal = a.kode.toLowerCase();
+      const bVal = b.kode.toLowerCase();
+      return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+  }, [asetLive, sortBy, sortDir]);
+
+  const filteredAset = sortedAset.filter((aset) => {
     if (asetFilter === "Standby") return siap(aset.status);
     if (asetFilter === "Belum Lengkap") return !siap(aset.status);
     return true;
@@ -193,8 +214,24 @@ export default function PimpinanPage() {
                 </button>
               ))}
             </div>
-          </div>
-        </CardHeader>
+            <div className="flex items-center gap-2">
+                <SortControl
+                  options={[
+                    { value: "nama", label: "Nama Aset" },
+                    { value: "kode", label: "Kode" },
+                  ]}
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  dirLabels={["Descending", "Ascending"]}
+                  ariaLabel="Urutkan rincian kesiapan aset"
+                  onChange={({ sortBy: s, sortDir: d }) => {
+                    setSortBy(s);
+                    setSortDir(d);
+                  }}
+                />
+              </div>
+            </div>
+          </CardHeader>
         <CardContent className="pt-0">
           <ResponsiveTable
             data={filteredAset}

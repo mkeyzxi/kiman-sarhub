@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Plus, Search, Eye, Pencil, Package, ShieldCheck, Users, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { Card } from "@/components/ui/card";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
@@ -25,6 +26,8 @@ import {
 export default function MasterDataBMNPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("nama");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   /** Token pemicu scroll ke tabel aset setelah kartu statistik diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
 
@@ -47,7 +50,21 @@ export default function MasterDataBMNPage() {
 
   // Filter aset dengan debounced search — status memakai nilai **live** (turunan logbook berjalan)
   // agar filter "Sedang digunakan" juga menemukan unit yang sedang dipakai walau kolom DB masih "Standby".
-  const filteredAset = asetList.filter((aset) => {
+  const sortedAset = useMemo(() => {
+    return [...asetList].sort((a, b) => {
+      if (sortBy === "nama") {
+        const aVal = a.nama.toLowerCase();
+        const bVal = b.nama.toLowerCase();
+        return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+      }
+      // Fallback: sort by kode
+      const aVal = a.kode.toLowerCase();
+      const bVal = b.kode.toLowerCase();
+      return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+  }, [asetList, sortBy, sortDir]);
+
+  const filteredAset = sortedAset.filter((aset) => {
     const q = debouncedSearch.toLowerCase();
     const matchSearch =
       aset.nama.toLowerCase().includes(q) ||
@@ -63,7 +80,7 @@ export default function MasterDataBMNPage() {
   });
 
   // Pagination - panggil sebelum early return
-  const pagination = usePagination(filteredAset.length, 20);
+  const pagination = usePagination(sortedAset.length, 20);
   const paginatedAset = filteredAset.slice(
     pagination.startIndex,
     pagination.endIndex
@@ -261,6 +278,19 @@ export default function MasterDataBMNPage() {
               </option>
             ))}
           </Select>
+          <SortControl
+            options={[
+              { value: "nama", label: "Nama Aset" },
+              { value: "kode", label: "Kode" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            dirLabels={["Descending", "Ascending"]}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
       </div>
 
