@@ -2870,29 +2870,135 @@ export interface RiwayatOperasi {
   durasi: string;
   personel: number;
   hasil: HasilOperasi;
-  keterangan?: string;
+  /**
+   * Ringkasan tambahan (opsional). Wajib string agar bisa di-cast ke
+   * bentuk `RiwayatOperasiMapped` saat dipakai fallback di halaman
+   * laporan /pimpinan.
+   */
+  keterangan: string;
+  /** FK → logbook_perjalanan(id); sumber operasi bila di-generate dari logbook. */
+  logbookId?: string;
 }
 
+/**
+ * Data contoh (seed) riwayat operasi — dipakai untuk:
+ *  1. Mengisi tabel `public.riwayat_operasi` di database (lihat
+ *     `scripts/generate-seed-sql.mjs`),
+ *  2. Fallback halaman /pimpinan/laporan saat database kosong,
+ *     sehingga kartu "Riwayat Operasi" tetap terbaca sebagai contoh.
+ *
+ * Data sengaja dibuat realistis untuk Kantor SAR Mamuju (Sulawesi Barat).
+ */
 export const riwayatOperasi: RiwayatOperasi[] = [
   {
     id: "op-001",
-    tanggal: "2026-10-02",
+    tanggal: "2026-11-05",
     jenis: "Evakuasi Korban Tenggelam",
     lokasi: "Desa Binanga, Mamuju",
     durasi: "4 jam",
     personel: 6,
     hasil: "Berhasil",
-    keterangan: "1 korban dievakuasi selamat. Tim menggunakan RIB 12M dan peralatan selam.",
+    keterangan:
+      "1 korban dievakuasi selamat. Tim menggunakan RIB 12M dan peralatan selam.",
   },
   {
     id: "op-002",
-    tanggal: "2026-09-15",
+    tanggal: "2026-10-18",
     jenis: "Pencarian Korban Hilang",
     lokasi: "Pantai Karampuang, Mamuju",
-    durasi: "2 jam",
-    personel: 3,
+    durasi: "6 jam",
+    personel: 8,
+    hasil: "Sebagian Berhasil",
+    keterangan:
+      "Korban ditemukan di area pantai selatan. Koordinasi dengan nelayan lokal. Masih dalam proses identifikasi.",
+  },
+  {
+    id: "op-003",
+    tanggal: "2026-09-15",
+    jenis: "Latihan Siaga SAR",
+    lokasi: "Kantor SAR Mamuju",
+    durasi: "3 jam",
+    personel: 12,
     hasil: "Berhasil",
-    keterangan: "Korban ditemukan di area pantai selatan. Koordinasi dengan nelayan lokal.",
+    keterangan:
+      "Latihan rutin bulanan. Simulasi evakuasi korban di area perairan dangkal.",
+  },
+  {
+    id: "op-004",
+    tanggal: "2026-08-22",
+    jenis: "Evakuasi Medis Darurat",
+    lokasi: "Pegunungan Marisa, Mamasa",
+    durasi: "5 jam",
+    personel: 4,
+    hasil: "Berhasil",
+    keterangan:
+      "Jalur evakuasi dari ketinggian 2.500 mdpl. Koordinasi dengan RSUD Mamuju.",
+  },
+  {
+    id: "op-005",
+    tanggal: "2026-07-30",
+    jenis: "Pencarian & Penyelamatan",
+    lokasi: "Sungai Malili, Mamuju Tengah",
+    durasi: "8 jam",
+    personel: 10,
+    hasil: "Tidak Berhasil",
+    keterangan:
+      "Korban belum ditemukan. Henti pencarian sementara karena cuaca buruk, dilanjutkan keesokan harinya.",
+  },
+  {
+    id: "op-006",
+    tanggal: "2026-06-12",
+    jenis: "Evakuasi Korban Banjir",
+    lokasi: "Kec. Kalukku Mamasa",
+    durasi: "2 jam",
+    personel: 5,
+    hasil: "Berhasil",
+    keterangan:
+      "3 keluarga dievakuasi ke tempat pengungsian. Menggunakan perahu karet.",
+  },
+  {
+    id: "op-007",
+    tanggal: "2026-05-03",
+    jenis: "Latihan Siaga SAR",
+    lokasi: "Lapangan Kantor SAR Mamuju",
+    durasi: "4 jam",
+    personel: 15,
+    hasil: "Berhasil",
+    keterangan:
+      "Simulasi gempa bumi & tsunami. Evaluasi: respon tim 45 menit, target tercapai.",
+  },
+  {
+    id: "op-008",
+    tanggal: "2026-03-25",
+    jenis: "Pencarian Korban Hiking",
+    lokasi: "Gunung Rantemario, Mamasa",
+    durasi: "12 jam",
+    personel: 6,
+    hasil: "Berhasil",
+    keterangan:
+      "2 pendaki terjebak di ketinggian 3.200 mdpl. Dievakuasi dengan teknik descender.",
+  },
+  {
+    id: "op-009",
+    tanggal: "2026-02-14",
+    jenis: "Evakuasi Medis Darurat",
+    lokasi: "Pulau Karama, Mamuju Utara",
+    durasi: "6 jam",
+    personel: 4,
+    hasil: "Sebagian Berhasil",
+    keterangan:
+      "Jalur evakuasi dari perairan terbuka. 2 korban berhasil dipulangkan, 1 dalam perawatan intensif.",
+  },
+  {
+    id: "op-010",
+    tanggal: "2025-11-20",
+    jenis: "Pencarian & Penyelamatan",
+    lokasi: "Teluk Mamuju",
+    durasi: "10 jam",
+    personel: 12,
+    hasil: "Berhasil",
+    keterangan:
+      "3 nelayan karam di perairan dangkal. Semua korban berhasil dievakuasi selamat.",
   },
 ];
 
@@ -3080,6 +3186,19 @@ export interface LogbookPerjalanan {
    * Dipakai untuk mengidentifikasi owner saat edit oleh operator/akuntor.
    */
   createdBy?: string;
+  /**
+   * true = logbook ini tercatat sebagai operasi SAR/evakuasi
+   * (bukan patroli rutin). Dipakai untuk menandai apakah logbook
+   * harus muncul di bagian "Riwayat Operasi" di /pimpinan/laporan.
+   */
+  adalahOperasi?: boolean;
+  /** Kategori operasi: "SAR" | "Evakuasi" | "Latihan" | "Patroli" | "Lainnya". */
+  jenisOperasi?: string;
+  /**
+   * FK → riwayat_operasi(id); diisi otomatis saat operator centang
+   * "Ini operasi" + submit. Digunakan untuk link balik di detail logbook.
+   */
+  riwayatOperasiId?: string;
 }
 
 export const logbookPerjalananList: LogbookPerjalanan[] = [
@@ -3787,6 +3906,18 @@ export interface FormLogbook {
   kmSebelum: string;
   kmSesudah: string;
   catatan: string;
+  /**
+   * Operasi SAR/evakuasi — hanya diisi pada tahap 2 (kepulangan).
+   * Bila dicentang, logbook akan tercatat di bagian "Riwayat Operasi"
+   * (lewat RPC generate_riwayat_dari_logbook).
+   */
+  adalahOperasi: boolean;
+  /** Kategori operasi: "SAR" | "Evakuasi" | "Latihan" | "Patroli" | "Lainnya". */
+  jenisOperasi: string;
+  /** Hasil operasi: "Berhasil" | "Sebagian Berhasil" | "Gagal". */
+  hasilOperasi: string;
+  /** Catatan bebas untuk operasi (opsional). */
+  keteranganOperasi: string;
 }
 
 export type LogbookErrors = Partial<Record<keyof FormLogbook, string>>;
@@ -3927,6 +4058,16 @@ export function validasiTahapAkhir(form: FormLogbook): LogbookErrors {
     }
   }
 
+  // Operasi SAR (opsional) — bila dicentang, jenis + hasil wajib diisi.
+  if (form.adalahOperasi) {
+    if (!form.jenisOperasi.trim()) {
+      e.jenisOperasi = "Pilih jenis operasi (SAR/Evakuasi/Latihan/Patroli/Lainnya).";
+    }
+    if (!form.hasilOperasi.trim()) {
+      e.hasilOperasi = "Pilih hasil operasi (Berhasil/Sebagian Berhasil/Gagal).";
+    }
+  }
+
   return e;
 }
 
@@ -4020,6 +4161,11 @@ export function logbookKeForm(logbook: LogbookPerjalanan): FormLogbook {
     kmSebelum: logbook.kmSebelum ?? "",
     kmSesudah: logbook.kmSesudah ?? "",
     catatan: logbook.catatan,
+    // Operasi SAR (tahap 2)
+    adalahOperasi: logbook.adalahOperasi ?? false,
+    jenisOperasi: logbook.jenisOperasi ?? "",
+    hasilOperasi: "",
+    keteranganOperasi: "",
   };
 }
 

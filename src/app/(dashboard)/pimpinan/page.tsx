@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import Link from "next/link";
 import {
@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { SortControl } from "@/components/ui/sort-control";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import {
   formatTanggal,
@@ -32,7 +33,6 @@ import {
   useLogbooks,
   useNotifications,
   useActivityLog,
-  useRiwayatOperasi,
   useAuditKepatuhan,
   useSupabaseUsers,
 } from "@/components/shared/use-supabase-data";
@@ -65,6 +65,8 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function PimpinanPage() {
   const [asetFilter, setAsetFilter] = useState<"Semua" | "Standby" | "Belum Lengkap">("Semua");
+  const [sortBy, setSortBy] = useState("nama");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   // Data master dari Supabase.
   const {
     data: asetList,
@@ -87,7 +89,6 @@ export default function PimpinanPage() {
   };
   const { data: notifikasiList } = useNotifications();
   const { data: logAktivitas } = useActivityLog();
-  const { data: riwayatOperasi } = useRiwayatOperasi();
   // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
   // angka hardcode 45 yang tidak terhubung data mana pun.
   const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
@@ -100,10 +101,14 @@ export default function PimpinanPage() {
    * `asets.status` di database yang hanya berubah lewat aksi manual.
    */
   const statusLive = hitungStatusAsetLive(asetList, logbookList);
-  const asetLive = asetList.map((aset) => ({
-    ...aset,
-    status: statusLive[aset.id] ?? aset.status,
-  }));
+  const asetLive = useMemo(
+    () =>
+      asetList.map((aset) => ({
+        ...aset,
+        status: statusLive[aset.id] ?? aset.status,
+      })),
+    [asetList, statusLive]
+  );
 
   // Readiness dihitung dari data aset Supabase (bukan mock statis).
   const readinessStats = hitungReadinessStats(asetLive);
@@ -114,7 +119,21 @@ export default function PimpinanPage() {
 
   // Status aset yang dihitung "lengkap" = benar-benar siap operasional.
   const siap = (status: StatusAset) => STATUS_ASET_STANDBY.includes(status);
-  const filteredAset = asetLive.filter((aset) => {
+  const sortedAset = useMemo(() => {
+    return [...asetLive].sort((a, b) => {
+      if (sortBy === "nama") {
+        const aVal = a.nama.toLowerCase();
+        const bVal = b.nama.toLowerCase();
+        return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+      }
+      // Fallback: sort by kode
+      const aVal = a.kode.toLowerCase();
+      const bVal = b.kode.toLowerCase();
+      return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+  }, [asetLive, sortBy, sortDir]);
+
+  const filteredAset = sortedAset.filter((aset) => {
     if (asetFilter === "Standby") return siap(aset.status);
     if (asetFilter === "Belum Lengkap") return !siap(aset.status);
     return true;
@@ -195,8 +214,24 @@ export default function PimpinanPage() {
                 </button>
               ))}
             </div>
-          </div>
-        </CardHeader>
+            <div className="flex items-center gap-2">
+                <SortControl
+                  options={[
+                    { value: "nama", label: "Nama Aset" },
+                    { value: "kode", label: "Kode" },
+                  ]}
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  dirLabels={["Descending", "Ascending"]}
+                  ariaLabel="Urutkan rincian kesiapan aset"
+                  onChange={({ sortBy: s, sortDir: d }) => {
+                    setSortBy(s);
+                    setSortDir(d);
+                  }}
+                />
+              </div>
+            </div>
+          </CardHeader>
         <CardContent className="pt-0">
           <ResponsiveTable
             data={filteredAset}
@@ -471,13 +506,13 @@ export default function PimpinanPage() {
         </CardContent>
       </Card>
 
-      {/* Riwayat Operasi — event log, bukan statistik */}
+      {/* Riwayat Perjalanan — event log dari logbook */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Riwayat Operasi
+              Riwayat Perjalanan
             </CardTitle>
             <Link href="/pimpinan/laporan">
               <Button variant="ghost" size="sm">
@@ -488,42 +523,46 @@ export default function PimpinanPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {riwayatOperasi.length === 0 ? (
+          {logbookList.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Belum ada operasi tercatat</p>
+              <p className="text-sm">Belum ada perjalanan tercatat</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {riwayatOperasi.map((op) => (
-                <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
+              {logbookList.slice(0, 5).map((lp) => (
+                <div key={lp.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
                   <div className="text-center shrink-0">
                     <p className="text-lg font-bold text-slate-800">
-                      {new Date(op.tanggal).getDate()}
+                      {new Date(lp.tanggal).getDate()}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {new Date(op.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                      {new Date(lp.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
                     </p>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{op.jenis}</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {lp.kategoriUnit ? `${lp.kategoriUnit} · ` : ""}{lp.jenisUnit}
+                    </p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                       <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {op.lokasi}
+                        <MapPin className="h-3 w-3" /> {lp.tujuan || lp.rute}
                       </span>
+                      {lp.jamBerangkat && lp.jamKembali && (
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {lp.jamBerangkat}–{lp.jamKembali}
+                        </span>
+                      )}
                       <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {op.durasi}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Users className="h-3 w-3" /> {op.personel} personel
+                        <Users className="h-3 w-3" /> {lp.jumlahPersonel} personel
                       </span>
                     </div>
-                    {op.keterangan && (
-                      <p className="text-xs text-slate-400 mt-1">{op.keterangan}</p>
+                    {lp.catatan && (
+                      <p className="text-xs text-slate-400 mt-1">{lp.catatan}</p>
                     )}
                   </div>
-                  <Badge variant={op.hasil === "Berhasil" ? "success" : op.hasil === "Sebagian Berhasil" ? "warning" : "danger"}>
-                    {op.hasil}
+                  <Badge variant={lp.status === "Selesai" ? "success" : lp.status === "Sedang Digunakan" ? "warning" : "default"}>
+                    {lp.status}
                   </Badge>
                 </div>
               ))}

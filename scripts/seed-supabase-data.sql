@@ -58,9 +58,6 @@ CREATE TABLE IF NOT EXISTS public.asets (
   status_penggunaan     text,
   kode_register         text,
   status_bmn            text DEFAULT 'Aktif',
-  -- Nama referensi singkat untuk identifikasi aset oleh pengguna (mis.
-  -- "mobil dinas kakansar", "motor tempel"). Opsional — diisi manual di form.
-  nama_referensi        text,
   created_at            timestamptz DEFAULT now(),
   updated_at            timestamptz DEFAULT now()
 );
@@ -190,9 +187,6 @@ CREATE TABLE IF NOT EXISTS public.logbook_perjalanan (
   jumlah_personel   integer,
   bbm_sebelum       text,
   bbm_sesudah       text,
-  -- Pengisian BBM tambahan selama perjalanan (persen) — opsional,
-  -- diisi pada tahap 2 bila armada diisi ulang di tengah perjalanan.
-  bbm_tambahan      text,
   endurance_awal    text,
   endurance_akhir   text,
   km_sebelum        text,
@@ -397,9 +391,11 @@ INSERT INTO public.antrean_verifikasi (id, tipe, judul, deskripsi, status, tangg
   ('ver-004', 'Draf Aset', 'Penambahan Aset: Thermal Imaging Camera', 'Pengajuan pembelian kamera termal FLIR untuk operasi pencarian korban dalam kondisi malam hari atau area berasap. Harga perkiraan Rp 85.000.000.', 'Ditolak', '2026-09-21', '199810212022032001', 'Ditolak sementara karena melebihi pagu anggaran BMN tahun berjalan. Mohon ajukan kembali pada penganggaran tahun depan dengan kajian kebutuhan yang lebih komprehensif.'),
   ('ver-005', 'Laporan Kerusakan', 'Kerusakan Mesin Tempel - Overheat', 'Out Boat Motor Yamaha F300 DET mengalami overheat pada operasi terakhir. Perlu pemeriksaan sistem pendingin dan penggantian impeller.', 'Menunggu', '2026-09-23', '198212022007121002', NULL);
 
--- 5a. CHECKLIST TEMPLATES (7 baris)
+-- 5a. CHECKLIST TEMPLATES (9 baris)
 INSERT INTO public.checklist_templates (id, nama, kategori, periode, jenis_armada, sumber) VALUES
   ('arm-motor-mingguan', 'Ceklist Perawatan Motor Trail (Mingguan)', 'Motor', 'Mingguan', 'Motor', 'Ceklist Perawatan Motor Trail B 3184 PKQ'),
+  ('arm-motor-harian', 'Ceklist Perawatan Motor Trail (Harian)', 'Motor', 'Harian', 'Motor', 'Ceklist Perawatan Motor Trail B 3184 PKQ'),
+  ('arm-motor-bulanan', 'Ceklist Perawatan Motor Trail (Bulanan)', 'Motor', 'Bulanan', 'Motor', 'Ceklist Perawatan Motor Trail B 3184 PKQ'),
   ('arm-mobil-harian', 'Ceklist Perawatan Kendaraan (Harian)', 'Mobil', 'Harian', 'Mobil', 'Ceklist Perawatan Kendaraan'),
   ('arm-mobil-mingguan', 'Ceklist Perawatan Kendaraan (Mingguan)', 'Mobil', 'Mingguan', 'Mobil', 'Ceklist Perawatan Kendaraan'),
   ('arm-mobil-bulanan', 'Ceklist Perawatan Kendaraan (Bulanan)', 'Mobil', 'Bulanan', 'Mobil', 'Ceklist Perawatan Kendaraan'),
@@ -407,7 +403,7 @@ INSERT INTO public.checklist_templates (id, nama, kategori, periode, jenis_armad
   ('arm-kapalar-harian', 'Ceklist Kapal Khusus SAR (Harian)', 'Kapal', 'Harian', 'Kapal', 'Logbook Kapal SAR KN SAR MAMUJU 01'),
   ('arm-rbb-harian', 'Ceklist RBB (Harian)', 'Kapal', 'Harian', 'RBB', 'Logbook RBB 309 MAMUJU');
 
--- 5b. CHECKLIST ITEMS (106 baris)
+-- 5b. CHECKLIST ITEMS (128 baris)
 INSERT INTO public.checklist_items (template_id, item_id, label, wajib, kondisi, keterangan, is_kritis) VALUES
   ('arm-motor-mingguan', 'arm-motor-mingguan-01', 'Level Oli Mesin', true, 'Baik', NULL, true),
   ('arm-motor-mingguan', 'arm-motor-mingguan-02', 'Kondisi Ban', true, 'Baik', NULL, true),
@@ -428,6 +424,28 @@ INSERT INTO public.checklist_items (template_id, item_id, label, wajib, kondisi,
   ('arm-motor-mingguan', 'arm-motor-mingguan-17', 'Standar Samping', true, 'Baik', NULL, false),
   ('arm-motor-mingguan', 'arm-motor-mingguan-18', 'Indikator Spedometer', true, 'Baik', NULL, false),
   ('arm-motor-mingguan', 'arm-motor-mingguan-19', 'Kaca Spion', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-01', 'Level Oli Mesin', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-02', 'Kondisi Ban', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-03', 'Tekanan Ban', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-04', 'Keausan', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-05', 'Rantai Penggerak', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-06', 'Baut Mur dan Pengencangan', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-07', 'Stang (Bergerak Lancar)', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-08', 'Level Minyak Rem', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-09', 'Kampas Rem', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-10', 'Kerja Gas', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-11', 'Tuas Kopling', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-12', 'Klakson', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-13', 'Lampu Depan', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-14', 'Lampu Belakang / Rem', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-15', 'Lampu Sein', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-16', 'Engine Stop Switch', true, 'Baik', NULL, true),
+  ('arm-motor-harian', 'arm-motor-harian-17', 'Standar Samping', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-18', 'Indikator Spedometer', true, 'Baik', NULL, false),
+  ('arm-motor-harian', 'arm-motor-harian-19', 'Kaca Spion', true, 'Baik', NULL, false),
+  ('arm-motor-bulanan', 'arm-motor-bulanan-01', 'Baut Mur dan Pengencangan', true, 'Baik', NULL, false),
+  ('arm-motor-bulanan', 'arm-motor-bulanan-02', 'Kondisi Rantai', true, 'Baik', NULL, false),
+  ('arm-motor-bulanan', 'arm-motor-bulanan-03', 'Kampas Rem', true, 'Baik', NULL, false),
   ('arm-mobil-harian', 'arm-mobil-harian-01', 'Oli Mesin', true, 'Baik', NULL, true),
   ('arm-mobil-harian', 'arm-mobil-harian-02', 'Oli Power Steering', true, 'Baik', NULL, false),
   ('arm-mobil-harian', 'arm-mobil-harian-03', 'Fan Belt', true, 'Baik', NULL, false),
@@ -540,10 +558,18 @@ INSERT INTO public.activity_log (id, user_id, aksi, target, tanggal, detail) VAL
   ('log-011', '198102142005021001', 'ABSENSI_SIAGA', 'Absensi Shift', '2026-10-04T07:00:00', 'Absensi shift pagi, 5 personel hadir, 1 cuti'),
   ('log-012', '199709262022031001', 'SETOR_CHECKLIST', 'Checklist Selam', '2026-10-04T08:00:00', 'Inspeksi peralatan selam. Tabung 200 bar, regulator OK');
 
--- 8. RIWAYAT OPERASI (2 baris)
+-- 8. RIWAYAT OPERASI (10 baris)
 INSERT INTO public.riwayat_operasi (id, tanggal, jenis, lokasi, durasi, personel, hasil, keterangan) VALUES
-  ('op-001', '2026-10-02', 'Evakuasi Korban Tenggelam', 'Desa Binanga, Mamuju', '4 jam', 6, 'Berhasil', '1 korban dievakuasi selamat. Tim menggunakan RIB 12M dan peralatan selam.'),
-  ('op-002', '2026-09-15', 'Pencarian Korban Hilang', 'Pantai Karampuang, Mamuju', '2 jam', 3, 'Berhasil', 'Korban ditemukan di area pantai selatan. Koordinasi dengan nelayan lokal.');
+  ('op-001', '2026-11-05', 'Evakuasi Korban Tenggelam', 'Desa Binanga, Mamuju', '4 jam', 6, 'Berhasil', '1 korban dievakuasi selamat. Tim menggunakan RIB 12M dan peralatan selam.'),
+  ('op-002', '2026-10-18', 'Pencarian Korban Hilang', 'Pantai Karampuang, Mamuju', '6 jam', 8, 'Sebagian Berhasil', 'Korban ditemukan di area pantai selatan. Koordinasi dengan nelayan lokal. Masih dalam proses identifikasi.'),
+  ('op-003', '2026-09-15', 'Latihan Siaga SAR', 'Kantor SAR Mamuju', '3 jam', 12, 'Berhasil', 'Latihan rutin bulanan. Simulasi evakuasi korban di area perairan dangkal.'),
+  ('op-004', '2026-08-22', 'Evakuasi Medis Darurat', 'Pegunungan Marisa, Mamasa', '5 jam', 4, 'Berhasil', 'Jalur evakuasi dari ketinggian 2.500 mdpl. Koordinasi dengan RSUD Mamuju.'),
+  ('op-005', '2026-07-30', 'Pencarian & Penyelamatan', 'Sungai Malili, Mamuju Tengah', '8 jam', 10, 'Tidak Berhasil', 'Korban belum ditemukan. Henti pencarian sementara karena cuaca buruk, dilanjutkan keesokan harinya.'),
+  ('op-006', '2026-06-12', 'Evakuasi Korban Banjir', 'Kec. Kalukku Mamasa', '2 jam', 5, 'Berhasil', '3 keluarga dievakuasi ke tempat pengungsian. Menggunakan perahu karet.'),
+  ('op-007', '2026-05-03', 'Latihan Siaga SAR', 'Lapangan Kantor SAR Mamuju', '4 jam', 15, 'Berhasil', 'Simulasi gempa bumi & tsunami. Evaluasi: respon tim 45 menit, target tercapai.'),
+  ('op-008', '2026-03-25', 'Pencarian Korban Hiking', 'Gunung Rantemario, Mamasa', '12 jam', 6, 'Berhasil', '2 pendaki terjebak di ketinggian 3.200 mdpl. Dievakuasi dengan teknik descender.'),
+  ('op-009', '2026-02-14', 'Evakuasi Medis Darurat', 'Pulau Karama, Mamuju Utara', '6 jam', 4, 'Sebagian Berhasil', 'Jalur evakuasi dari perairan terbuka. 2 korban berhasil dipulangkan, 1 dalam perawatan intensif.'),
+  ('op-010', '2025-11-20', 'Pencarian & Penyelamatan', 'Teluk Mamuju', '10 jam', 12, 'Berhasil', '3 nelayan karam di perairan dangkal. Semua korban berhasil dievakuasi selamat.');
 
 -- 9. LOGBOOK PERJALANAN (16 baris)
 INSERT INTO public.logbook_perjalanan (id, tanggal, jam_berangkat, jam_kembali, rute, tujuan, kategori_unit, jenis_unit, nahkoda, jumlah_personel, bbm_sebelum, bbm_sesudah, endurance_awal, endurance_akhir, km_sebelum, km_sesudah, status, catatan, tanggal_simpan, tanggal_lengkap) VALUES

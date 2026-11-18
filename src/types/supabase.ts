@@ -213,6 +213,8 @@ export type RiwayatOperasiRow = {
   personel: number;
   hasil: string;
   keterangan: string;
+  /** FK → public.logbook_perjalanan(id); sumber operasi bila di-generate dari logbook. */
+  logbook_id?: string | null;
   created_at: string;
 };
 
@@ -257,6 +259,12 @@ export type LogbookPerjalananRow = {
   tanggal_lengkap: string | null;
   /** NIP creator/penyangga logbook (untuk identifikasi owner saat edit). */
   created_by?: string | null;
+  /** true = logbook ini tercatat sebagai operasi SAR/evakuasi (bukan patroli rutin). */
+  adalah_operasi?: boolean;
+  /** Kategori operasi: "SAR" | "Evakuasi" | "Latihan" | "Patroli" | "Lainnya". */
+  jenis_operasi?: string | null;
+  /** FK → public.riwayat_operasi(id); diisi otomatis saat generate_riwayat_dari_logbook dipanggil. */
+  riwayat_operasi_id?: string | null;
   created_at: string;
 };
 
@@ -522,6 +530,17 @@ export type Database = {
           p_keterangan?: string;
         };
         Returns: undefined;
+      };
+      /** Operator/akuntor/admin catat logbook sebagai operasi SAR:
+       *  auto-insert/update ke riwayat_operasi + simpan FK balik di logbook. */
+      generate_riwayat_dari_logbook: {
+        Args: {
+          p_logbook_id: string;
+          p_jenis: string;
+          p_hasil: string;
+          p_keterangan?: string;
+        };
+        Returns: RiwayatOperasiRow;
       };
     };
     Enums: {

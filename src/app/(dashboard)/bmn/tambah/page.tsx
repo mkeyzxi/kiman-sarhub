@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
-  users,
   STATUS_ASET,
   normalizeNup,
   NUP_MAX_DIGIT,
@@ -22,6 +21,7 @@ import {
   type StatusAset,
 } from "@/components/shared/mock-data";
 import { insertAset } from "@/components/shared/db-writes";
+import { useSupabaseUsers } from "@/components/shared/use-supabase-data";
 
 /** Field yang punya pesan error; key tidak ada berarti valid. */
 type FormErrors = Partial<
@@ -42,6 +42,7 @@ const KONDISI_OPTIONS: KondisiAset[] = ["Baik", "Rusak Ringan", "Rusak Berat"];
 
 export default function TambahAsetPage() {
   const router = useRouter();
+  const { data: userSemua } = useSupabaseUsers();
   const [formData, setFormData] = useState(() => ({
     nama: "",
     merk: "",
@@ -362,7 +363,7 @@ export default function TambahAsetPage() {
                 required
               >
                 <option value="">Pilih penanggung jawab</option>
-                {users
+                {userSemua
                   .filter(
                     (user) =>
                       user.role === "OPERATOR_LAPANGAN" && user.aktif

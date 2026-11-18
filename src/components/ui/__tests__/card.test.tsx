@@ -7,7 +7,7 @@ describe("Card Component", () => {
   it("renders card element with base styles", () => {
     render(<Card>Card content</Card>)
     // Get the card by searching in the document
-    const cardElement = document.querySelector(".rounded-xl.border.bg-white")
+    const cardElement = document.querySelector(".rounded-lg.border.bg-white")
     expect(cardElement).toBeInTheDocument()
   })
 

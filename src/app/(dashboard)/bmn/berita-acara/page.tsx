@@ -2,20 +2,22 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { FileText, Clock, Send, CheckCircle2, Search } from "lucide-react";
+import { FileText, Clock, Send, CheckCircle2, Search, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal } from "@/components/shared/mock-data";
-import { useAsets, useBeritaAcara } from "@/components/shared/use-supabase-data";
+import { useAsets, useBeritaAcara, hapusBeritaAcara } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import type { BeritaAcaraMapped } from "@/components/shared/supabase-mock-mapper";
 import { cn } from "@/lib/utils";
+import { useLocalStorageValue } from "@/lib/use-local-storage";
 
 /** Alur BA: Draf → Diserahkan (PJ) → Diproses (BMN isi nomor) → KAKANSAR. */
 const statusVariant: Record<string, "warning" | "default" | "success" | "danger"> = {
@@ -88,6 +90,8 @@ export default function DaftarBeritaAcaraPage() {
     () => new Map(asetSemua.map((a) => [a.id, a])),
     [asetSemua]
   );
+  // Role user untuk tombol delete
+  const userRole = useLocalStorageValue("userRole") as string | null;
 
   /** Nama referensi BA: ikut asetId, fallback nama resmi. Kosong bila sama. */
   const referensiBA = (ba: BeritaAcaraMapped): string => {
@@ -100,15 +104,32 @@ export default function DaftarBeritaAcaraPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   /** Token pemicu scroll ke tabel berita acara setelah kartu diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
 
   // Debounce search
   const debouncedSearch = useDebounce(searchQuery, 300);
 
+  // Urutkan data berita acara: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  const sortedBA = useMemo(() => {
+    return [...data].filter((ba) => ba.status !== "Draf").sort((a, b) => {
+      if (sortBy === "tanggal") {
+        const aTgl = new Date(a.tanggal).getTime();
+        const bTgl = new Date(b.tanggal).getTime();
+        return sortDir === "desc" ? aTgl - bTgl : bTgl - aTgl;
+      }
+      // Fallback: sort by namaAset alphabetically
+      const aAset = a.namaAset.toLowerCase();
+      const bAset = b.namaAset.toLowerCase();
+      return sortDir === "desc" ? bAset.localeCompare(aAset) : aAset.localeCompare(bAset);
+    });
+  }, [data, sortBy, sortDir]);
+
   const baList = useMemo(
     () =>
-      data.filter((ba) => {
+      sortedBA.filter((ba) => {
         // Draf operator TIDAK ditampilkan — aset milik PJ sampai operator
         // menyerahkan berita acara ke BMN.
         if (ba.status === "Draf") return false;
@@ -123,7 +144,7 @@ export default function DaftarBeritaAcaraPage() {
           statusFilter === "Semua" || ba.status === statusFilter;
         return matchQuery && matchStatus;
       }),
-    [data, debouncedSearch, statusFilter]
+    [sortedBA, debouncedSearch, statusFilter]
   );
 
   // Pagination - panggil sebelum early return
@@ -179,6 +200,20 @@ export default function DaftarBeritaAcaraPage() {
       />
     );
   }
+
+  const handleHapusBeritaAcara = async (id: string) => {
+    const konfirmasi = window.confirm(
+      "Apakah Anda yakin ingin menghapus berita acara ini?\nTindakan ini tidak dapat dibatalkan."
+    );
+    if (!konfirmasi) return;
+    const berhasil = await hapusBeritaAcara(id);
+    if (berhasil) {
+      // Reset token scroll agar scroll kembali ke atas setelah hapus
+      setTokenScroll((t) => t + 1);
+      // Refetch data agar tabel update
+      void refetch();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -257,6 +292,18 @@ export default function DaftarBeritaAcaraPage() {
             <option value="Disetujui">Disetujui</option>
             <option value="Ditolak">Ditolak</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "tanggal", label: "Tanggal" },
+              { value: "namaAset", label: "Aset" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
         {/* Penanda filter kartu yang sedang aktif (diklik di kartu statistik). */}
         {statusFilter !== "Semua" && (
@@ -350,13 +397,28 @@ export default function DaftarBeritaAcaraPage() {
             {
               key: "aksi",
               header: "Aksi",
-              render: (ba) => (
-                <Link href={`/bmn/berita-acara/${ba.id}`}>
-                  <Button variant="outline" size="sm">
-                    Kelola
-                  </Button>
-                </Link>
-              ),
+              render: (ba) => {
+                // Hanya ADMIN_IT dan PENGELOLA_BMN yang boleh hapus berita acara
+                const boleHapus = userRole === "ADMIN_IT" || userRole === "PENGELOLA_BMN";
+                return (
+                  <div className="flex items-center justify-end gap-2">
+                    <Link href={`/bmn/berita-acara/${ba.id}`}>
+                      <Button variant="outline" size="sm">
+                        Kelola
+                      </Button>
+                    </Link>
+                    {boleHapus && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleHapusBeritaAcara(ba.id)}
+                      >
+                        <Trash className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              },
               cellClassName: "text-right",
               hideOnCard: true,
             },

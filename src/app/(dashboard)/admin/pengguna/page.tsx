@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { UserPlus, Search, Users, ShieldCheck, UserX, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { roleLabels, roleDescriptions } from "@/config/navigation";
@@ -51,6 +52,8 @@ function initials(nama: string): string {
 export default function PenggunaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("nama");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,15 +80,28 @@ export default function PenggunaPage() {
     }
   }
 
-  const filteredUsers = users.filter((user) => {
-    const q = debouncedSearch.toLowerCase();
-    const matchSearch =
-      user.nama.toLowerCase().includes(q) ||
-      (user.email || "").toLowerCase().includes(q) ||
-      (user.nip || "").toLowerCase().includes(q);
-    const matchRole = roleFilter === "Semua" || user.role === roleFilter;
-    return matchSearch && matchRole;
-  });
+  const filteredUsers = useMemo(() => {
+    const sorted = [...users].sort((a, b) => {
+      if (sortBy === "nama") {
+        const aVal = a.nama.toLowerCase();
+        const bVal = b.nama.toLowerCase();
+        return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+      }
+      // Fallback: sort by role
+      const aVal = a.role.toLowerCase();
+      const bVal = b.role.toLowerCase();
+      return sortDir === "desc" ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+    return sorted.filter((user) => {
+      const q = debouncedSearch.toLowerCase();
+      const matchSearch =
+        user.nama.toLowerCase().includes(q) ||
+        (user.email || "").toLowerCase().includes(q) ||
+        (user.nip || "").toLowerCase().includes(q);
+      const matchRole = roleFilter === "Semua" || user.role === roleFilter;
+      return matchSearch && matchRole;
+    });
+  }, [users, debouncedSearch, roleFilter, sortBy, sortDir]);
 
   // Pagination - panggil sebelum early return
   const pagination = usePagination(filteredUsers.length, 20);
@@ -196,6 +212,19 @@ export default function PenggunaPage() {
             <option value="OPERATOR_LAPANGAN">Operator Lapangan</option>
             <option value="AKUNTOR">Akun Kantor</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "nama", label: "Nama" },
+              { value: "role", label: "Role" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            dirLabels={["Descending", "Ascending"]}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
       </div>
 

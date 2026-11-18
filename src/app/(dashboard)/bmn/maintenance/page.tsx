@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Wrench, Plus, Search, Eye, Clock, CheckCircle2, AlertTriangle, Calendar, Package } from "lucide-react";
+import { Wrench, Plus, Search, Eye, Clock, CheckCircle2, AlertTriangle, Calendar, Package, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { formatTanggal, labelModelAset } from "@/components/shared/mock-data";
-import { useTicketsCombined } from "@/components/shared/ticket-store";
+import { useTicketsCombined, hapusTiket } from "@/components/shared/ticket-store";
 import { useAsets, useSupabaseUsers } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
+import { useLocalStorageValue } from "@/lib/use-local-storage";
 
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText, aktif, onClick }: {
@@ -82,8 +84,12 @@ export default function TiketMaintenancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [tingkatFilter, setTingkatFilter] = useState("Semua");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   /** Token pemicu scroll ke tabel tiket setelah kartu statistik diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
+  // Role user untuk tombol delete
+  const userRole = useLocalStorageValue("userRole") as string | null;
 
   // Debounce search
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -94,7 +100,22 @@ export default function TiketMaintenancePage() {
   /** Asset lookup in-memory (id Supabase). */
   const asetById = new Map(asetSemua.map((a) => [a.id, a]));
 
-  const filteredTickets = tickets.filter((ticket) => {
+  // Urutkan data tiket: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  const sortedTickets = useMemo(() => {
+    return [...tickets].sort((a, b) => {
+      if (sortBy === "tanggal") {
+        const aTgl = new Date(a.tanggalBuat).getTime();
+        const bTgl = new Date(b.tanggalBuat).getTime();
+        return sortDir === "desc" ? aTgl - bTgl : bTgl - aTgl;
+      }
+      // Fallback: sort by judul alphabetically
+      const aJudul = a.judul.toLowerCase();
+      const bJudul = b.judul.toLowerCase();
+      return sortDir === "desc" ? bJudul.localeCompare(aJudul) : aJudul.localeCompare(bJudul);
+    });
+  }, [tickets, sortBy, sortDir]);
+
+  const filteredTickets = sortedTickets.filter((ticket) => {
     const matchSearch =
       ticket.judul.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       ticket.deskripsi.toLowerCase().includes(debouncedSearch.toLowerCase());
@@ -104,7 +125,7 @@ export default function TiketMaintenancePage() {
   });
 
   // Pagination - panggil sebelum early return
-  const pagination = usePagination(filteredTickets.length, 20);
+  const pagination = usePagination(sortedTickets.length, 20);
   const paginatedTickets = filteredTickets.slice(
     pagination.startIndex,
     pagination.endIndex
@@ -157,6 +178,20 @@ export default function TiketMaintenancePage() {
       />
     );
   }
+
+  const handleHapusTiket = async (id: string) => {
+    const konfirmasi = window.confirm(
+      "Apakah Anda yakin ingin menghapus tiket ini?\nTindakan ini tidak dapat dibatalkan."
+    );
+    if (!konfirmasi) return;
+    const berhasil = await hapusTiket(id);
+    if (berhasil) {
+      // Reset token scroll agar scroll kembali ke atas setelah hapus
+      setTokenScroll((t) => t + 1);
+      // Refetch data agar tabel update
+      void refetch();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -251,6 +286,18 @@ export default function TiketMaintenancePage() {
             <option value="Diproses">Diproses</option>
             <option value="Selesai">Selesai</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "tanggal", label: "Tanggal" },
+              { value: "judul", label: "Judul" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
         {/* Penanda filter kartu yang sedang aktif (diklik di kartu statistik). */}
         {statusFilter !== "Semua" && (
@@ -366,15 +413,29 @@ export default function TiketMaintenancePage() {
             {
               key: "aksi",
               header: "Aksi",
-              render: (row) => (
-                <div className="flex items-center justify-center gap-1">
-                  <Link href={`/bmn/maintenance/${row.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              ),
+              render: (row) => {
+                // Hanya ADMIN_IT dan PENGELOLA_BMN yang boleh hapus tiket
+                const boleHapus = userRole === "ADMIN_IT" || userRole === "PENGELOLA_BMN";
+                return (
+                  <div className="flex items-center justify-center gap-1">
+                    <Link href={`/bmn/maintenance/${row.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    {boleHapus && (
+                      <Button
+                        variant="danger"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleHapusTiket(row.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              },
               headClassName: "text-center",
               hideBelowLg: true,
             },

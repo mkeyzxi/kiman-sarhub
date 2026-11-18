@@ -63,8 +63,8 @@ export function canAccessTiketMaintenance(
   nip: string | null | undefined,
   role?: UserRole | null
 ): boolean {
-  // Admin IT = role tertinggi, akses penuh ke semua modul.
-  if (role === "ADMIN_IT") return true;
+  // Admin IT & Pengelola BMN = boleh akses penuh ke modul Tiket Maintenance.
+  if (role === "ADMIN_IT" || role === "PENGELOLA_BMN") return true;
   if (!nip) return false;
   return NIP_PENGELOLA_TIKET_MAINTENANCE.includes(normalizeNip(nip));
 }

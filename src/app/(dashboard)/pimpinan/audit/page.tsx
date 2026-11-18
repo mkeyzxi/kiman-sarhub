@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { SortControl } from "@/components/ui/sort-control";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
@@ -51,6 +52,8 @@ export default function AuditPage() {
   const [periode, setPeriode] = useState(bulanSekarang);
   const [kategori, setKategori] = useState("Semua");
   const [cari, setCari] = useState("");
+  const [sortBy, setSortBy] = useState("nama");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   /** Filter aktif dari kartu statistik. */
   const [filterKartu, setFilterKartu] = useState<FilterKartu>("semua");
   /** Token pemicu scroll ke tabel setelah kartu statistik diklik. */
@@ -83,7 +86,7 @@ export default function AuditPage() {
       return r.telatBulanIni + r.abaikanBulanIni > 0;
     return true;
   };
-  const ranking: BarisRanking[] = data
+   const ranking: BarisRanking[] = data
     .filter((r) => cocokKategori(r.skorKepatuhan))
     .filter(cocokFilterKartu)
     .filter(
@@ -92,6 +95,19 @@ export default function AuditPage() {
         r.nama.toLowerCase().includes(kataKunci) ||
         r.personelId.toLowerCase().includes(kataKunci)
     )
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "nama") {
+        cmp = a.nama.localeCompare(b.nama);
+      } else if (sortBy === "skor") {
+        cmp = a.skorKepatuhan - b.skorKepatuhan;
+      } else if (sortBy === "telatKembali") {
+        cmp = a.telatKembali - b.telatKembali;
+      } else if (sortBy === "abaikanChecklist") {
+        cmp = a.abaikanChecklist - b.abaikanChecklist;
+      }
+      return sortDir === "desc" ? -cmp : cmp;
+    })
     .map((item, i) => ({
       ...item,
       rank: i + 1,
@@ -291,6 +307,21 @@ export default function AuditPage() {
             <option value="cukup">Cukup — skor 75–89</option>
             <option value="perlu">Perlu Perbaikan — skor di bawah 75</option>
           </Select>
+          <SortControl
+            options={[
+              { value: "nama", label: "Nama" },
+              { value: "skor", label: "Skor Kepatuhan" },
+              { value: "telatKembali", label: "Aset Rusak Belum Dilaporkan" },
+              { value: "abaikanChecklist", label: "Checklist Belengkapi" },
+            ]}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            dirLabels={["Descending", "Ascending"]}
+            onChange={({ sortBy: s, sortDir: d }) => {
+              setSortBy(s);
+              setSortDir(d);
+            }}
+          />
         </div>
         {/* Penanda filter kartu yang sedang aktif (diklik di kartu statistik). */}
         {filterKartu !== "semua" && (

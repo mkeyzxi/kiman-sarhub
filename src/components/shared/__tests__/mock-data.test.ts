@@ -47,6 +47,10 @@ function formValid(tanggal = "2026-10-15", jamBerangkat = "08:00", jamKembali = 
     kmSebelum: "45230",
     kmSesudah: "45312",
     catatan: "Kondisi normal",
+    adalahOperasi: false,
+    jenisOperasi: "",
+    hasilOperasi: "",
+    keteranganOperasi: "",
   };
 }
 
@@ -980,6 +984,10 @@ describe("Validasi Tahap Awal — form mobil/darat (tanpa endurance)", () => {
       kmSebelum: "45230",
       kmSesudah: "45312",
       catatan: "Jalan berlubang",
+      adalahOperasi: false,
+      jenisOperasi: "",
+      hasilOperasi: "",
+      keteranganOperasi: "",
     };
     const errors = validasiTahapAwal(form);
     expect(Object.keys(errors)).toEqual([]);
@@ -1004,6 +1012,10 @@ describe("Validasi Tahap Awal — form mobil/darat (tanpa endurance)", () => {
       kmSebelum: "45230",
       kmSesudah: "",
       catatan: "",
+      adalahOperasi: false,
+      jenisOperasi: "",
+      hasilOperasi: "",
+      keteranganOperasi: "",
     };
     const errors = validasiTahapAwal(form);
     expect(errors.jamBerangkat).toBeUndefined();
@@ -1056,6 +1068,10 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
       kmSebelum: "",
       kmSesudah: "",
       catatan: "Laut normal",
+      adalahOperasi: false,
+      jenisOperasi: "",
+      hasilOperasi: "",
+      keteranganOperasi: "",
     };
     const errors = validasiLogbook(form);
     expect(Object.keys(errors)).toEqual([]);
@@ -1080,6 +1096,10 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
       kmSebelum: "45230",
       kmSesudah: "45312",
       catatan: "Jalan berlubang",
+      adalahOperasi: false,
+      jenisOperasi: "",
+      hasilOperasi: "",
+      keteranganOperasi: "",
     };
     const errors = validasiLogbook(form);
     expect(Object.keys(errors)).toEqual([]);
@@ -1104,6 +1124,10 @@ describe("Kombinasi validasi — form lengkap lintas kategori", () => {
       kmSebelum: "12450",
       kmSesudah: "12520",
       catatan: "Kondisi motor normal",
+      adalahOperasi: false,
+      jenisOperasi: "",
+      hasilOperasi: "",
+      keteranganOperasi: "",
     };
     const errors = validasiLogbook(form);
     expect(Object.keys(errors)).toEqual([]);

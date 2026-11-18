@@ -14,6 +14,7 @@ import {
   cariAsetDmUnit,
   bolehIsiChecklist,
   getUserById,
+  formatTanggal,
   type Aset,
   type UserRole,
   type KondisiHasil,
@@ -266,7 +267,8 @@ export default function BuatChecklistPage() {
     asetId: string | undefined;
     tanggal: string;
     hasil: HasilCekDuplikat;
-  }>({ asetId: undefined, tanggal: "", hasil: "idle" });
+    checklistId: string | null; // ID checklist yang sudah ada
+  }>({ asetId: undefined, tanggal: "", hasil: "idle", checklistId: null });
 
   useEffect(() => {
     const asetId = asetTerkait?.id;
@@ -275,12 +277,14 @@ export default function BuatChecklistPage() {
       asetId: string | undefined;
       tanggal: string;
       hasil: HasilCekDuplikat;
+      checklistId: string | null;
     }> => {
       if (!asetId || !tanggal) {
-        return { asetId: undefined, tanggal: "", hasil: "idle" };
+        return { asetId: undefined, tanggal: "", hasil: "idle", checklistId: null };
       }
       try {
         const supa = getSupabaseBrowserClient();
+        // Cek apakah checklist sudah ada
         const { data, error: err } = await supa.rpc("cek_checklist_sudah_ada", {
           p_aset_id: asetId,
           p_tanggal: tanggal,
@@ -290,12 +294,24 @@ export default function BuatChecklistPage() {
           // Gagal cek → jangan blokir form; unique index di DB tetap
           // menjadi pengaman terakhir saat INSERT.
           console.error("[buat-checklist] cek duplikat gagal:", err.message);
-          return { asetId, tanggal, hasil: "bebas" };
+          return { asetId, tanggal, hasil: "bebas", checklistId: null };
         }
-        return { asetId, tanggal, hasil: data ? "ada" : "bebas" };
+        if (data) {
+          // Jika ada, cari ID checklist-nya untuk link ke detail
+          const { data: checklistData } = await supa
+            .from("checklist_harian")
+            .select("id")
+            .eq("aset_id", asetId)
+            .eq("tanggal", tanggal)
+            .limit(1)
+            .maybeSingle();
+          const existingId = checklistData?.id ?? null;
+          return { asetId, tanggal, hasil: "ada", checklistId: existingId };
+        }
+        return { asetId, tanggal, hasil: "bebas", checklistId: null };
       } catch (e) {
         console.error("[buat-checklist] cek duplikat exception:", e);
-        return { asetId, tanggal, hasil: "bebas" };
+        return { asetId, tanggal, hasil: "bebas", checklistId: null };
       }
     })().then((hasil) => {
       if (aktif) setCekDuplikat(hasil);
@@ -705,14 +721,38 @@ export default function BuatChecklistPage() {
                 </p>
               )}
               {unit && duplikatAda && (
-                <div className="mt-2 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                <div className="mt-3 flex flex-col gap-2 rounded-lg border border-rose-300 bg-rose-50 p-4 ring-2 ring-rose-200">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600" />
+                    <p className="text-sm font-bold text-rose-900">
+                      ⚠️ Checklist Sudah Ada — Tidak Dapat Ditempelkan
+                    </p>
+                  </div>
                   <p className="text-xs text-rose-800">
-                    <strong>Checklist unit ini pada tanggal {tanggal} sudah ada.</strong>{" "}
-                    Satu kendaraan hanya satu checklist perawatan per hari —
-                    duplikasi tidak diperbolehkan. Pilih tanggal lain atau
-                    lanjutkan draft yang sudah ada.
+                    Satu kendaraan hanya boleh memiliki <strong>satu checklist
+                    perawatan per tanggal</strong>. Checklist untuk unit{" "}
+                    <strong>{unit}</strong> pada tanggal{" "}
+                    <strong>{formatTanggal(tanggal)}</strong> sudah dikerjakan
+                    sebelumnya.
                   </p>
+                  <p className="text-xs text-rose-700">
+                    Pilihan Anda:
+                    <ul className="mt-1 list-disc pl-4">
+                      <li>Lihat checklist yang sudah ada (klik tombol di bawah)</li>
+                      <li>Pilih tanggal lain untuk membuat checklist baru</li>
+                    </ul>
+                  </p>
+                  {cekDuplikat.checklistId && (
+                    <div className="mt-1">
+                      <Link
+                        href={`/operator/checklist/${cekDuplikat.checklistId}`}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-rose-700"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Lihat Checklist yang Sudah Ada
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

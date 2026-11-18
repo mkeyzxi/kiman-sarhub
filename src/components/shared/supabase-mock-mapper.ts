@@ -172,6 +172,12 @@ export interface LogbookMapped {
   tanggalLengkap?: string;
   /** NIP creator/penyangga logbook (untuk identifikasi owner saat edit). */
   createdBy?: string;
+  /** true = logbook tercatat sebagai operasi SAR (tampil di Riwayat Operasi). */
+  adalahOperasi?: boolean;
+  /** Kategori operasi: "SAR" | "Evakuasi" | "Latihan" | "Patroli" | "Lainnya". */
+  jenisOperasi?: string;
+  /** FK → riwayat_operasi(id); sumber link balik di detail logbook. */
+  riwayatOperasiId?: string;
 }
 
 export function mapLogbooks(rows: LogbookPerjalananRow[]): LogbookMapped[] {
@@ -200,6 +206,10 @@ export function mapLogbooks(rows: LogbookPerjalananRow[]): LogbookMapped[] {
     tanggalLengkap: r.tanggal_lengkap ?? undefined,
     // NIP creator/penyangga logbook (untuk identifikasi owner saat edit).
     createdBy: r.created_by ?? undefined,
+    // Operasi SAR (tahap 2)
+    adalahOperasi: r.adalah_operasi ?? false,
+    jenisOperasi: r.jenis_operasi || undefined,
+    riwayatOperasiId: r.riwayat_operasi_id || undefined,
   }));
 }
 
@@ -317,6 +327,8 @@ export interface RiwayatOperasiMapped {
   personel: number;
   hasil: string;
   keterangan: string;
+  /** FK → logbook_perjalanan(id); sumber operasi bila di-generate dari logbook. */
+  logbookId?: string;
 }
 
 export function mapRiwayatOperasi(rows: RiwayatOperasiRow[]): RiwayatOperasiMapped[] {
@@ -329,6 +341,7 @@ export function mapRiwayatOperasi(rows: RiwayatOperasiRow[]): RiwayatOperasiMapp
     personel: r.personel,
     hasil: r.hasil,
     keterangan: r.keterangan,
+    logbookId: r.logbook_id || undefined,
   }));
 }
 

@@ -621,7 +621,7 @@ export default function DetailAsetPage() {
       {/* Riwayat Pemakaian */}
       <Card>
         <CardHeader>
-          <CardTitle>Riwayat Pemakaian (Audit Trail)</CardTitle>
+          <CardTitle>Riwayat BMN</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <RiwayatTable
