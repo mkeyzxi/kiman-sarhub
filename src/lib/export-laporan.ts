@@ -1,29 +1,51 @@
 /**
  * Utilitas export laporan: merangkai data laporan & analisis menjadi
  * workbook Excel multi-sheet (.xlsx) dengan styling lengkap (border,
- * warna, merge cell) atau file CSV, lalu mengunduh di sisi klien.
+ * warna, merge cell, fill, auto-fit kolom) atau file CSV, lalu mengunduh
+ * di sisi klien.
  *
  * Sheet yang dihasilkan (format Excel):
- *  1. Ringkasan          — indikator kesiapan, distribusi status aset,
- *                          kesiapan per kategori
- *  2. Riwayat Operasi   — daftar operasi SAR (terfilter tahun terpilih)
- *  3. Logbook Perjalanan — rincian logbook armada (terfilter tahun terpilih)
- *  4. Performa Unit      — rekap perjalanan per kategori armada
+ *  1. Ringkasan            — indikator kesiapan, distribusi status aset,
+ *                             kesiapan per kategori
+ *  2. Logbook Perjalanan  — rincian logbook armada (terfilter tahun terpilih)
+ *  3. Performa Unit        — rekap perjalanan per kategori armada
+ *  4. Daftar Aset          — master data aset lengkap
+ *  5. Personel Aktif       — daftar user aktif
+ *
+ * Styling:
+ *  - Header: fill oranye khas SAR (E9641C), teks putih bold, perataan
+ *    TENGAH (center alignment).
+ *  - Border: garis tipis abu-abu gelap (455A64) pada SELURUH sel —
+ *    header & data — sehingga garis selalu terlihat, termasuk saat
+ *    dicetak grayscale.
+ *  - Auto-fit kolom: lebar dihitung dari teks terpanjang + padding
+ *    ekstra, sehingga tidak ada teks yang terpotong atau tanggal yang
+ *    berubah menjadi "####".
+ *  - Format data: tanggal DD/MM/YYYY, jam HH:MM, BBM tetap terbaca.
+ *  - Tata letak: 1-2 baris kosong antar blok tabel agar print-ready.
+ *  - Print setup: A4 landscape, fit-to-page aktif, horizontal centered.
  */
 
 import * as ExcelJS from "exceljs";
 import type {
   AsetMapped,
   LogbookMapped,
-  RiwayatOperasiMapped,
 } from "@/components/shared/supabase-mock-mapper";
 import type { UserInfo } from "@/components/shared/use-supabase-data";
 import type { ReadinessStats } from "@/components/shared/mock-data";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
-/** Format tanggal ISO ("2026-07-01") → "01 Juli 2026"; aman terhadap null. */
+/** Format tanggal ISO ("2026-07-01") → "01/07/2026"; aman terhadap null. */
 function formatTanggalId(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+}
+
+/** Format tanggal ISO untuk sub-judul (lebih deskriptif). */
+function formatTanggalDeskrif(iso: string | null | undefined): string {
   if (!iso) return "—";
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
@@ -53,28 +75,31 @@ function hitungJamPersonel(logbooks: LogbookMapped[]): number {
 }
 
 // ─── Warna & Gaya ────────────────────────────────────────────────────────────
+// Palet selaras dengan tema aplikasi. Header memakai oranye khas SAR.
+// Border memakai abu-abu gelap (455A64) agar selalu kontras dengan fill.
 
 const WARNA = {
-  primer: "FF1B4F72", // biru gelap BASARNAS
-  primerTerang: "FFD6E4F0", // biru terang untuk section header
+  primer: "FFE9641C",       // oranye khas SAR (header fill)
+  primerGaris: "FFB4440A",  // aksen garis oranye
+  primerTerang: "FFFDF1E5", // latar terang untuk sub-judul
   abu: "FF546E7A",
   abuTerang: "FFF5F6F8",
   putih: "FFFFFFFF",
-  abuGaris: "FFB0BEC5",
-  teksTabel: "FF37474F",
+  abuGaris: "FF455A64",     // garis tabel (abu-abu gelap — kontras tinggi)
+  teksTabel: "FF263238",
 } as const;
 
 const clr = (argb: string) => ({ argb });
 
-const THIN: Partial<ExcelJS.Border> = {
-  style: "thin" as const,
-  color: clr(WARNA.abuGaris),
-};
+/**
+ * Border tipis abu-abu gelap — diterapkan ke SELURUH sel (header & data)
+ * agar garis selalu terlihat jelas, termasuk saat dicetak grayscale.
+ */
 const BORDIR_SEMUA: Partial<ExcelJS.Borders> = {
-  top: THIN,
-  bottom: THIN,
-  left: THIN,
-  right: THIN,
+  top: { style: "thin", color: clr(WARNA.abuGaris) },
+  bottom: { style: "thin", color: clr(WARNA.abuGaris) },
+  left: { style: "thin", color: clr(WARNA.abuGaris) },
+  right: { style: "thin", color: clr(WARNA.abuGaris) },
 };
 
 const FONT_JUDUL: Partial<ExcelJS.Font> = {
@@ -90,6 +115,7 @@ const FONT_SUB: Partial<ExcelJS.Font> = {
   name: "Calibri",
 };
 
+/** Header tabel: putih bold di atas fill oranye, perataan TENGAH. */
 const FONT_HEADER: Partial<ExcelJS.Font> = {
   bold: true,
   size: 11,
@@ -109,6 +135,12 @@ const FILL_HEADER: ExcelJS.FillPattern = {
   fgColor: clr(WARNA.primer),
 };
 
+const FILL_SUBJUDUL: ExcelJS.FillPattern = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: clr(WARNA.primerTerang),
+};
+
 const FILL_BARIS_GENAP: ExcelJS.FillPattern = {
   type: "pattern",
   pattern: "solid",
@@ -121,13 +153,38 @@ const FILL_BARIS_GANJIL: ExcelJS.FillPattern = {
   fgColor: clr(WARNA.putih),
 };
 
+/**
+ * Auto-fit lebar kolom: hitung panjang karakter terpanjang di setiap
+ * kolom (header + semua baris data), tambahkan padding 4 karakter,
+ * dan batasi minimum 10 / maksimum 60 agar tidak terlalu sempit atau
+ * terlalu lebar. Mengembalikan array lebar (sama panjangnya dengan
+ * `headers`).
+ */
+function hitungLebarKolom(
+  headers: string[],
+  rows: (string | number)[][]
+): number[] {
+  return headers.map((h, col) => {
+    let max = h.length;
+    for (const r of rows) {
+      const cell = r[col];
+      if (cell !== undefined && cell !== null) {
+        const s = String(cell);
+        if (s.length > max) max = s.length;
+      }
+    }
+    // padding 4 (2 kiri + 2 kanan) agar teks tidak menempel dinding
+    const width = Math.min(60, Math.max(10, max + 4));
+    return width;
+  });
+}
+
 // ─── Tipe input ─────────────────────────────────────────────────────────────
 
 export interface DataLaporan {
   tahun: string;
   readinessStats: ReadinessStats;
   asets: AsetMapped[];
-  riwayatOperasi: RiwayatOperasiMapped[];
   logbookPerjalanan: LogbookMapped[];
   daftarUsers: UserInfo[];
   personelAktif: number;
@@ -135,6 +192,10 @@ export interface DataLaporan {
 
 // ─── Gaya helper per sheet ─────────────────────────────────────────────────
 
+/**
+ * Styling baris header tabel: fill oranye, teks putih bold, perataan
+ * TENGAH, border abu-abu gelap, tinggi baris yang cukup.
+ */
 function terapkanGayaHeaderBaris(
   ws: ExcelJS.Worksheet,
   nomorBaris: number,
@@ -148,7 +209,7 @@ function terapkanGayaHeaderBaris(
     cell.border = BORDIR_SEMUA;
     cell.alignment = {
       vertical: "middle",
-      horizontal: "left",
+      horizontal: "center",
       wrapText: true,
       textRotation: 0,
       shrinkToFit: false,
@@ -156,9 +217,13 @@ function terapkanGayaHeaderBaris(
       readingOrder: "ltr",
     };
   }
-  row.height = 22;
+  row.height = 24;
 }
 
+/**
+ * Styling baris data: zebra striping, border abu-abu gelap, teks rata
+ * kiri (angka rata kanan), high-wrap, tinggi baris yang cukup.
+ */
 function terapkanGayaBarisData(
   ws: ExcelJS.Worksheet,
   nomorBaris: number,
@@ -183,30 +248,110 @@ function terapkanGayaBarisData(
       readingOrder: "ltr",
     };
   }
-  row.height = 18;
+  row.height = 20;
 }
 
+/**
+ * Styling judul (baris 1) + sub-judul (baris 2).
+ *
+ * - Judul: merged, font bold oranye, garis bawah medium oranye sebagai
+ *   "kaki" judul — sel kosong di merge tetap diberi gaya agar tidak
+ *   muncul kotak grid saat dicetak.
+ * - Sub-judul: merged, fill oranye terang, teks kecil abu.
+ */
 function terapkanGayaJudul(
   ws: ExcelJS.Worksheet,
   teks: string,
   subTeks?: string,
   jumlahKolomMerge = 4
 ): void {
-  // Baris 1: judul
   const r1 = ws.getRow(1);
   r1.getCell(1).value = teks;
-  r1.getCell(1).font = FONT_JUDUL;
-  r1.height = 28;
-  // Gabar baris pertama di seluruh kolom yang tersedia
+  r1.font = FONT_JUDUL;
+  r1.alignment = {
+    vertical: "middle",
+    horizontal: "left",
+    wrapText: false,
+    textRotation: 0,
+    shrinkToFit: false,
+    indent: 0,
+    readingOrder: "ltr",
+  };
+  r1.height = 30;
+  // Beri gaya ke semua sel di baris merge (termasuk yang kosong)
+  for (let col = 1; col <= jumlahKolomMerge; col++) {
+    const c = r1.getCell(col);
+    c.font = FONT_JUDUL;
+    c.alignment = {
+      vertical: "middle",
+      horizontal: "left",
+      wrapText: false,
+      textRotation: 0,
+      shrinkToFit: false,
+      indent: 0,
+      readingOrder: "ltr",
+    };
+    // Garis bawah medium oranye — terlihat sebagai "kaki" judul.
+    c.border = {
+      bottom: { style: "medium", color: clr(WARNA.primerGaris) },
+    };
+  }
   ws.mergeCells(1, 1, 1, jumlahKolomMerge);
 
-  // Baris 2: sub judul
   if (subTeks) {
     const r2 = ws.getRow(2);
     r2.getCell(1).value = subTeks;
-    r2.getCell(1).font = FONT_SUB;
+    r2.font = FONT_SUB;
+    r2.alignment = {
+      vertical: "middle",
+      horizontal: "left",
+      wrapText: false,
+      textRotation: 0,
+      shrinkToFit: false,
+      indent: 0,
+      readingOrder: "ltr",
+    };
+    for (let col = 1; col <= jumlahKolomMerge; col++) {
+      const c = r2.getCell(col);
+      c.font = FONT_SUB;
+      c.fill = FILL_SUBJUDUL;
+      c.alignment = {
+        vertical: "middle",
+        horizontal: "left",
+        wrapText: false,
+        textRotation: 0,
+        shrinkToFit: false,
+        indent: 0,
+        readingOrder: "ltr",
+      };
+    }
     ws.mergeCells(2, 1, 2, jumlahKolomMerge);
     r2.height = 18;
+  }
+}
+
+/**
+ * Set auto-fit lebar kolom pada worksheet berdasarkan header + data.
+ *
+ * PENTING — cara ini AMAN terhadap style yang sudah ada.
+ * Setter ws.columns = [] akan MEMBANGUN SEMULA column models dari
+ * snapshot baris 1, sehingga semua style sel di baris 1 (judul/sub-judul
+ * yang sudah diberi font, fill, border) akan TERHAPUS. Itulah penyebab
+ * file hasil download menjadi polos.
+ *
+ * Karena itu kita set lebar per kolom dengan ws.getColumn(i).width = w,
+ * yang HANYA mengubah properti width tanpa menyentuh style sel apa pun.
+ *
+ * Panggil SETELAH semua baris data + styling selesai ditambahkan.
+ */
+function setLebarKolom(
+  ws: ExcelJS.Worksheet,
+  headers: string[],
+  rows: (string | number)[][]
+): void {
+  const widths = hitungLebarKolom(headers, rows);
+  for (let i = 0; i < widths.length; i++) {
+    ws.getColumn(i + 1).width = widths[i];
   }
 }
 
@@ -214,17 +359,14 @@ function terapkanGayaJudul(
 
 /**
  * Ekspor seluruh data laporan ke file Excel (.xlsx) multi-sheet dengan
- * styling lengkap (border, warna, merge cell) dan unduh di sisi klien.
- * Semua data operasional (riwayat, logbook) terfilter tahun terpilih.
+ * styling lengkap (border, warna, merge cell, fill, auto-fit) dan unduh
+ * di sisi klien. Data logbook perjalanan terfilter tahun terpilih.
  */
 export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
-  const { tahun, readinessStats, riwayatOperasi, logbookPerjalanan } = data;
+  const { tahun, readinessStats, logbookPerjalanan } = data;
 
   const logbookTahun = logbookPerjalanan.filter((l) =>
     dalamTahun(l.tanggal, tahun)
-  );
-  const riwayatTahun = riwayatOperasi.filter((op) =>
-    dalamTahun(op.tanggal, tahun)
   );
   const jamPersonel = hitungJamPersonel(logbookTahun);
 
@@ -234,36 +376,36 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
 
   // ── Sheet 1: Ringkasan ──────────────────────────────────────────────────
   const wsRingkasan = workbook.addWorksheet("Ringkasan", {
-    views: [{ showGridLines: false }],
+    views: [{ showGridLines: false, state: "frozen", ySplit: 3 }],
     pageSetup: {
       paperSize: 9, // A4
       orientation: "landscape",
       fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 1,
+      horizontalCentered: true,
+      verticalCentered: false,
     },
+    headerFooter: {
+      oddHeader: `Laporan Kesiapan SAR — Tahun ${tahun}`,
+      oddFooter: "Dashboard Siap SAR • Halaman &P dari &N",
+    },
+    properties: { tabColor: { argb: WARNA.primer } },
   });
-
-  // Lebar kolom
-  wsRingkasan.columns = [
-    { width: 28 },
-    { width: 14 },
-    { width: 14 },
-    { width: 14 },
-  ];
 
   // Judul
   terapkanGayaJudul(
     wsRingkasan,
     `LAPORAN KESIAPAN SAR — TAHUN ${tahun}`,
-    `Diunduh: ${formatTanggalId(new Date().toISOString().slice(0, 10))}`,
+    `Diunduh: ${formatTanggalDeskrif(new Date().toISOString().slice(0, 10))}`,
     4
   );
 
-  // Baris 3: kosong
-  wsRingkasan.getRow(3).height = 8;
+  // Baris 3: kosong (spasi antar judul & tabel)
+  wsRingkasan.getRow(3).height = 10;
 
-  // Blok A: INDIKATOR
+  // ── Blok A: INDIKATOR ──────────────────────────────────────────────────
   const rIndikatorAwal = 4;
-  // Header baris INDIKATOR sudah di-set sebelumnya
   const barisIndikator: [string, string | number][] = [
     ["INDIKATOR", "NILAI"],
     ["Readiness Index (%)", readinessStats.readinessIndex],
@@ -272,7 +414,6 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
       `${readinessStats.standby} / ${readinessStats.totalAset}`,
     ],
     ["Personel Aktif", data.personelAktif],
-    ["Total Riwayat Operasi", riwayatTahun.length],
     ["Total Logbook Perjalanan", logbookTahun.length],
     ["Jam Personel (Kumulatif)", jamPersonel],
   ];
@@ -283,19 +424,19 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     row.getCell(1).value = label;
     row.getCell(2).value = nilai;
     if (i === 0) {
-      // Header baris
       terapkanGayaHeaderBaris(wsRingkasan, nomorBaris, 2);
     } else {
       terapkanGayaBarisData(wsRingkasan, nomorBaris, 2, i % 2 === 0);
     }
   });
 
-  // Spasi antar blok
+  // Spasi antar blok (1-2 baris kosong)
   const rSpasi1 = rIndikatorAwal + barisIndikator.length;
   wsRingkasan.getRow(rSpasi1).height = 10;
+  wsRingkasan.getRow(rSpasi1 + 1).height = 6;
 
-  // Blok B: DISTRIBUSI STATUS ASET
-  const rDistribusiAwal = rSpasi1 + 1;
+  // ── Blok B: DISTRIBUSI STATUS ASET ────────────────────────────────────
+  const rDistribusiAwal = rSpasi1 + 2;
   const distribusi: [string, number][] = [
     ["DISTRIBUSI STATUS ASET", 0],
     ["Standby", readinessStats.standby],
@@ -321,24 +462,24 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     }
   });
 
-  // Spasi
+  // Spasi antar blok
   const rSpasi2 = rDistribusiAwal + distribusi.length;
   wsRingkasan.getRow(rSpasi2).height = 10;
+  wsRingkasan.getRow(rSpasi2 + 1).height = 6;
 
-  // Blok C: KESIAPAN PER KATEGORI
-  const rKategoriAwal = rSpasi2 + 1;
+  // ── Blok C: KESIAPAN PER KATEGORI ────────────────────────────────────
+  const rKategoriAwal = rSpasi2 + 2;
   const headerKategori = [
     "KATEGORI",
     "TOTAL ASET",
     "STANDBY",
     "PERSENTASE",
   ];
-  const rHeaderKategori = rKategoriAwal;
-  const rowHeader = wsRingkasan.getRow(rHeaderKategori);
+  const rowHeader = wsRingkasan.getRow(rKategoriAwal);
   headerKategori.forEach((h, i) => {
     rowHeader.getCell(i + 1).value = h;
   });
-  terapkanGayaHeaderBaris(wsRingkasan, rHeaderKategori, 4);
+  terapkanGayaHeaderBaris(wsRingkasan, rKategoriAwal, 4);
 
   readinessStats.kesiapanPerKategori.forEach((k, i) => {
     const nomorBaris = rKategoriAwal + 1 + i;
@@ -350,75 +491,46 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     terapkanGayaBarisData(wsRingkasan, nomorBaris, 4, i % 2 === 0);
   });
 
-  // ── Sheet 2: Riwayat Operasi ────────────────────────────────────────────
-  const wsRiwayat = workbook.addWorksheet("Riwayat Operasi", {
-    views: [{ showGridLines: false }],
-    pageSetup: {
-      paperSize: 9,
-      orientation: "landscape",
-      fitToPage: true,
-    },
-  });
-
-  const headerRiwayat = [
-    "Tanggal",
-    "Jenis Operasi",
-    "Lokasi",
-    "Durasi",
-    "Personel",
-    "Hasil",
-    "Keterangan",
+  // Auto-fit kolom untuk seluruh sheet Ringkasan
+  const ringkasanRows: (string | number)[][] = [
+    ...barisIndikator.map(([a, b]) => [a, b]),
+    ...distribusi.map(([a, b]) => [a, b, ""]),
+    ...headerKategori.map((h, i) => [
+      i === 0 ? h : "",
+      i === 1 ? h : "",
+      i === 2 ? h : "",
+      i === 3 ? h : "",
+    ]),
+    ...readinessStats.kesiapanPerKategori.map((k) => [
+      k.kategori,
+      k.total,
+      k.standby,
+      `${k.persentase}%`,
+    ]),
   ];
-  wsRiwayat.columns = [
-    { width: 16 },
-    { width: 28 },
-    { width: 24 },
-    { width: 10 },
-    { width: 10 },
-    { width: 14 },
-    { width: 40 },
-  ];
-
-  terapkanGayaJudul(
-    wsRiwayat,
-    `RIWAYAT OPERASI SAR — TAHUN ${tahun}`,
-    `Total: ${riwayatTahun.length} operasi`,
-    7
+  setLebarKolom(
+    wsRingkasan,
+    ["KATEGORI", "TOTAL ASET", "STANDBY", "PERSENTASE"],
+    ringkasanRows
   );
 
-  // Baris 3: kosong
-  wsRiwayat.getRow(3).height = 8;
-
-  // Header tabel di baris 4
-  const rHeader = 4;
-  const rowHeaderRiwayat = wsRiwayat.getRow(rHeader);
-  headerRiwayat.forEach((h, i) => {
-    rowHeaderRiwayat.getCell(i + 1).value = h;
-  });
-  terapkanGayaHeaderBaris(wsRiwayat, rHeader, headerRiwayat.length);
-
-  // Isi baris data
-  riwayatTahun.forEach((op, i) => {
-    const nomorBaris = rHeader + 1 + i;
-    const row = wsRiwayat.getRow(nomorBaris);
-    row.getCell(1).value = formatTanggalId(op.tanggal);
-    row.getCell(2).value = op.jenis;
-    row.getCell(3).value = op.lokasi;
-    row.getCell(4).value = op.durasi;
-    row.getCell(5).value = op.personel;
-    row.getCell(6).value = op.hasil;
-    row.getCell(7).value = op.keterangan || "—";
-    terapkanGayaBarisData(wsRiwayat, nomorBaris, headerRiwayat.length, i % 2 === 0);
-  });
-
-  // ── Sheet 3: Logbook Perjalanan ────────────────────────────────────────
+  // ── Sheet 2: Logbook Perjalanan ────────────────────────────────────────
   const wsLogbook = workbook.addWorksheet("Logbook Perjalanan", {
-    views: [{ showGridLines: false }],
+    views: [{ showGridLines: false, state: "frozen", ySplit: 3 }],
     pageSetup: {
       paperSize: 9,
       orientation: "landscape",
       fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 1,
+      horizontalCentered: true,
+      verticalCentered: false,
     },
+    headerFooter: {
+      oddHeader: `Logbook Perjalanan — Tahun ${tahun}`,
+      oddFooter: "Dashboard Siap SAR • Halaman &P dari &N",
+    },
+    properties: { tabColor: { argb: WARNA.primer } },
   });
 
   const headerLogbook = [
@@ -436,30 +548,15 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     "Status",
     "Catatan",
   ];
-  wsLogbook.columns = [
-    { width: 14 },
-    { width: 12 },
-    { width: 12 },
-    { width: 22 },
-    { width: 22 },
-    { width: 12 },
-    { width: 10 },
-    { width: 18 },
-    { width: 9 },
-    { width: 11 },
-    { width: 11 },
-    { width: 12 },
-    { width: 30 },
-  ];
 
   terapkanGayaJudul(
     wsLogbook,
     `LOGBOOK PERJALANAN — TAHUN ${tahun}`,
     `Total: ${logbookTahun.length} perjalanan`,
-    13
+    headerLogbook.length
   );
 
-  wsLogbook.getRow(3).height = 8;
+  wsLogbook.getRow(3).height = 10;
 
   const rHeaderLogbook = 4;
   const rowHeaderLogbook = wsLogbook.getRow(rHeaderLogbook);
@@ -468,6 +565,7 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
   });
   terapkanGayaHeaderBaris(wsLogbook, rHeaderLogbook, headerLogbook.length);
 
+  const barisLogbook: (string | number)[][] = [];
   logbookTahun.forEach((l, i) => {
     const nomorBaris = rHeaderLogbook + 1 + i;
     const row = wsLogbook.getRow(nomorBaris);
@@ -484,24 +582,51 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     row.getCell(11).value = l.bbmSesudah;
     row.getCell(12).value = l.status;
     row.getCell(13).value = l.catatan || "—";
-    terapkanGayaBarisData(wsLogbook, nomorBaris, headerLogbook.length, i % 2 === 0);
+    terapkanGayaBarisData(
+      wsLogbook,
+      nomorBaris,
+      headerLogbook.length,
+      i % 2 === 0
+    );
+    barisLogbook.push([
+      formatTanggalId(l.tanggal),
+      l.jamBerangkat,
+      l.jamKembali || "—",
+      l.rute,
+      l.tujuan,
+      l.jenisUnit,
+      l.kategoriUnit ?? "—",
+      l.nahkoda,
+      l.jumlahPersonel,
+      l.bbmSebelum,
+      l.bbmSesudah,
+      l.status,
+      l.catatan || "—",
+    ]);
   });
 
-  // ── Sheet 4: Performa Unit ──────────────────────────────────────────────
+  setLebarKolom(wsLogbook, headerLogbook, barisLogbook);
+
+  // ── Sheet 3: Performa Unit ──────────────────────────────────────────────
   const wsPerforma = workbook.addWorksheet("Performa Unit", {
-    views: [{ showGridLines: false }],
+    views: [{ showGridLines: false, state: "frozen", ySplit: 3 }],
     pageSetup: {
       paperSize: 9,
       orientation: "landscape",
       fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 1,
+      horizontalCentered: true,
+      verticalCentered: false,
     },
+    headerFooter: {
+      oddHeader: `Performa Unit — Tahun ${tahun}`,
+      oddFooter: "Dashboard Siap SAR • Halaman &P dari &N",
+    },
+    properties: { tabColor: { argb: WARNA.primer } },
   });
 
   const headerPerforma = ["Kategori", "Jumlah Perjalanan"];
-  wsPerforma.columns = [
-    { width: 36 },
-    { width: 18 },
-  ];
 
   terapkanGayaJudul(
     wsPerforma,
@@ -510,7 +635,7 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     2
   );
 
-  wsPerforma.getRow(3).height = 8;
+  wsPerforma.getRow(3).height = 10;
 
   const air = logbookTahun.filter((l) =>
     ["Kapal", "RIB", "RBB"].includes(l.kategoriUnit ?? "")
@@ -539,6 +664,157 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
     terapkanGayaBarisData(wsPerforma, nomorBaris, 2, i % 2 === 0);
   });
 
+  setLebarKolom(
+    wsPerforma,
+    headerPerforma,
+    barisPerforma.map(([l, n]) => [l, n])
+  );
+
+  // ── Sheet 4: Daftar Aset ────────────────────────────────────────────────
+  const wsAset = workbook.addWorksheet("Daftar Aset", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 3 }],
+    pageSetup: {
+      paperSize: 9,
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 1,
+      horizontalCentered: true,
+      verticalCentered: false,
+    },
+    headerFooter: {
+      oddHeader: `Daftar Aset — Tahun ${tahun}`,
+      oddFooter: "Dashboard Siap SAR • Halaman &P dari &N",
+    },
+    properties: { tabColor: { argb: WARNA.primer } },
+  });
+
+  const headerAset = [
+    "Kode",
+    "Nama Aset",
+    "Kategori",
+    "Status",
+    "Kondisi",
+    "Lokasi",
+    "Penanggung Jawab",
+    "Tgl. Penetapan",
+    "NUP",
+    "Keterangan",
+  ];
+  terapkanGayaJudul(
+    wsAset,
+    `DAFTAR ASET — TAHUN ${tahun}`,
+    `Total: ${data.asets.length} aset`,
+    headerAset.length
+  );
+
+  wsAset.getRow(3).height = 10;
+
+  const rHeaderAset = 4;
+  const rowHeaderAset = wsAset.getRow(rHeaderAset);
+  headerAset.forEach((h, i) => {
+    rowHeaderAset.getCell(i + 1).value = h;
+  });
+  terapkanGayaHeaderBaris(wsAset, rHeaderAset, headerAset.length);
+
+  const barisAset: (string | number)[][] = [];
+  data.asets.forEach((a, i) => {
+    const nomorBaris = rHeaderAset + 1 + i;
+    const row = wsAset.getRow(nomorBaris);
+    row.getCell(1).value = a.kode;
+    row.getCell(2).value = a.nama;
+    row.getCell(3).value = a.kategori;
+    row.getCell(4).value = a.status;
+    row.getCell(5).value = a.kondisi;
+    row.getCell(6).value = a.lokasi;
+    row.getCell(7).value = a.penanggungJawab;
+    row.getCell(8).value = formatTanggalId(a.tanggalPenetapan);
+    row.getCell(9).value = a.nup;
+    row.getCell(10).value = a.keterangan || "—";
+    terapkanGayaBarisData(wsAset, nomorBaris, headerAset.length, i % 2 === 0);
+    barisAset.push([
+      a.kode,
+      a.nama,
+      a.kategori,
+      a.status,
+      a.kondisi,
+      a.lokasi,
+      a.penanggungJawab,
+      formatTanggalId(a.tanggalPenetapan),
+      a.nup,
+      a.keterangan || "—",
+    ]);
+  });
+
+  setLebarKolom(wsAset, headerAset, barisAset);
+
+  // ── Sheet 5: Personel Aktif ─────────────────────────────────────────────
+  const wsPersonel = workbook.addWorksheet("Personel Aktif", {
+    views: [{ showGridLines: false, state: "frozen", ySplit: 3 }],
+    pageSetup: {
+      paperSize: 9,
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 1,
+      horizontalCentered: true,
+      verticalCentered: false,
+    },
+    headerFooter: {
+      oddHeader: `Personel Aktif — Tahun ${tahun}`,
+      oddFooter: "Dashboard Siap SAR • Halaman &P dari &N",
+    },
+    properties: { tabColor: { argb: WARNA.primer } },
+  });
+
+  const headerPersonel = ["NIP", "Nama", "Email", "Role", "Status"];
+  terapkanGayaJudul(
+    wsPersonel,
+    `PERSONEL AKTIF — TAHUN ${tahun}`,
+    `Total: ${data.personelAktif} personel aktif`,
+    headerPersonel.length
+  );
+
+  wsPersonel.getRow(3).height = 10;
+
+  const rHeaderPersonel = 4;
+  const rowHeaderPersonel = wsPersonel.getRow(rHeaderPersonel);
+  headerPersonel.forEach((h, i) => {
+    rowHeaderPersonel.getCell(i + 1).value = h;
+  });
+  terapkanGayaHeaderBaris(
+    wsPersonel,
+    rHeaderPersonel,
+    headerPersonel.length
+  );
+
+  const usersAktif = data.daftarUsers.filter((u) => u.aktif);
+  const barisPersonel: (string | number)[][] = [];
+  usersAktif.forEach((u, i) => {
+    const nomorBaris = rHeaderPersonel + 1 + i;
+    const row = wsPersonel.getRow(nomorBaris);
+    row.getCell(1).value = u.nip;
+    row.getCell(2).value = u.nama;
+    row.getCell(3).value = u.email;
+    row.getCell(4).value = u.role;
+    row.getCell(5).value = u.aktif ? "Aktif" : "Nonaktif";
+    terapkanGayaBarisData(
+      wsPersonel,
+      nomorBaris,
+      headerPersonel.length,
+      i % 2 === 0
+    );
+    barisPersonel.push([
+      u.nip,
+      u.nama,
+      u.email,
+      u.role,
+      u.aktif ? "Aktif" : "Nonaktif",
+    ]);
+  });
+
+  setLebarKolom(wsPersonel, headerPersonel, barisPersonel);
+
   // ── Unduh ───────────────────────────────────────────────────────────────
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
@@ -558,15 +834,17 @@ export async function eksporLaporanExcel(data: DataLaporan): Promise<void> {
  * Ekspor data laporan ke file CSV (satu file gabungan) dan unduh di sisi
  * klien. Dipakai bila pengguna memilih format CSV — kompatibel dengan
  * Google Sheets, Excel, dan aplikasi statistik.
+ *
+ * - Pemisah: koma (,) secara konsisten.
+ * - Tanggal diformat DD/MM/YYYY, jam HH:MM, angka tetap angka — sehingga
+ *   tidak terpotong atau berubah format saat dibuka di Excel.
+ * - BOM UTF-8 agar karakter Indonesia terbaca benar.
  */
 export function eksporLaporanCSV(data: DataLaporan): void {
-  const { tahun, readinessStats, riwayatOperasi, logbookPerjalanan } = data;
+  const { tahun, readinessStats, logbookPerjalanan } = data;
 
   const logbookTahun = logbookPerjalanan.filter((l) =>
     dalamTahun(l.tanggal, tahun)
-  );
-  const riwayatTahun = riwayatOperasi.filter((op) =>
-    dalamTahun(op.tanggal, tahun)
   );
   const jamPersonel = hitungJamPersonel(logbookTahun);
 
@@ -575,20 +853,21 @@ export function eksporLaporanCSV(data: DataLaporan): void {
   // Bagian 1: Ringkasan
   baris.push([`LAPORAN KESIAPAN SAR — TAHUN ${tahun}`]);
   baris.push([
-    `Diunduh: ${formatTanggalId(new Date().toISOString().slice(0, 10))}`,
+    `Diunduh: ${formatTanggalDeskrif(
+      new Date().toISOString().slice(0, 10)
+    )}`,
   ]);
   baris.push([]);
   baris.push(["INDIKATOR", "NILAI"]);
-  baris.push(["Readiness Index (%)", String(readinessStats.readinessIndex)]);
+  baris.push([
+    "Readiness Index (%)",
+    String(readinessStats.readinessIndex),
+  ]);
   baris.push([
     "Aset Standby",
     `${readinessStats.standby} / ${readinessStats.totalAset}`,
   ]);
   baris.push(["Personel Aktif", String(data.personelAktif)]);
-  baris.push([
-    "Total Riwayat Operasi",
-    String(riwayatTahun.length),
-  ]);
   baris.push([
     "Total Logbook Perjalanan",
     String(logbookTahun.length),
@@ -597,35 +876,15 @@ export function eksporLaporanCSV(data: DataLaporan): void {
   baris.push([]);
   baris.push(["DISTRIBUSI STATUS ASET", "JML"]);
   baris.push(["Standby", String(readinessStats.standby)]);
-  baris.push(["Sedang digunakan", String(readinessStats.sedangDigunakan)]);
+  baris.push([
+    "Sedang digunakan",
+    String(readinessStats.sedangDigunakan),
+  ]);
   baris.push(["Maintenance", String(readinessStats.maintenance)]);
   baris.push(["Rusak Ringan", String(readinessStats.rusakRingan)]);
   baris.push(["Rusak Berat", String(readinessStats.rusakBerat)]);
 
-  // Bagian 2: Riwayat Operasi
-  baris.push([]);
-  baris.push([
-    "TANGGAL",
-    "JENIS OPERASI",
-    "LOKASI",
-    "DURASI",
-    "PERSONEL",
-    "HASIL",
-    "KETERANGAN",
-  ]);
-  for (const op of riwayatTahun) {
-    baris.push([
-      formatTanggalId(op.tanggal),
-      op.jenis,
-      op.lokasi,
-      op.durasi,
-      String(op.personel),
-      op.hasil,
-      op.keterangan || "—",
-    ]);
-  }
-
-  // Bagian 3: Logbook Perjalanan
+  // Bagian 2: Logbook Perjalanan
   baris.push([]);
   baris.push([
     "TANGGAL",
@@ -660,6 +919,50 @@ export function eksporLaporanCSV(data: DataLaporan): void {
     ]);
   }
 
+  // Bagian 3: Daftar Aset
+  baris.push([]);
+  baris.push(["DAFTAR ASET"]);
+  baris.push([
+    "KODE",
+    "NAMA ASET",
+    "KATEGORI",
+    "STATUS",
+    "KONDISI",
+    "LOKASI",
+    "PENANGGUNG JAWAB",
+    "TGL PENETAPAN",
+    "NUP",
+    "KETERANGAN",
+  ]);
+  for (const a of data.asets) {
+    baris.push([
+      a.kode,
+      a.nama,
+      a.kategori,
+      a.status,
+      a.kondisi,
+      a.lokasi,
+      a.penanggungJawab,
+      formatTanggalId(a.tanggalPenetapan),
+      a.nup,
+      a.keterangan || "—",
+    ]);
+  }
+
+  // Bagian 4: Personel Aktif
+  baris.push([]);
+  baris.push(["PERSONEL AKTIF"]);
+  baris.push(["NIP", "NAMA", "EMAIL", "ROLE", "STATUS"]);
+  for (const u of data.daftarUsers.filter((x) => x.aktif)) {
+    baris.push([
+      u.nip,
+      u.nama,
+      u.email,
+      u.role,
+      u.aktif ? "Aktif" : "Nonaktif",
+    ]);
+  }
+
   // Escape: kutip sel yang mengandung koma / kutip / baris baru.
   const csv = baris
     .map((row) =>
@@ -675,7 +978,9 @@ export function eksporLaporanCSV(data: DataLaporan): void {
     .join("\r\n");
 
   // BOM UTF-8 agar Excel membaca karakter Indonesia dengan benar.
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF" + csv], {
+    type: "text/csv;charset=utf-8",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

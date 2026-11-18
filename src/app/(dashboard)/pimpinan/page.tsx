@@ -32,7 +32,6 @@ import {
   useLogbooks,
   useNotifications,
   useActivityLog,
-  useRiwayatOperasi,
   useAuditKepatuhan,
   useSupabaseUsers,
 } from "@/components/shared/use-supabase-data";
@@ -87,7 +86,6 @@ export default function PimpinanPage() {
   };
   const { data: notifikasiList } = useNotifications();
   const { data: logAktivitas } = useActivityLog();
-  const { data: riwayatOperasi } = useRiwayatOperasi();
   // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
   // angka hardcode 45 yang tidak terhubung data mana pun.
   const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
@@ -471,13 +469,13 @@ export default function PimpinanPage() {
         </CardContent>
       </Card>
 
-      {/* Riwayat Operasi — event log, bukan statistik */}
+      {/* Riwayat Perjalanan — event log dari logbook */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Riwayat Operasi
+              Riwayat Perjalanan
             </CardTitle>
             <Link href="/pimpinan/laporan">
               <Button variant="ghost" size="sm">
@@ -488,42 +486,46 @@ export default function PimpinanPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {riwayatOperasi.length === 0 ? (
+          {logbookList.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Belum ada operasi tercatat</p>
+              <p className="text-sm">Belum ada perjalanan tercatat</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {riwayatOperasi.map((op) => (
-                <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
+              {logbookList.slice(0, 5).map((lp) => (
+                <div key={lp.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
                   <div className="text-center shrink-0">
                     <p className="text-lg font-bold text-slate-800">
-                      {new Date(op.tanggal).getDate()}
+                      {new Date(lp.tanggal).getDate()}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {new Date(op.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                      {new Date(lp.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
                     </p>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{op.jenis}</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {lp.kategoriUnit ? `${lp.kategoriUnit} · ` : ""}{lp.jenisUnit}
+                    </p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                       <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {op.lokasi}
+                        <MapPin className="h-3 w-3" /> {lp.tujuan || lp.rute}
                       </span>
+                      {lp.jamBerangkat && lp.jamKembali && (
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {lp.jamBerangkat}–{lp.jamKembali}
+                        </span>
+                      )}
                       <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {op.durasi}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Users className="h-3 w-3" /> {op.personel} personel
+                        <Users className="h-3 w-3" /> {lp.jumlahPersonel} personel
                       </span>
                     </div>
-                    {op.keterangan && (
-                      <p className="text-xs text-slate-400 mt-1">{op.keterangan}</p>
+                    {lp.catatan && (
+                      <p className="text-xs text-slate-400 mt-1">{lp.catatan}</p>
                     )}
                   </div>
-                  <Badge variant={op.hasil === "Berhasil" ? "success" : op.hasil === "Sebagian Berhasil" ? "warning" : "danger"}>
-                    {op.hasil}
+                  <Badge variant={lp.status === "Selesai" ? "success" : lp.status === "Sedang Digunakan" ? "warning" : "default"}>
+                    {lp.status}
                   </Badge>
                 </div>
               ))}

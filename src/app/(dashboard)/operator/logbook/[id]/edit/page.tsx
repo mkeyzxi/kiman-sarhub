@@ -200,6 +200,11 @@ export default function EditLogbookPage() {
           kmSebelum: log.kmSebelum ?? "",
           kmSesudah: log.kmSesudah ?? "",
           catatan: log.catatan,
+          // Operasi SAR
+          adalahOperasi: log.adalahOperasi ?? false,
+          jenisOperasi: log.jenisOperasi ?? "",
+          hasilOperasi: "",
+          keteranganOperasi: "",
         }
       : null
   );
@@ -234,6 +239,11 @@ export default function EditLogbookPage() {
         kmSebelum: log.kmSebelum ?? "",
         kmSesudah: log.kmSesudah ?? "",
         catatan: log.catatan,
+        // Operasi SAR
+        adalahOperasi: log.adalahOperasi ?? false,
+        jenisOperasi: log.jenisOperasi ?? "",
+        hasilOperasi: "",
+        keteranganOperasi: "",
       });
       setStatus(log.status);
     }

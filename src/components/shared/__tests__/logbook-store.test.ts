@@ -47,6 +47,10 @@ function formValidLaut(
     kmSesudah: "",
     bbmTambahan: "",
     catatan: "Kondisi laut normal",
+    adalahOperasi: false,
+    jenisOperasi: "",
+    hasilOperasi: "",
+    keteranganOperasi: "",
   };
 }
 
@@ -72,6 +76,10 @@ function formValidDarat(
     kmSesudah: "45312",
     bbmTambahan: "",
     catatan: "Jalan berlubang KM 67-69",
+    adalahOperasi: false,
+    jenisOperasi: "",
+    hasilOperasi: "",
+    keteranganOperasi: "",
   };
 }
 

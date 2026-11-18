@@ -188,6 +188,11 @@ const FORM_KOSONG: FormLogbook = {
   kmSebelum: "",
   kmSesudah: "",
   catatan: "",
+  // Operasi SAR (diisi di tahap 2)
+  adalahOperasi: false,
+  jenisOperasi: "",
+  hasilOperasi: "",
+  keteranganOperasi: "",
 };
 
 export default function TambahLogbookPage() {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   FileText,
   Download,
@@ -10,7 +11,7 @@ import {
   Activity,
   ShieldCheck,
   Clock,
-  MapPin,
+  File,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -19,10 +20,8 @@ import { cn } from "@/lib/utils";
 import {
   hitungReadinessStats,
   hitungStatusAsetLive,
-  riwayatOperasi as mockRiwayatOperasi,
 } from "@/components/shared/mock-data";
 import {
-  useRiwayatOperasi,
   useLogbooks,
   useAsets,
   useSupabaseUsers,
@@ -32,6 +31,7 @@ import {
   eksporLaporanExcel,
   eksporLaporanCSV,
 } from "@/lib/export-laporan";
+import { eksporLaporanPDF } from "@/lib/export-laporan-pdf";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,8 +65,7 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }: {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function LaporanPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
-  // Data master dari Supabase (fallback mock saat offline/gagal).
-  const { data: riwayatOperasi } = useRiwayatOperasi();
+  // Data master dari Supabase — tanpa fallback mock.
   const { data: logbookPerjalananList, loading, error, refetch } = useLogbooks();
   const { data: asetList } = useAsets();
   // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
@@ -97,13 +96,6 @@ export default function LaporanPage() {
     );
   }
 
-  // Fallback: bila database `riwayat_operasi` kosong (mis. belum di-seed),
-  // tampilkan data contoh dari mock agar halaman tetap terbaca. Tandai
-  // sumbernya dengan badge kecil agar pengguna paham ini data ilustratif.
-  const riwayatSumber: "database" | "contoh" = riwayatOperasi.length > 0 ? "database" : "contoh";
-  const riwayatTampil = riwayatSumber === "database" ? riwayatOperasi : mockRiwayatOperasi;
-  const isContoh = riwayatSumber === "contoh";
-
   // Rekap perjalanan diturunkan dari logbook agar angkanya selalu sinkron.
   const perjalananAir = logbookPerjalananList.filter(
     (l) =>
@@ -132,7 +124,7 @@ export default function LaporanPage() {
         <div>
           <h1 className="text-lg font-bold text-slate-800">Laporan & Analisis</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Laporan kesiapan SAR dan rekap riwayat operasi
+            Laporan kesiapan SAR dan rekap riwayat perjalanan
           </p>
         </div>
         <div className="relative flex items-center gap-2">
@@ -141,7 +133,7 @@ export default function LaporanPage() {
             <option value="2025">Tahun 2025</option>
           </Select>
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:ring-offset-2">
+            <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:ring-offset-2">
               <Download className="h-4 w-4" />
               Export
             </DropdownMenuTrigger>
@@ -152,7 +144,6 @@ export default function LaporanPage() {
                     tahun: selectedYear,
                     readinessStats,
                     asets: asetLive,
-                    riwayatOperasi: riwayatTampil,
                     logbookPerjalanan: logbookPerjalananList,
                     daftarUsers: daftarUsers ?? [],
                     personelAktif,
@@ -165,11 +156,26 @@ export default function LaporanPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() =>
+                  eksporLaporanPDF({
+                    tahun: selectedYear,
+                    readinessStats,
+                    asets: asetLive,
+                    logbookPerjalanan: logbookPerjalananList,
+                    daftarUsers: daftarUsers ?? [],
+                    personelAktif,
+                  })
+                }
+                className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+              >
+                <File className="h-4 w-4 text-slate-400" />
+                Unduh sebagai PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
                   eksporLaporanCSV({
                     tahun: selectedYear,
                     readinessStats,
                     asets: asetLive,
-                    riwayatOperasi: riwayatTampil,
                     logbookPerjalanan: logbookPerjalananList,
                     daftarUsers: daftarUsers ?? [],
                     personelAktif,
@@ -202,8 +208,8 @@ export default function LaporanPage() {
           iconColor="text-emerald-600"
         />
         <StatCard
-          label="Total Riwayat Operasi"
-          value={riwayatTampil.length}
+          label="Total Perjalanan"
+          value={logbookPerjalananList.length}
           icon={FileText}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
@@ -217,70 +223,85 @@ export default function LaporanPage() {
         />
       </div>
 
-      {/* Riwayat Operasi — Event Log */}
+      {/* Riwayat Perjalanan — Event Log dari logbook */}
       <div className="sm:px-2">
         <div className="sm:flex sm:items-center sm:justify-between sm:mb-3">
           <div className="sm:flex sm:items-center sm:gap-2">
             <FileText className="sm:h-5 sm:w-5 sm:text-primary" />
-            <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Riwayat Operasi</h2>
-            {isContoh && (
-              <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                Data contoh
-              </span>
-            )}
+            <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Riwayat Perjalanan</h2>
           </div>
-          {riwayatSumber === "database" ? (
-            <p className="text-xs text-slate-400 sm:mt-0 mt-2">
-              {riwayatTampil.length} operasi tercatat
-            </p>
-          ) : (
-            <p className="text-xs text-amber-600 sm:mt-0 mt-2">
-              Database kosong — menampilkan data ilustratif
-            </p>
-          )}
+          <p className="text-xs text-slate-400 sm:mt-0 mt-2">
+            {logbookPerjalananList.length} perjalanan tercatat
+          </p>
         </div>
-        {riwayatTampil.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm font-medium">Belum ada operasi tercatat</p>
-            <p className="text-xs mt-1">Riwayat operasi akan muncul di sini setelah kejadian dicatat.</p>
+        {logbookPerjalananList.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center sm:p-10">
+            <FileText className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+            <p className="text-sm font-medium text-slate-600">
+              Belum ada perjalanan tercatat di database
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-xs text-slate-500">
+              Riwayat perjalanan muncul otomatis dari logbook. Cara menambah:
+            </p>
+            <div className="mx-auto mt-4 flex max-w-md flex-col gap-2 sm:flex-row sm:justify-center">
+              <Link
+                href="/operator/logbook/tambah"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90"
+              >
+                Tambah Logbook Perjalanan
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="sm:space-y-3 space-y-2">
-            {riwayatTampil.map((op) => (
-              <div key={op.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="text-center shrink-0 w-14">
-                    <p className="text-xl font-bold text-slate-800">
-                      {new Date(op.tanggal).getDate()}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {new Date(op.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
-                    </p>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{op.jenis}</p>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {op.lokasi}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {op.durasi}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Users className="h-3 w-3" /> {op.personel} personel
-                      </span>
-                    </div>
-                    {op.keterangan && (
-                      <p className="text-xs text-slate-400 mt-2">{op.keterangan}</p>
-                    )}
-                  </div>
-                  <Badge variant={op.hasil === "Berhasil" ? "success" : op.hasil === "Sebagian Berhasil" ? "warning" : "danger"} className="shrink-0">
-                    {op.hasil}
-                  </Badge>
+            {logbookPerjalananList.map((lp) => (
+              <Link
+                key={lp.id}
+                href={`/operator/logbook/${lp.id}`}
+                className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100 hover:border-primary/40 hover:bg-slate-100/60 transition-colors"
+              >
+                <div className="text-center shrink-0 w-14">
+                  <p className="text-xl font-bold text-slate-800">
+                    {new Date(lp.tanggal).getDate()}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(lp.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800">
+                    {lp.kategoriUnit ? `${lp.kategoriUnit} · ` : ""}{lp.jenisUnit}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    {lp.rute}{lp.tujuan ? ` → ${lp.tujuan}` : ""}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                    {lp.jamBerangkat && lp.jamKembali && (
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> {lp.jamBerangkat}–{lp.jamKembali}
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Users className="h-3 w-3" /> {lp.jumlahPersonel} personel
+                    </span>
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Ship className="h-3 w-3" /> {lp.nahkoda}
+                    </span>
+                  </div>
+                  {lp.catatan && (
+                    <p className="text-xs text-slate-400 mt-2 truncate">{lp.catatan}</p>
+                  )}
+                </div>
+                <Badge
+                  variant={lp.status === "Selesai" ? "success" : lp.status === "Sedang Digunakan" ? "warning" : "outline"}
+                  className="shrink-0"
+                >
+                  {lp.status}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Performa Unit — Dipertahankan */}

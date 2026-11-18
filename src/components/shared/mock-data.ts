@@ -2876,6 +2876,8 @@ export interface RiwayatOperasi {
    * laporan /pimpinan.
    */
   keterangan: string;
+  /** FK → logbook_perjalanan(id); sumber operasi bila di-generate dari logbook. */
+  logbookId?: string;
 }
 
 /**
@@ -3184,6 +3186,19 @@ export interface LogbookPerjalanan {
    * Dipakai untuk mengidentifikasi owner saat edit oleh operator/akuntor.
    */
   createdBy?: string;
+  /**
+   * true = logbook ini tercatat sebagai operasi SAR/evakuasi
+   * (bukan patroli rutin). Dipakai untuk menandai apakah logbook
+   * harus muncul di bagian "Riwayat Operasi" di /pimpinan/laporan.
+   */
+  adalahOperasi?: boolean;
+  /** Kategori operasi: "SAR" | "Evakuasi" | "Latihan" | "Patroli" | "Lainnya". */
+  jenisOperasi?: string;
+  /**
+   * FK → riwayat_operasi(id); diisi otomatis saat operator centang
+   * "Ini operasi" + submit. Digunakan untuk link balik di detail logbook.
+   */
+  riwayatOperasiId?: string;
 }
 
 export const logbookPerjalananList: LogbookPerjalanan[] = [
@@ -3891,6 +3906,18 @@ export interface FormLogbook {
   kmSebelum: string;
   kmSesudah: string;
   catatan: string;
+  /**
+   * Operasi SAR/evakuasi — hanya diisi pada tahap 2 (kepulangan).
+   * Bila dicentang, logbook akan tercatat di bagian "Riwayat Operasi"
+   * (lewat RPC generate_riwayat_dari_logbook).
+   */
+  adalahOperasi: boolean;
+  /** Kategori operasi: "SAR" | "Evakuasi" | "Latihan" | "Patroli" | "Lainnya". */
+  jenisOperasi: string;
+  /** Hasil operasi: "Berhasil" | "Sebagian Berhasil" | "Gagal". */
+  hasilOperasi: string;
+  /** Catatan bebas untuk operasi (opsional). */
+  keteranganOperasi: string;
 }
 
 export type LogbookErrors = Partial<Record<keyof FormLogbook, string>>;
@@ -4031,6 +4058,16 @@ export function validasiTahapAkhir(form: FormLogbook): LogbookErrors {
     }
   }
 
+  // Operasi SAR (opsional) — bila dicentang, jenis + hasil wajib diisi.
+  if (form.adalahOperasi) {
+    if (!form.jenisOperasi.trim()) {
+      e.jenisOperasi = "Pilih jenis operasi (SAR/Evakuasi/Latihan/Patroli/Lainnya).";
+    }
+    if (!form.hasilOperasi.trim()) {
+      e.hasilOperasi = "Pilih hasil operasi (Berhasil/Sebagian Berhasil/Gagal).";
+    }
+  }
+
   return e;
 }
 
@@ -4124,6 +4161,11 @@ export function logbookKeForm(logbook: LogbookPerjalanan): FormLogbook {
     kmSebelum: logbook.kmSebelum ?? "",
     kmSesudah: logbook.kmSesudah ?? "",
     catatan: logbook.catatan,
+    // Operasi SAR (tahap 2)
+    adalahOperasi: logbook.adalahOperasi ?? false,
+    jenisOperasi: logbook.jenisOperasi ?? "",
+    hasilOperasi: "",
+    keteranganOperasi: "",
   };
 }
 
