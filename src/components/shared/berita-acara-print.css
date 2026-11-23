@@ -427,23 +427,26 @@
 /* ==========================================================================
    CETAK
    ========================================================================== */
+/*
+ * Pola cetak: `@page { margin: 0 }` + lembar A4 penuh (210×297mm) dengan
+ * padding dalam (12.8/22/11/19mm) — sama persis dengan template acuan
+ * `berita-acara-basarnas-lengkap.html`. Tanpa ini, lebar lembar tetap 210mm
+ * dan padding layar (22mm kanan) membuat area kanan total 44mm, sehingga
+ * margin kanan terpotong saat cetak / simpan PDF.
+ */
 @media print {
   @page {
     size: A4 portrait;
-    /* Margin halaman = padding lembar pada template acuan
-       (atas 12.8mm, kanan 22mm, bawah 11mm, kiri 19mm).
-       Dipakai agar setiap halaman — termasuk halaman kedua dan seterusnya
-       saat surat panjang — memakai area isi yang sama persis. */
-    margin: 12.8mm 22mm 11mm 19mm;
+    margin: 0;
   }
 
   html,
   body {
-    width: auto;
+    width: 210mm;
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     background: #fff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -471,8 +474,19 @@
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
-    padding: 0 !important;
     background: #fff !important;
+    /* Reset padding dari Tailwind (p-3 md:p-4) — tanpa ini area cetak
+       menyusut, sehingga margin kanan 22mm pada lembar ikut terpotong. */
+    padding: 0 !important;
+    width: 210mm !important;
+    margin: 0 !important;
+  }
+
+  /* Sidebar di dashboard (desktop) tidak ikut dicetak — hanya dokumen. */
+  aside,
+  header.app-header,
+  nav {
+    display: none !important;
   }
 
   /* Elemen aplikasi (form, tombol, header dashboard, dll.) tidak dicetak. */
@@ -497,16 +511,19 @@
     background: #fff !important;
   }
 
-  /* Lembar surat: tinggi mengikuti isi, tidak dipatah paksa antar bagian.
-     Butir analisa, paragraf penutup, dan tanda tangan tetap menyambung;
-     halaman baru hanya dibuat browser bila isinya memang tidak muat. */
+  /* Lembar surat: A4 penuh (210×297mm) dengan padding dalam 12.8/22/11/19mm
+     — identik dengan template acuan sehingga border kanan tidak terpotong. */
   .ba-sheet {
-    width: auto;
-    min-height: 0;
+    width: 210mm;
+    min-height: 297mm;
     margin: 0;
-    padding: 0;
+    padding: 12.8mm 22mm 11mm 19mm;
     box-shadow: none;
-    overflow: visible;
+    overflow: hidden;
+  }
+  .ba-sheet:last-of-type {
+    break-after: auto;
+    page-break-after: auto;
   }
 
   /* Pemenggalan halaman hanya diuptahankan untuk halaman dokumentasi. */

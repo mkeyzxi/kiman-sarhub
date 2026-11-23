@@ -212,10 +212,9 @@ export default function DetailChecklistPage() {
   ];
 
   // ── Hak aksi per role (dipakai panel Aksi + gate tombol BA) ───────────
-  // AKUNTOR (akun kantor): hanya melihat status; tidak mengisi berita acara
-  // (tugas operator lapangan / PJ) dan tidak melihat panel PJ khusus.
-  const bisaIsiBA: boolean =
-    ses.role !== "AKUNTOR" && (bisaEdit || ses.role === "ADMIN_IT");
+  // BA hanya boleh diisi oleh PENANGGUNG JAWAB aset (operator lapangan)
+  // atau ADMIN_IT. Akun kantor & operator lain hanya melihat statusnya.
+  const bisaIsiBA: boolean = isPJAset && ses.role !== "AKUNTOR";
   // Panel PJ khusus (laporkan kerusakan / kembalikan aset ke baik) hanya
   // untuk OPERATOR_LAPANGAN yang sekaligus PJ aset. AKUNTOR tidak perlu.
   const bisaValidasiPJ = isPJAset && ses.role !== "AKUNTOR";
@@ -311,7 +310,7 @@ export default function DetailChecklistPage() {
                   href={`/operator/checklist/${id}/edit`}
                   className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
                 >
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  {/* <ArrowRight className="h-3.5 w-3.5" /> */}
                   {isPJAset && !pemilik ? "Validasi & Edit" : "Edit Checklist"}
                 </Link>
                 {isPJAset && !pemilik && (

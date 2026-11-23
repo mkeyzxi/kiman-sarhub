@@ -27,6 +27,7 @@ import {
   getUserById,
   type BeritaAcara,
   type BarisKendala,
+  type UserRole,
 } from "@/components/shared/mock-data";
 import {
   DokumenBeritaAcara,
@@ -49,8 +50,9 @@ import {
   jabatanUser,
   jabatanUserByNama,
 } from "@/components/shared/use-session";
+import { roleLabels } from "@/config/navigation";
 import { useChecklistsCombined } from "@/components/shared/checklist-store";
-import { useAsetById } from "@/components/shared/use-supabase-data";
+import { useAsetById, useSupabaseUsers } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { serahkanKerusakanAset } from "@/components/shared/db-writes";
 import { cn } from "@/lib/utils";
@@ -89,14 +91,31 @@ export default function BeritaAcaraPage() {
   const aset = asetDb;
 
   /**
-   * User login adalah PENANGGUNG JAWAB aset checklist ini (PJ yang memvalidasi
-   * kerusakan setelah dicek langsung ke unit — alur: akuntor checklist harian
-   * → PJ laporkan kerusakan → PJ serahkan BA). Label penanda ditambahkan.
+   * Daftar user Supabase — dipakai untuk mencari PENANGGUNG JAWAB aset
+   * (operator lapangan) sehingga berita acara selalu atas nama PJ,
+   * bukan atas nama akun kantor yang mungkin melakukan checklist harian.
    */
-  const sayaPemeriksa =
-    !checklist?.pemeriksaId || checklist.pemeriksaId === ses.id;
+  const { data: userSemua } = useSupabaseUsers();
+
+  /**
+   * PJ aset (operator lapangan). Berita acara SELALU dibuat atas nama
+   * operator lapangan yang menjadi penanggung jawab aset — meskipun
+   * yang menginput checklist harian adalah akun kantor.
+   */
+  const pjNip: string | undefined = aset?.penanggungJawab;
+  const pjUser = pjNip ? userSemua.find((u) => u.nip === pjNip) : undefined;
+
+  /**
+   * Hak membuat / menyerahkan BA: HANYA operator lapangan yang menjadi
+   * PENANGGUNG JAWAB aset. Akun kantor (akuntor), operator lain, dan
+   * role yang tidak terkait PJ aset tidak boleh mengisi BA — walau
+   * mereka boleh melihat status BA (bila sudah dibuat PJ).
+   */
   const sayaPJValidasi =
-    !sayaPemeriksa && aset?.penanggungJawab === ses.nip;
+    !!pjUser &&
+    !!ses.id &&
+    ses.id === pjUser.nip &&
+    (ses.role === "OPERATOR_LAPANGAN" || ses.role === "ADMIN_IT");
 
   // ── State form ───────────────────────────────────────────────────────────
   const [baId, setBaId] = useState("");
@@ -190,8 +209,9 @@ export default function BeritaAcaraPage() {
         }
 
         // Bukan milik user ini — buat BA baru untuk checklist ini.
-        // Bila user adalah PJ aset (bukan pemeriksa), ia menjadi pengaju/
-        // penandatangan BA; pelapor tetap diperiksa dari checklist.
+        // BA SELALU atas nama PENANGGUNG JAWAB aset (operator lapangan),
+        // bukan atas nama akun kantor / user login. Pelapor diambil dari
+        // checklist harian (yang bisa diisi oleh akuntor / operator).
         const baru = tambahBeritaAcaraSupabase({
           tanggal: checklist.tanggal,
           namaAset: aset?.nama ?? checklist.unit,
@@ -199,10 +219,10 @@ export default function BeritaAcaraPage() {
           nomor: "",
           asetId: aset?.id ?? "",
           checklistId: checklist.id,
-          pengajuId: sayaPJValidasi ? ses.id : undefined,
-          pengajuNama: sayaPJValidasi ? ses.nama : undefined,
-          pengajuJabatan: sayaPJValidasi
-            ? jabatanUser(checklist.pemeriksaId ?? "")
+          pengajuId: pjUser?.nip,
+          pengajuNama: pjUser?.nama,
+          pengajuJabatan: pjUser
+            ? roleLabels[(pjUser.role ?? "OPERATOR_LAPANGAN") as UserRole]
             : undefined,
           pelapor: checklist.pemeriksa,
           pelaporJabatan:
@@ -366,12 +386,15 @@ export default function BeritaAcaraPage() {
     }
 
     // Ganti status BA menjadi "Diserahkan" — tulis DB di-await; gagal
-    // ditampilkan, bukan diam.
+    // ditampilkan, bukan diam. Pengaju SELALU operator lapangan PJ aset,
+    // bukan user yang sedang login (akuntor / operator lain / admin).
     try {
       await serahkanBeritaAcaraSupabase(baId, {
-        pengajuId: ses.id,
-        pengajuNama: ses.nama,
-        pengajuJabatan: ses.jabatan,
+        pengajuId: pjUser?.nip ?? ses.id,
+        pengajuNama: pjUser?.nama ?? ses.nama,
+        pengajuJabatan: pjUser
+          ? roleLabels[(pjUser.role as never) ?? "OPERATOR_LAPANGAN"]
+          : ses.jabatan,
         keterangan: KETERANGAN_SERVICE_DEFAULT,
       });
     } catch (e) {
@@ -447,6 +470,14 @@ export default function BeritaAcaraPage() {
       </div>
     );
   }
+
+  /**
+   * Gerbang akses: hanya PENANGGUNG JAWAB aset (operator lapangan) yang
+   * boleh mengisi & menyerahkan berita acara. Akun kantor / user lain
+   * yang membuka halaman ini akan melihat pesan akses ditolak — walau
+   * form tetap tersedia untuk admin IT (untuk intervensi).
+   */
+  const bolehIsiBA = sayaPJValidasi || ses.role === "ADMIN_IT";
 
   return (
     <div className="space-y-4 ba-page">
@@ -544,10 +575,32 @@ export default function BeritaAcaraPage() {
             </p>
           </div>
         )}
+
+        {/*
+         * Gerbang akses: hanya PJ aset (operator lapangan) + ADMIN_IT yang
+         * boleh mengisi form. Akuntor / role lain hanya melihat info —
+         * mereka tidak bisa membuat / menyerahkan BA.
+         */}
+        {!bolehIsiBA && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-xs text-amber-800">
+                Berita acara untuk checklist ini hanya dapat diisi oleh{" "}
+                <strong>{pjKendaraanNama || "penanggung jawab aset"}</strong>{" "}
+                (operator lapangan) atau Admin IT.
+              </p>
+              <p className="mt-1 text-[11px] text-amber-700">
+                Anda saat ini hanya dapat melihat status berita acara — form
+                pengisian di bawah tidak tersedia untuk peran Anda.
+              </p>
+            </div>
+          </div>
+        )}
       </Card>
 
-      {/* Form Berita Acara */}
-      {adaRusak && (
+      {/* Form Berita Acara — hanya tampil untuk PJ aset / ADMIN_IT */}
+      {adaRusak && bolehIsiBA && (
         <Card className="no-print">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -840,8 +893,12 @@ export default function BeritaAcaraPage() {
         kendala={kendala}
         butirAnalisa={butirAnalisa}
         fotoBukti={fotoBukti}
-        pengajuNama={ses.nama}
-        pengajuJabatan={ses.jabatan}
+        pengajuNama={pjUser?.nama ?? ses.nama}
+        pengajuJabatan={
+          pjUser
+            ? roleLabels[(pjUser.role as never) ?? "OPERATOR_LAPANGAN"]
+            : ses.jabatan
+        }
         pelaporNama={pelaporNama}
         pelaporJabatan={pelaporJabatan}
       />
