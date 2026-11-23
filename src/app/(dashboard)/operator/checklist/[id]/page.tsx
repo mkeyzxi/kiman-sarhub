@@ -12,10 +12,8 @@ import {
   Calendar,
   User,
   CheckCircle2,
-  AlertTriangle,
   FileText,
   Printer,
-  PencilLine,
   ShieldAlert,
   Tag,
   ShieldCheck,
@@ -33,6 +31,13 @@ import {
   formatTanggal,
   getUserById,
 } from "@/components/shared/mock-data";
+import {
+  ArrowRight,
+  ClipboardList,
+  FilePlus2,
+  FolderOpen,
+  Wrench,
+} from "lucide-react";
 import { useAsets, useAsetById } from "@/components/shared/use-supabase-data";
 import {
   DokumenChecklist,
@@ -206,6 +211,15 @@ export default function DetailChecklistPage() {
     },
   ];
 
+  // ── Hak aksi per role (dipakai panel Aksi + gate tombol BA) ───────────
+  // AKUNTOR (akun kantor): hanya melihat status; tidak mengisi berita acara
+  // (tugas operator lapangan / PJ) dan tidak melihat panel PJ khusus.
+  const bisaIsiBA: boolean =
+    ses.role !== "AKUNTOR" && (bisaEdit || ses.role === "ADMIN_IT");
+  // Panel PJ khusus (laporkan kerusakan / kembalikan aset ke baik) hanya
+  // untuk OPERATOR_LAPANGAN yang sekaligus PJ aset. AKUNTOR tidak perlu.
+  const bisaValidasiPJ = isPJAset && ses.role !== "AKUNTOR";
+
   return (
     <div className="ba-page space-y-4">
       <div className="no-print space-y-4">
@@ -238,29 +252,121 @@ export default function DetailChecklistPage() {
           >
             {checklist.status}
           </Badge>
-          {bisaEdit && (
-            <>
-              {isPJAset && !pemilik && (
-                <span className="text-xs text-slate-500">
-                  Anda memvalidasi checklist atas nama penanggung jawab aset
-                </span>
-              )}
-              <Link
-                href={`/operator/checklist/${id}/edit`}
-                className={cn(buttonVariants({ variant: "outline" }), "w-fit gap-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700")}
-              >
-                <PencilLine className="h-4 w-4" />
-                {isPJAset && !pemilik ? "Validasi & Edit" : "Edit Checklist"}
-              </Link>
-            </>
-          )}
-          <TombolBeritaAcara
-            checklistId={id}
-            adaRusak={rusakCount > 0}
-            draftBelumLengkap={belumCount > 0}
-          />
         </div>
       </div>
+
+      {/* ── Panel Aksi (tersusun rapi, per role) ──────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5 text-primary" />
+            Aksi Pemeriksaan
+          </CardTitle>
+          <p className="text-xs text-slate-500">
+            Pilihan aksi sesuai peran Anda — tumpuk tombol yang dulu sudah
+            disederhanakan.
+          </p>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* 1. Lanjutkan / Lengkapi pengisian */}
+          <div className="flex flex-col gap-1.5 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <ClipboardList className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Pengisian
+              </span>
+            </div>
+            {belumCount > 0 && bisaEdit ? (
+              <Link
+                href={`/operator/checklist/buat?draft=${id}`}
+                className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100"
+              >
+                <ArrowRight className="h-3.5 w-3.5" />
+                Lanjutkan Pengisian ({belumCount} item tersisa)
+              </Link>
+            ) : (
+              <span className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Semua item sudah diperiksa
+              </span>
+            )}
+            {belumCount === 0 && !bisaEdit && (
+              <span className="mt-auto text-xs text-slate-400">
+                Status saja — Anda tidak berwenang mengedit.
+              </span>
+            )}
+          </div>
+
+          {/* 2. Edit / Validasi & Edit */}
+          <div className="flex flex-col gap-1.5 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <ArrowRight className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Edit
+              </span>
+            </div>
+            {bisaEdit ? (
+              <>
+                <Link
+                  href={`/operator/checklist/${id}/edit`}
+                  className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  {isPJAset && !pemilik ? "Validasi & Edit" : "Edit Checklist"}
+                </Link>
+                {isPJAset && !pemilik && (
+                  <span className="text-[11px] text-slate-500">
+                    Atas nama penanggung jawab aset
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="mt-auto text-xs text-slate-400">
+                Tidak dapat diedit untuk role Anda.
+              </span>
+            )}
+          </div>
+
+          {/* 3. Berita Acara */}
+          <div className="flex flex-col gap-1.5 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <FilePlus2 className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Berita Acara
+              </span>
+            </div>
+            <TombolBeritaAcara
+              checklistId={id}
+              adaRusak={rusakCount > 0}
+              draftBelumLengkap={belumCount > 0}
+              boleh={bisaIsiBA}
+            />
+            {rusakCount === 0 && (
+              <span className="mt-auto text-xs text-slate-400">
+                Tanpa item rusak — tidak perlu BA.
+              </span>
+            )}
+          </div>
+
+          {/* 4. Cetak / Pratinjau */}
+          <div className="flex flex-col gap-1.5 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <FolderOpen className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Dokumen
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Cetak / Simpan PDF
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Ringkasan */}
       <Card>
@@ -325,31 +431,13 @@ export default function DetailChecklistPage() {
         </CardContent>
       </Card>
 
-      {/* Peringatan belum lengkap */}
-      {belumCount > 0 && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div className="flex-1">
-            <p className="text-xs text-amber-800">
-              Checklist belum lengkap. Terdapat{" "}
-              <strong>{belumCount} item</strong> yang belum diperiksa dan harus
-              dilengkapi sebelum unit dinyatakan siap operasional.
-            </p>
-            <Link
-              href={`/operator/checklist/buat?draft=${id}`}
-              className="mt-2 inline-block"
-            >
-              <Button variant="secondary" size="sm">
-                <PencilLine className="h-4 w-4 mr-1" />
-                Lanjutkan Pengisian Checklist
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* Aksi validasi PJ: kembalikan aset ke Baik atau laporkan kerusakan */}
-      {isPJAset && belumCount === 0 && (
+      {/*
+       * Panel ini KHUSUS operator lapangan yang sekaligus penanggung jawab
+       * aset. AKUNTOR (akun kantor) tidak melihat panel ini — bagi AKUNTOR,
+       * "laporkan kerusakan" dan "kembalikan aset" bukan alur kerja mereka.
+       */}
+      {bisaValidasiPJ && belumCount === 0 && (
         <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             {prosesValidasi === null ? (
@@ -464,18 +552,6 @@ export default function DetailChecklistPage() {
           </p>
         </CardContent>
       </Card>
-      </div>
-
-      {/* ── Aksi cetak pratinjau (tidak ikut dicetak) ─────────────────────── */}
-      <div className="no-print flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">
-          Pratinjau dokumen laporan checklist — hasil cetak mengikuti kop surat
-          BASARNAS.
-        </p>
-        <Button variant="outline" onClick={() => window.print()}>
-          <Printer className="h-4 w-4" />
-          Cetak / Simpan PDF
-        </Button>
       </div>
 
       {/* ── Pratinjau dokumen (identik dengan dokumen berita acara) ───────── */}

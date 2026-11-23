@@ -184,6 +184,25 @@ export async function updateAsetStatus(
   );
 }
 
+/**
+ * Hapus aset dari master BMN (hanya ADMIN_IT & PENGELOLA_BMN).
+ * Melakukan soft delete dengan mengubah status menjadi "Dihapus"
+ * dan menambahkan keterangan, atau bisa dilakukan hard delete
+ * tergantung kebutuhan RLS policy.
+ */
+export async function hapusAset(id: string, nip: string, keterangan?: string): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  const { error } = await supa
+    .from("asets")
+    .update({
+      status: "Dihapus",
+      keterangan: keterangan || "Dihapus oleh pengguna",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) throw new Error(pesan(error.message));
+}
+
 // ─── CHECKLIST ───────────────────────────────────────────────────────────────
 
 /** Operator menyerahkan kerusakan lewat RPC SECURITY DEFINER (RLS aman). */

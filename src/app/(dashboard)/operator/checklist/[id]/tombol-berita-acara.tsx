@@ -11,16 +11,23 @@ import { beritaAcaraByChecklist } from "@/components/shared/berita-acara-store";
  *
  * Hanya muncul bila hasil pemeriksaan memuat item Rusak Ringan / Rusak Berat.
  * Bila berita acara sudah pernah dibuat, tampilkan statusnya.
+ *
+ * `boleh` = false (mis. role AKUNTOR/akun kantor): hanya tampilkan badge
+ * status BA (bila ada), tanpa tombol pengisian — pengisian BA adalah tugas
+ * operator lapangan / penanggung jawab kendaraan, bukan akun kantor.
  */
 export default function TombolBeritaAcara({
   checklistId,
   adaRusak,
   /** true jika masih ada item "Belum Diperiksa" → BA tidak valid. */
   draftBelumLengkap,
+  /** Role ini diizinkan mengisi/melihat tombol pengisian BA. */
+  boleh = true,
 }: {
   checklistId: string;
   adaRusak: boolean;
   draftBelumLengkap?: boolean;
+  boleh?: boolean;
 }) {
   if (!adaRusak) return null;
 
@@ -59,12 +66,19 @@ export default function TombolBeritaAcara({
           Berita Acara: {ba.status}
         </Badge>
       )}
-      <Link href={`/operator/checklist/${checklistId}/berita-acara`}>
-        <Button variant={sudahDiserahkan ? "outline" : "primary"}>
-          <FileText className="h-4 w-4" />
-          {sudahDiserahkan ? "Lihat Berita Acara" : "Pengisian Berita Acara"}
-        </Button>
-      </Link>
+      {/*
+       * Tombol pengisian hanya untuk role yang memang berhak mengisi BA
+       * (operator lapangan / PJ kendaraan). AKUNTOR (akun kantor) hanya
+       * melihat badge statusnya — pengisian BA bukan tugas mereka.
+       */}
+      {boleh && (
+        <Link href={`/operator/checklist/${checklistId}/berita-acara`}>
+          <Button variant={sudahDiserahkan ? "outline" : "primary"}>
+            <FileText className="h-4 w-4" />
+            {sudahDiserahkan ? "Lihat Berita Acara" : "Pengisian Berita Acara"}
+          </Button>
+        </Link>
+      )}
     </div>
   );
 }
