@@ -32,7 +32,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import RiwayatTable from "./riwayat-table";
 import {
   getUserById,
@@ -46,10 +46,10 @@ import { useAsetById } from "@/components/shared/use-supabase-data";
 import { updateAsetStatus } from "@/components/shared/db-writes";
 import { useSesiUser } from "@/components/shared/use-session";
 import { getDefaultPageForRole } from "@/config/navigation";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 /** Logo SIAP SAR di tengah QR code — penanda asal barcode (aset /public). */
-const LOGO_SIAP_SAR = "/logo-transparant.png";
+const LOGO_SIAP_SAR = "/icon-barcode.png";
 
 export default function DetailAsetPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,8 +63,9 @@ export default function DetailAsetPage() {
 
   /**
    * Logo SIAP SAR dimuat sebagai HTMLImageElement untuk komposit manual.
-   * Kita GAMBARKAN logo sendiri ke atas kanvas QR, bukan mengandalkan
-   * imageSettings qrcode.react (yang gagal karena asinkron / aturan SVG-as-image).
+   * Logo digambar langsung ke kanvas QR (menjadi bagian dari gambar),
+   * bukan sebagai overlay HTML terpisah di atas canvas — supaya hasil
+   * pratinjau sama persis dengan hasil unduhan PNG.
    */
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
@@ -76,9 +77,111 @@ export default function DetailAsetPage() {
     return () => { img.src = ""; };
   }, []);
 
+  /**
+   * URL QR — dideklarasikan sebelum effect yang memakainya agar tidak
+   * masuk temporal dead zone.
+   */
   const qrUrl = aset
     ? `${process.env.NEXT_PUBLIC_URL_QRCODE}/operator/logbook/tambah?unit=${encodeURIComponent(aset.kode)}`
     : "";
+
+  /**
+   * Canvas kustom: gambar QR (grid polos) + logo SIAP SAR di tengah sebagai
+   * SATU gambar. Hasilnya diekspor ke `qrDataUrl` lalu ditampilkan sebagai
+   * <img> biasa — tanpa elemen overlay HTML terpisah di atas QR.
+   * Hasil pratinjau dan unduhan PNG dijamin identik.
+   */
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  // Render ulang canvas saat modal dibuka / aset / logo berubah.
+  // Dialog baru mount di DOM saat `showQr` true, jadi efek ini jalan setelahnya.
+  useEffect(() => {
+    if (!showQr || !qrUrl) return;
+
+    // Tunggu DOM dialog benar-benar siap (Radix mount lewat portal, jadi
+    // ref canvas & SVG baru tersedia setelah commit render).
+    const t = window.setTimeout(() => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) return;
+
+      const svg = document.getElementById(
+        "qr-code-plain"
+      ) as SVGSVGElement | null;
+      if (!svg) return;
+
+      // Ukuran dasar 400×400 (sama dengan hasil unduhan)
+      const SIZE = 400;
+      canvas.width = SIZE;
+      canvas.height = SIZE;
+
+      // Serialisasi SVG → Blob → Image. Pastikan xmlns ikut ter-serialize
+      // supaya browser tidak menolak merasterisasi SVG-nya.
+      let svgData = new XMLSerializer().serializeToString(svg);
+      if (!svgData.includes("xmlns=")) {
+        svgData = svgData.replace(
+          "<svg",
+          '<svg xmlns="http://www.w3.org/2000/svg"'
+        );
+      }
+      const svgBlob = new Blob([svgData], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        // Background putih
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        // QR code polos
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+
+        // ── Komposit logo manual (jika sudah siap) ──
+        if (logoImg) {
+          // Patch putih di tengah — menutup modul QR di bawah logo
+          const patch = 100;
+          const px = (SIZE - patch) / 2;
+          const py = (SIZE - patch) / 2;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.beginPath();
+          ctx.roundRect(px, py, patch, patch, 12);
+          ctx.fill();
+          // Logo SIAP SAR — jadi bagian dari gambar QR
+          const sisi = 80;
+          ctx.drawImage(
+            logoImg,
+            (SIZE - sisi) / 2,
+            (SIZE - sisi) / 2,
+            sisi,
+            sisi
+          );
+        }
+
+        setQrDataUrl(canvas.toDataURL("image/png"));
+        URL.revokeObjectURL(svgUrl);
+      };
+      img.onerror = () => URL.revokeObjectURL(svgUrl);
+      img.src = svgUrl;
+    }, 0);
+
+    return () => window.clearTimeout(t);
+  }, [qrUrl, logoImg, showQr]);
+
+  /**
+   * Unduh QR sebagai PNG — gunakan dataURL yang sudah dikomposit
+   * (tanpa render ulang, sudah pasti bersih).
+   */
+  const handleDownload = useCallback(() => {
+    if (!qrDataUrl) return;
+    const a = document.createElement("a");
+    a.href = qrDataUrl;
+    a.download = `qrcode-${aset?.kode ?? "aset"}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [qrDataUrl, aset?.kode]);
 
   // Salin URL ke clipboard
   const handleCopy = useCallback(async () => {
@@ -94,70 +197,8 @@ export default function DetailAsetPage() {
   }, [qrUrl]);
 
   // ── Unduh QR code sebagai PNG ──────────────────────────────────────────────
-  // Alur manual, sinkron, 100% pasti:
-  //   1. Ambil QRCodeSVG dari DOM (grid QR polos, TANPA imageSettings).
-  //   2. Serialisasi SVG → rasterisasi ke kanvas 400×400.
-  //   3. Gambar patch putih + logo SIAP SAR di tengah secara manual.
-  //   4. toBlob → download.
-  // Tidak ada aturan SVG-as-image yang bisa memblokir, karena logo
-  // digambar langsung dari HTMLImageElement (logoImg) ke kanvas — bukan
-  // lewat <image> di dalam SVG.
-  const handleDownload = useCallback(() => {
-    const svg = document.getElementById("qr-code-img") as SVGSVGElement | null;
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const svgUrl = URL.createObjectURL(svgBlob);
-
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 400;
-      canvas.height = 400;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // Background putih
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, 400, 400);
-        // QR code
-        ctx.drawImage(img, 0, 0, 400, 400);
-        // ── Komposit logo manual (jika sudah siap) ──
-        if (logoImg) {
-          // Patch putih di tengah (menutup modul QR di bawah logo)
-          const patch = 100;
-          const px = (400 - patch) / 2;
-          const py = (400 - patch) / 2;
-          ctx.fillStyle = "#FFFFFF";
-          ctx.beginPath();
-          ctx.roundRect(px, py, patch, patch, 12);
-          ctx.fill();
-          // Logo
-          const sisi = 80;
-          ctx.drawImage(
-            logoImg,
-            (400 - sisi) / 2,
-            (400 - sisi) / 2,
-            sisi,
-            sisi,
-          );
-        }
-        canvas.toBlob((blob) => {
-          if (!blob) return;
-          const dlUrl = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = dlUrl;
-          a.download = `qrcode-${aset?.kode ?? "aset"}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(dlUrl);
-        }, "image/png");
-      }
-      URL.revokeObjectURL(svgUrl);
-    };
-    img.src = svgUrl;
-  }, [aset?.kode, logoImg]);
+  // (Dipindah ke `handleDownload` di atas — memakai `qrDataUrl` yang sudah
+  // dikomposit otomatis oleh useEffect. Tidak ada render ulang saat unduh.)
 
   // Buka link dalam tab baru untuk testing
   const handleTestLink = useCallback(() => {
@@ -285,28 +326,35 @@ export default function DetailAsetPage() {
           </DialogHeader>
 
           <div className="flex flex-col items-center gap-4 py-4">
-            {/* QR Code — grid polos tanpa imageSettings, supaya hasil
-                serialisasi SVG untuk unduhan bersih. Logo digambar
-                secara manual ke canvas saat unduh. */}
+            {/* QR Code — gambar murni (logo jadi bagian dari gambar).
+                QRCodeSVG tersembunyi dipakai sebagai sumber rasterisasi;
+                canvas tersembunyi menyimpan hasil komposit (QR + logo);
+                <img> menampilkan dataURL yang sudah jadi. */}
             <div className="relative rounded-lg border border-slate-200 bg-white p-4">
-              <QRCodeCanvas
-                id="qr-code-img"
-                value={qrUrl}
-                size={220}
-                bgColor="#FFFFFF"
-                fgColor="#000000"
-                level="H"
-              />
-              {/* Overlay logo di tengah (hanya tampilan di layar).
-                  Kanvas unduhan sudah punya logo yang digambar manual,
-                  jadi overlay ini hanya untuk visual di modal. */}
-              {logoImg && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <img
-                    src={LOGO_SIAP_SAR}
-                    alt="SIAP SAR"
-                    className="h-12 w-12 rounded object-contain bg-white p-1"
-                  />
+              {/* QR polos di DOM — sumber rasterisasi (tidak ditampil ke user). */}
+              <div className="hidden">
+                <QRCodeSVG
+                  id="qr-code-plain"
+                  value={qrUrl}
+                  size={400}
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
+                  level="H"
+                />
+              </div>
+              {/* Canvas tersembunyi — tempat komposit (QR + logo). */}
+              <canvas ref={canvasRef} className="hidden" />
+              {/* Gambar QR final — hasil komposit logo + QR jadi satu file. */}
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt={`QR Code ${aset?.kode ?? ""}`}
+                  className="h-52 w-52 object-contain"
+                />
+              ) : (
+                /* Placeholder saat QR masih di-render */
+                <div className="flex h-52 w-52 items-center justify-center">
+                  <span className="text-xs text-slate-400">Menyiapkan…</span>
                 </div>
               )}
             </div>

@@ -14,6 +14,7 @@ import {
   Info,
   Save,
   AlertTriangle,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Label, Textarea } from "@/components/ui/input";
@@ -31,6 +32,10 @@ import {
   type Aset,
 } from "@/components/shared/mock-data";
 import { simpanTahapAwal } from "@/components/shared/logbook-store";
+import {
+  alasanUnitDipakai,
+  checkAsetRusakBerat,
+} from "@/components/shared/logbook-guard";
 import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
 import { useSesiUser } from "@/components/shared/use-session";
 import { DataLoading, DataError } from "@/components/shared/data-state";
@@ -61,19 +66,6 @@ const ARMADA_LAUT: readonly string[] = ["Kapal", "RBB", "RIB"];
 
 function isArmadaLaut(kategori: FormLogbook["kategoriUnit"]): boolean {
   return kategori !== "" && ARMADA_LAUT.includes(kategori);
-}
-
-/**
- * Cek apakah aset memiliki status "Rusak Berat" - jika ya, tidak boleh dipinjam.
- * Mengembalikan string pesan warning atau null jika bisa dipinjam.
- */
-function checkAsetRusakBerat(asetKode: string, asets: Aset[]): string | null {
-  const aset = asets.find((a) => a.kode === asetKode);
-  if (!aset) return null;
-  if (aset.kondisi !== "Baik" || aset.status === "Rusak Berat" || aset.status === "Rusak Ringan") {
-    return `Tidak dapat meminjam: ${aset.nama} sedang dalam kondisi "${aset.kondisi}" (${aset.status})`;
-  }
-  return null;
 }
 
 /**
@@ -230,18 +222,31 @@ export default function TambahLogbookPage() {
   // ─── AUTO-FILL DARI QR CODE SCAN ──────────────────────────────────────────
   const paramUnit = searchParams.get("unit");
 
+  /**
+   * Unit hasil pindai QR yang TIDAK layak dipakai (rusak / sudah dipakai).
+   *
+   * Diturunkan langsung dari data — bukan disimpan ke state di dalam effect —
+   * supaya (a) layar blokir tidak bisa dilewatkan dengan mengetik apa pun di
+   * form, dan (b) ikut terbuka sendiri begitu unit diperbaiki atau logbook
+   * berjalan-nya diselesaikan.
+   */
+  const alasanBlokirScan =
+    paramUnit && !loading
+      ? alasanUnitDipakai(paramUnit, asetList, logbooks)
+      : null;
+
   useEffect(() => {
     if (!paramUnit || loading || qrScanProcessed.current === paramUnit) return;
-    
+
+    // Unit tidak layak → layar blokir yang menanganinya; jangan auto-fill.
+    if (alasanBlokirScan) return;
+
     // Cari aset berdasarkan kode dari query parameter
     const asetScan = asetList.find(
       (a) => a.kode === paramUnit || a.nama === paramUnit
     );
     if (!asetScan) return;
 
-    // Cek status aset apakah rusak berat / tidak layak dipinjam
-    const rusakPesan = checkAsetRusakBerat(asetScan.kode, asetList);
-    
     // Cek logbook terakhir untuk unit ini — apakah user sudah pernah melakukan perjalanan.
     // Resolusi jenis_unit → aset memakai resolver yang sama dengan dashboard,
     // sehingga unit yang benar yang terhubung (bukan unit sejenis mana pun).
@@ -269,14 +274,6 @@ export default function TambahLogbookPage() {
     // Mark as processed dan schedule update
     qrScanProcessed.current = paramUnit;
     queueMicrotask(() => {
-      // Jika aset rusak berat, tampilkan warning dan tidak auto-fill
-      if (rusakPesan) {
-        setErrorUmum(rusakPesan);
-        setErrors({ jenisUnit: rusakPesan });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-      
       // Jika user sudah lewat perjalanan ini sebelumnya, lanjutkan mengisi logbook
       if (sudahLewatPerjalanan) {
         // Isi form dengan data logbook terakhir tapi biarkan operator isi data lengkap
@@ -299,7 +296,7 @@ export default function TambahLogbookPage() {
         bbmSebelum: logbookTerakhir?.bbmSesudah || "100",
       }));
     });
-  }, [paramUnit, loading, asetList, logbooks, ses.nama]);
+  }, [paramUnit, loading, asetList, logbooks, ses.nama, alasanBlokirScan]);
 
   const unitOptions = useMemo(
     () => getUnitOptions(formData.kategoriUnit, asetList, logbooks),
@@ -318,6 +315,68 @@ export default function TambahLogbookPage() {
         onRetry={refetch}
         label="Gagal memuat aset dari database"
       />
+    );
+  }
+
+  /**
+   * Pindai QR menunjuk unit yang tidak boleh dipinjam (kondisi rusak atau
+   * sudah dipakai / dijadwalkan) → tampilkan layar blokir, BUKAN form yang
+   * bisa diisi. Banner error lama tidak dipakai karena bisa hilang sendiri
+   * begitu operator mengetik di field mana pun.
+   */
+  if (alasanBlokirScan) {
+    return (
+      <div className="max-w-3xl space-y-6">
+        <div className="flex items-center gap-4">
+          <Link href="/operator/logbook">
+            <Button variant="ghost" size="icon" aria-label="Kembali">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-lg font-bold text-slate-800">
+              Logbook Tidak Dapat Dibuat
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Hasil pindai QR unit <code className="font-mono">{paramUnit}</code>
+            </p>
+          </div>
+        </div>
+
+        <div
+          role="alert"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-6"
+        >
+          <div className="flex items-start gap-3">
+            <Ban className="mt-0.5 h-6 w-6 shrink-0 text-rose-600" />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">
+                Pencatatan keberangkatan diblokir
+              </p>
+              <p className="text-sm leading-relaxed text-rose-900">
+                {alasanBlokirScan}
+              </p>
+              <p className="text-sm leading-relaxed text-rose-700">
+                Logbook keberangkatan baru tidak dapat dibuat untuk unit ini.
+                Selesaikan perbaikan terlebih dahulu, atau pilih unit lain yang
+                kondisinya baik dan belum dipakai.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <Link href="/operator/logbook">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4" />
+              Kembali ke Daftar Logbook
+            </Button>
+          </Link>
+          <Button onClick={() => router.push("/operator/logbook/tambah")}>
+            Pilih Unit Lain
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -357,8 +416,9 @@ export default function TambahLogbookPage() {
       return;
     }
 
-    // Cek apakah aset sedang rusak berat sebelum menyimpan
-    const rusakPesan = checkAsetRusakBerat(formData.jenisUnit, asetList);
+    // Cek kelayakan unit sebelum menyimpan: kondisi rusak ATAU sudah
+    // dipakai/dijadwalkan (sama dengan cek di dropdown & layar blokir QR).
+    const rusakPesan = alasanUnitDipakai(formData.jenisUnit, asetList, logbooks);
     if (rusakPesan) {
       setErrorUmum(rusakPesan);
       setErrors({ jenisUnit: rusakPesan });

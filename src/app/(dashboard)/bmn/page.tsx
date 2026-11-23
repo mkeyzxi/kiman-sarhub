@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Search, Eye, Pencil, Package, ShieldCheck, Users, Wrench } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Package, ShieldCheck, Users, Wrench, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/shared/responsive-table";
@@ -14,6 +14,8 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { useAsets, useLogbooks } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError, DataEmpty } from "@/components/shared/data-state";
+import { hapusAset } from "@/components/shared/db-writes";
+import { useSesiUser } from "@/components/shared/use-session";
 import {
   STATUS_ASET,
   STATUS_ASET_VARIANT,
@@ -24,12 +26,14 @@ import {
 } from "@/components/shared/mock-data";
 
 export default function MasterDataBMNPage() {
+  const ses = useSesiUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [sortBy, setSortBy] = useState("nama");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   /** Token pemicu scroll ke tabel aset setelah kartu statistik diklik. */
   const [tokenScroll, setTokenScroll] = useState(0);
+  const [gagal, setGagal] = useState<string | null>(null);
 
   // Debounce search query
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -47,6 +51,21 @@ export default function MasterDataBMNPage() {
   /** Tampilkan status live pada tabel/kartu aset; kolom DB tetap untuk edit. */
   const statusEfektif = (aset: (typeof asetList)[number]) =>
     statusLive[aset.id] ?? aset.status;
+
+/** Fungsi hapus aset — hanya untuk ADMIN_IT & PENGELOLA_BMN */
+  const handleHapusAset = async (id: string) => {
+    const konfirmasi = window.confirm(
+      "Apakah Anda yakin ingin menghapus aset ini?\nTindakan ini tidak dapat dibatalkan."
+    );
+    if (!konfirmasi) return;
+    try {
+      await hapusAset(id, ses.id || "");
+      setTokenScroll((t) => t + 1);
+      void refetch();
+    } catch (e) {
+      setGagal(e instanceof Error ? e.message : "Gagal menghapus aset");
+    }
+  };
 
   // Filter aset dengan debounced search — status memakai nilai **live** (turunan logbook berjalan)
   // agar filter "Sedang digunakan" juga menemukan unit yang sedang dipakai walau kolom DB masih "Standby".
@@ -393,20 +412,34 @@ export default function MasterDataBMNPage() {
             {
               key: "aksi",
               header: "Aksi",
-              render: (row) => (
-                <div className="flex items-center justify-center gap-1">
-                  <Link href={`/bmn/${row.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href={`/bmn/${row.id}/edit`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              ),
+              render: (row) => {
+                // Hanya ADMIN_IT dan PENGELOLA_BMN yang boleh hapus aset
+                const boleHapus = ses.role === "ADMIN_IT" || ses.role === "PENGELOLA_BMN";
+                return (
+                  <div className="flex items-center justify-center gap-1">
+                    <Link href={`/bmn/${row.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href={`/bmn/${row.id}/edit`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    {boleHapus && (
+                      <Button
+                        variant="danger"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleHapusAset(row.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              },
               headClassName: "text-center",
               hideBelowLg: true,
             },
