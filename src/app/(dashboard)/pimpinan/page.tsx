@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 
 import Link from "next/link";
 import {
-  Activity,
   BarChart3,
   ShieldCheck,
   Users,
@@ -32,7 +31,6 @@ import {
   useAsets,
   useLogbooks,
   useNotifications,
-  useActivityLog,
   useAuditKepatuhan,
   useSupabaseUsers,
 } from "@/components/shared/use-supabase-data";
@@ -88,7 +86,6 @@ export default function PimpinanPage() {
     muatUlangKepatuhan();
   };
   const { data: notifikasiList } = useNotifications();
-  const { data: logAktivitas } = useActivityLog();
   // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
   // angka hardcode 45 yang tidak terhubung data mana pun.
   const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
@@ -140,7 +137,8 @@ export default function PimpinanPage() {
   });
 
   // Peringkat dihitung di hook (skor tertinggi dulu) — lampirkan nomor rank.
-  const ranking = kepatuhanList.map((item, i) => ({ ...item, rank: i + 1 }));
+  // Batasi 3 teratas untuk dashboard; lihat /pimpinan/audit untuk detail penuh.
+  const ranking = kepatuhanList.slice(0, 3).map((item, i) => ({ ...item, rank: i + 1 }));
 
   if (loading) {
     return <DataLoading label="Memuat dashboard pimpinan…" />;
@@ -170,7 +168,7 @@ export default function PimpinanPage() {
         <StatCard
           label="Readiness Index"
           value={`${readinessIndex}%`}
-          icon={Activity}
+          icon={ShieldCheck}
           iconBg="bg-primary-light"
           iconColor="text-primary"
         />
@@ -597,42 +595,6 @@ export default function PimpinanPage() {
                 )}
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Log Aktivitas Terbaru */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Log Aktivitas Terbaru
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {logAktivitas.slice(0, 8).map((log) => {
-              const user = log.userId
-                ? kepatuhanList.find((k) => k.personelId === log.userId)
-                : undefined;
-              return (
-                <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary">
-                      {user?.nama?.charAt(0) || "?"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-800">
-                      <span className="font-medium">{user?.nama}</span>
-                      {" "}<span className="text-slate-500">{log.aksi.replace(/_/g, " ").toLowerCase()}</span>
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">{log.detail}</p>
-                    <p className="text-xs text-slate-400 mt-1">{formatTanggal(log.tanggal)}</p>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </CardContent>
       </Card>

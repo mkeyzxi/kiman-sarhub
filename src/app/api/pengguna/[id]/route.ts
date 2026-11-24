@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import type { Database, UserUpdate } from "@/types/supabase";
+import { getAuthenticatedUser } from "@/lib/supabase-server";
 
 // Server-side Supabase client dengan service_role key (bypass RLS).
 // Dibuat lazily — modul harus aman dievaluasi oleh worker build (env tidak
@@ -21,6 +22,26 @@ function supaAdmin(): SupabaseClient<Database> {
     );
   }
   return adminRefKlien;
+}
+
+/**
+ * Guard: hanya ADMIN_IT yang boleh mengubah/menghapus user.
+ * Memeriksa session dari cookie lalu memverifikasi role di public.users.
+ */
+async function requireAdminIT() {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return null;
+  }
+  const { data: row } = await supaAdmin()
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (row?.role !== "ADMIN_IT") {
+    return null;
+  }
+  return user;
 }
 
 /** Domain email internal untuk auth.users. */
@@ -51,6 +72,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ── Otorisasi: hanya ADMIN_IT yang boleh melihat detail user ──────
+    const admin = await requireAdminIT();
+    if (!admin) {
+      return Response.json({ error: "Hanya admin yang boleh mengakses" }, { status: 403 });
+    }
+
     const { id } = await params;
 
     const { data, error } = await supaAdmin()
@@ -78,6 +105,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ── Otorisasi: hanya ADMIN_IT yang boleh mengubah user ────────────
+    const admin = await requireAdminIT();
+    if (!admin) {
+      return Response.json({ error: "Hanya admin yang boleh mengakses" }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { nama, nip, email, role, aktif } = body;
@@ -196,6 +229,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ── Otorisasi: hanya ADMIN_IT yang boleh menghapus user ────────────
+    const admin = await requireAdminIT();
+    if (!admin) {
+      return Response.json({ error: "Hanya admin yang boleh mengakses" }, { status: 403 });
+    }
+
     const { id } = await params;
 
     // Soft delete: set aktif=false.

@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import type { Database } from "@/types/supabase";
+import { getAuthenticatedUser } from "@/lib/supabase-server";
 
 // Server-side Supabase client dengan service_role key (bypass RLS).
 // Dibuat lazily — modul harus aman dievaluasi oleh worker build (env tidak
@@ -23,6 +24,26 @@ function supaAdmin(): SupabaseClient<Database> {
   return adminRefKlien;
 }
 
+/**
+ * Guard: hanya ADMIN_IT yang boleh mengelola user.
+ * Memeriksa session dari cookie lalu memverifikasi role di public.users.
+ */
+async function requireAdminIT() {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return null;
+  }
+  const { data: row } = await supaAdmin()
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (row?.role !== "ADMIN_IT") {
+    return null;
+  }
+  return user;
+}
+
 /** Domain email internal untuk auth.users (sesuai data live existing). */
 const INTERNAL_EMAIL_DOMAIN = "basarnas.ac.id";
 
@@ -36,6 +57,12 @@ function generateInternalEmail(nip: string): string {
 
 export async function GET() {
   try {
+    // ── Otorisasi: hanya ADMIN_IT yang boleh mengambil daftar user ─────
+    const admin = await requireAdminIT();
+    if (!admin) {
+      return Response.json({ error: "Hanya admin yang boleh mengakses" }, { status: 403 });
+    }
+
     const { data, error } = await supaAdmin()
       .from("users")
       .select("*")
@@ -60,6 +87,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Otorisasi: hanya ADMIN_IT yang boleh membuat user ───────────────
+    const admin = await requireAdminIT();
+    if (!admin) {
+      return Response.json({ error: "Hanya admin yang boleh mengakses" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { email, password, nama, nip, role } = body;
 

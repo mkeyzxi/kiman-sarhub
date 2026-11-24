@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   FileText,
   Download,
@@ -20,11 +19,14 @@ import { cn } from "@/lib/utils";
 import {
   hitungReadinessStats,
   hitungStatusAsetLive,
+  formatTanggal,
 } from "@/components/shared/mock-data";
 import {
   useLogbooks,
   useAsets,
   useSupabaseUsers,
+  useRiwayatOperasi,
+  useActivityLog,
 } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import {
@@ -68,9 +70,16 @@ export default function LaporanPage() {
   // Data master dari Supabase — tanpa fallback mock.
   const { data: logbookPerjalananList, loading, error, refetch } = useLogbooks();
   const { data: asetList } = useAsets();
+  // Riwayat operasi — event log operasi SAR nyata (bukan logbook perjalanan).
+  const { data: riwayatOperasiList } = useRiwayatOperasi();
+  // Log aktivitas dari database.
+  const { data: logAktivitasList } = useActivityLog();
   // Data personel: akun aktif dari tabel `users` Supabase — menggantikan
   // angka hardcode 45 yang tidak terhubung data mana pun.
   const { data: daftarUsers, loading: usersLoading } = useSupabaseUsers();
+  // Tahun tersedia secara dinamis (tidak hardcode).
+  const tahunKini = new Date().getFullYear();
+  const tahunOpsi = Array.from({ length: 3 }, (_, i) => String(tahunKini - i));
 
   // Readiness dihitung dari data aset Supabase (bukan mock statis) dengan
   // status live — "Sedang digunakan" diturunkan dari logbook yang belum
@@ -124,13 +133,14 @@ export default function LaporanPage() {
         <div>
           <h1 className="text-lg font-bold text-slate-800">Laporan & Analisis</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Laporan kesiapan SAR dan rekap riwayat perjalanan
+            Laporan kesiapan SAR dan rekap riwayat operasi
           </p>
         </div>
         <div className="relative flex items-center gap-2">
           <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-            <option value="2026">Tahun 2026</option>
-            <option value="2025">Tahun 2025</option>
+            {tahunOpsi.map((t) => (
+              <option key={t} value={t}>Tahun {t}</option>
+            ))}
           </Select>
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:ring-offset-2">
@@ -208,8 +218,8 @@ export default function LaporanPage() {
           iconColor="text-emerald-600"
         />
         <StatCard
-          label="Total Perjalanan"
-          value={logbookPerjalananList.length}
+          label="Total Operasi"
+          value={riwayatOperasiList.length}
           icon={FileText}
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
@@ -223,82 +233,102 @@ export default function LaporanPage() {
         />
       </div>
 
-      {/* Riwayat Perjalanan — Event Log dari logbook */}
+      {/* Riwayat Operasi — Event Log operasi SAR (dari tabel riwayat_operasi) */}
       <div className="sm:px-2">
         <div className="sm:flex sm:items-center sm:justify-between sm:mb-3">
           <div className="sm:flex sm:items-center sm:gap-2">
             <FileText className="sm:h-5 sm:w-5 sm:text-primary" />
-            <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Riwayat Perjalanan</h2>
+            <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Riwayat Operasi</h2>
           </div>
           <p className="text-xs text-slate-400 sm:mt-0 mt-2">
-            {logbookPerjalananList.length} perjalanan tercatat
+            {riwayatOperasiList.length} operasi tercatat
           </p>
         </div>
-        {logbookPerjalananList.length === 0 ? (
+        {riwayatOperasiList.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center sm:p-10">
             <FileText className="mx-auto mb-3 h-10 w-10 text-slate-300" />
             <p className="text-sm font-medium text-slate-600">
-              Belum ada perjalanan tercatat di database
+              Belum ada operasi tercatat
             </p>
             <p className="mx-auto mt-2 max-w-md text-xs text-slate-500">
-              Riwayat perjalanan muncul otomatis dari logbook. Cara menambah:
+              Riwayat operasi akan muncul otomatis dari tabel <code className="rounded bg-slate-100 px-1 text-slate-600">riwayat_operasi</code> di database.
             </p>
-            <div className="mx-auto mt-4 flex max-w-md flex-col gap-2 sm:flex-row sm:justify-center">
-              <Link
-                href="/operator/logbook/tambah"
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90"
-              >
-                Tambah Logbook Perjalanan
-              </Link>
-            </div>
           </div>
         ) : (
           <div className="sm:space-y-3 space-y-2">
-            {logbookPerjalananList.map((lp) => (
-              <Link
-                key={lp.id}
-                href={`/operator/logbook/${lp.id}`}
-                className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100 hover:border-primary/40 hover:bg-slate-100/60 transition-colors"
+            {riwayatOperasiList.map((op) => (
+              <div
+                key={op.id}
+                className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100"
               >
                 <div className="text-center shrink-0 w-14">
                   <p className="text-xl font-bold text-slate-800">
-                    {new Date(lp.tanggal).getDate()}
+                    {new Date(op.tanggal).getDate()}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {new Date(lp.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                    {new Date(op.tanggal).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
                   </p>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-800">
-                    {lp.kategoriUnit ? `${lp.kategoriUnit} · ` : ""}{lp.jenisUnit}
+                    {op.jenis}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    {lp.rute}{lp.tujuan ? ` → ${lp.tujuan}` : ""}
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {op.lokasi}
                   </p>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
-                    {lp.jamBerangkat && lp.jamKembali && (
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {lp.jamBerangkat}–{lp.jamKembali}
-                      </span>
-                    )}
                     <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {lp.jumlahPersonel} personel
+                      <Clock className="h-3 w-3" /> {op.durasi}
                     </span>
                     <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <Ship className="h-3 w-3" /> {lp.nahkoda}
+                      <Users className="h-3 w-3" /> {op.personel} personel
                     </span>
                   </div>
-                  {lp.catatan && (
-                    <p className="text-xs text-slate-400 mt-2 truncate">{lp.catatan}</p>
+                  {op.keterangan && (
+                    <p className="text-xs text-slate-400 mt-2 truncate">{op.keterangan}</p>
                   )}
                 </div>
                 <Badge
-                  variant={lp.status === "Selesai" ? "success" : lp.status === "Sedang Digunakan" ? "warning" : "outline"}
+                  variant={op.hasil === "Berhasil" ? "success" : op.hasil === "Sebagian Berhasil" ? "warning" : "danger"}
                   className="shrink-0"
                 >
-                  {lp.status}
+                  {op.hasil}
                 </Badge>
-              </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Log Aktivitas Terbaru */}
+      <div className="sm:px-2">
+        <div className="sm:flex sm:items-center sm:gap-2 sm:mb-3">
+          <Activity className="sm:h-5 sm:w-5 sm:text-primary" />
+          <h2 className="sm:text-base sm:font-semibold sm:text-slate-800">Log Aktivitas</h2>
+        </div>
+        {logAktivitasList.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center sm:p-10">
+            <Activity className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+            <p className="text-sm font-medium text-slate-600">
+              Belum ada aktivitas tercatat
+            </p>
+          </div>
+        ) : (
+          <div className="sm:space-y-2 space-y-1.5">
+            {logAktivitasList.slice(0, 10).map((log) => (
+              <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center shrink-0">
+                  <Activity className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-800">
+                    <span className="font-medium">{log.target}</span>
+                    {" "}<span className="text-slate-500">{log.aksi.replace(/_/g, " ").toLowerCase()}</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">{log.detail}</p>
+                  <p className="text-xs text-slate-400 mt-1">{formatTanggal(log.tanggal)}</p>
+                </div>
+              </div>
             ))}
           </div>
         )}
