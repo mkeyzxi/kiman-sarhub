@@ -180,26 +180,6 @@ function KartuPJItem({ card }: { card: KartuPJ }) {
           </>
         )}
       </div>
-      <div className="mt-2 flex items-center gap-2 text-xs">
-        {card.perbaikanSelesai ? (
-          <>
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="text-emerald-700">Perbaikan selesai — siap operasional</span>
-          </>
-        ) : card.tiket ? (
-          <>
-            <Loader2 className="h-3.5 w-3.5 text-amber-600" />
-            <span className="text-amber-700">
-              Perbaikan {card.tiket.status.toLowerCase()}
-            </span>
-          </>
-        ) : (
-          <>
-            <Clock className="h-3.5 w-3.5 text-slate-400" />
-            <span className="text-slate-500">Menunggu tindak lanjut alur</span>
-          </>
-        )}
-      </div>
     </div>
   );
 }

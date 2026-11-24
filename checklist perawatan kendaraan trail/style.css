@@ -1,0 +1,87 @@
+/* Layout screen and print are deliberately fixed to A4 proportions. */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #e8e8e8; color: #111; font-family: Arial, Helvetica, sans-serif; }
+body { padding: 24px 0; }
+.sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 15mm 13mm 12mm;
+  background: white;
+  font-size: 9.4pt;
+  line-height: 1.15;
+}
+.document-header h1 { margin: 0 0 7mm; text-align: center; font-size: 11.5pt; font-weight: 700; }
+.vehicle-info { display: grid; grid-template-columns: 1fr 1fr; gap: 9mm; margin-bottom: 4mm; }
+.info-column { min-width: 0; }
+.vehicle-type-row { min-height: 6.3mm; display: flex; align-items: baseline; margin-bottom: 0; }
+.vehicle-type-row strong { font-size: 10.5pt; }
+.vehicle-value { font-weight: 700; letter-spacing: .1px; }
+.date-row { align-items: end; }
+.date-field { display: flex; align-items: end; min-height: 5.2mm; width: 100%; border-bottom: .25mm solid #777; padding: 0 0 .6mm 1mm; }
+.date-placeholder { color: #777; letter-spacing: .4px; font-size: 8.8pt; }
+.info-row { display: grid; grid-template-columns: 39mm 4mm 1fr; align-items: baseline; min-height: 6.3mm; white-space: nowrap; }
+.info-row strong { font-size: 10.5pt; }
+.right-info .info-row { grid-template-columns: 38mm 4mm 1fr; }
+.blank { display: inline-block; min-height: 3mm; }
+.routine-title { margin: 0 0 2mm; font-size: 10.5pt; font-weight: bold; }
+.inspection-grid { display: grid; grid-template-columns: 0.97fr 1.03fr; gap: 6mm; align-items: start; }
+.inspection-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 9.2pt; }
+.inspection-table th, .inspection-table td { border: 0.35mm solid #222; padding: 1.05mm 1.2mm; vertical-align: middle; }
+.inspection-table td { height: 5.4mm; }
+.inspection-table th { text-align: center; font-weight: bold; height: 18mm; line-height: 1.25; }
+.item-head { background: #c9c9c9; width: 63%; }
+.good-head { background: #65b657; width: 13%; }
+.bad-head { background: #f1df32; width: 19%; }
+.note-head { background: #c96b6b; width: 12%; }
+.left-table { margin-top: 0; }
+.left-table th { height: 19mm; }
+.left-table td:first-child { white-space: nowrap; font-size: 8.7pt; }
+.left-table .item-head { width: 58%; }
+.left-table .good-head { width: 13%; }
+.left-table .bad-head { width: 22%; }
+.left-table .note-head { width: 7%; }
+.check { text-align: center; font-size: 13pt; line-height: 1; font-family: Arial, sans-serif; }
+.right-tables { min-width: 0; }
+.lights-table th { height: 17mm; }
+.lights-table .item-head { width: 57%; }
+.lights-table .good-head { width: 13%; }
+.lights-table .bad-head { width: 22%; }
+.lights-table .note-head { width: 8%; }
+.lights-table td:first-child { white-space: nowrap; font-size: 9pt; }
+.additional-title { font-size: 10pt; margin: 1mm 0 1mm; font-weight: bold; }
+.additional-table th { height: 19mm; }
+.additional-table td { height: 7mm; }
+.additional-table .item-head { width: 56%; }
+.additional-table .good-head { width: 13%; }
+.additional-table .bad-head { width: 22%; }
+.additional-table .note-head { width: 9%; }
+.notes-section { margin-top: 5mm; }
+.notes-label { margin-bottom: 1.5mm; }
+.notes-box { height: 24mm; border: 0.45mm solid #222; }
+.trip-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 4mm; font-size: 9.6pt; }
+.trip-table th, .trip-table td { border: 0.4mm solid #222; text-align: center; padding: 1mm; }
+.trip-table th { background: #c9c9c9; height: 12mm; font-weight: normal; }
+.trip-table td { height: 7mm; }
+.trip-table th:nth-child(1) { width: 23%; }
+.trip-table th:nth-child(2) { width: 20%; }
+.trip-table th:nth-child(3) { width: 57%; }
+.signatures { display: grid; grid-template-columns: 1fr 1fr; margin-top: 8mm; min-height: 35mm; }
+.signature-block { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.left-sign { align-items: flex-start; text-align: left; padding-left: 8mm; }
+.right-sign { align-items: center; }
+.signature-title { font-size: 9.4pt; }
+.signature-space { height: 20mm; width: 100%; }
+.signature-name { font-size: 9.2pt; font-weight: normal; }
+@media screen {
+  .sheet { box-shadow: 0 5px 24px rgba(0,0,0,.16); }
+}
+@media print {
+  html, body { background: white; padding: 0; width: 210mm; height: 297mm; }
+  .sheet { width: 210mm; height: 297mm; min-height: 297mm; margin: 0; padding: 15mm 13mm 12mm; box-shadow: none; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}

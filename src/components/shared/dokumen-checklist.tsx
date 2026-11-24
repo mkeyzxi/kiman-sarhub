@@ -1,14 +1,13 @@
 "use client";
 
 /**
- * Komponen dokumen "Laporan Hasil Checklist Perawatan" (pratinjau + cetak).
- *
+ * Komponen dokumen "Laporan Hasil Checklist Perawatan"
+ * 
  * Ditempel di bawah halaman detail checklist (`/operator/checklist/[id]`)
  * lalu dicetak lewat `window.print()` — pola yang sama dengan dokumen
- * Berita Acara. Struktur & gaya memakai kelas `ba-` dari
- * `berita-acara-print.css` (lembar A4, kop surat, tabel data, tanda tangan)
- * ditambah kelas `dc-` dari `dokumen-cetak-print.css`.
- *
+ * Berita Acara. Struktur & gaya sesuai template acuan
+ * `checklist perawatan kendaraan trail` (index.html + style.css).
+ * 
  * Dokumen ditata oleh refleksi data checklist yang sudah tersimpan — tidak
  * ada nilai yang dihitung ulang di luar penghitungan jumlah kondisi item.
  */
@@ -18,7 +17,6 @@ import {
   tanggalTeks,
   type ChecklistHarian,
 } from "@/components/shared/mock-data";
-import { KopSuratDokumen } from "@/components/shared/kop-surat-dokumen";
 
 /** Info unit (aset BMN) yang opsional tampil pada dokumen. */
 export interface InfoUnitDokumen {
@@ -38,6 +36,8 @@ export interface DokumenChecklistProps {
   templateNama?: string;
   /** Data unit dari master BMN (opsional — baris kosong dilewati). */
   unit?: InfoUnitDokumen | null;
+  /** Nama penanggung jawab aset — dipakai di blok tanda tangan. */
+  penanggungJawab?: string | null;
 }
 
 /** Satu baris tabel label : nilai. Baris tanpa isi dilewati. */
@@ -58,12 +58,39 @@ function BarisInfo({
   );
 }
 
+/**
+ * Format tanggal dalam hari/tanggal/bulan/tahun.
+ * Dipakai dari mock-data agar konsisten dengan berita acara.
+ */
+function useTanggalDoc(tanggal: string) {
+  const tanggalTeks = {
+    hari: "Senin",
+    tanggal: "15",
+    bulan: "Mei",
+    tahunKata: "2024",
+  };
+  // Parsing sederhana dari format tanggal checklist
+  const dateObj = new Date(tanggal);
+  if (!dateObj) return tanggalTeks;
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  return {
+    hari: days[dateObj.getDay()],
+    tanggal: String(dateObj.getDate()).padStart(2, "0"),
+    bulan: [
+      "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+    ][dateObj.getMonth()],
+    tahunKata: dateObj.getFullYear().toString(),
+  };
+}
+
 export function DokumenChecklist({
   checklist,
   templateNama,
   unit,
+  penanggungJawab,
 }: DokumenChecklistProps) {
-  const tanggalDoc = tanggalTeks(checklist.tanggal);
+  const tanggalDoc = useTanggalDoc(checklist.tanggal);
 
   const semuaItem = checklist.items;
   const baik = semuaItem.filter((i) => i.kondisi === "Baik").length;
@@ -74,113 +101,112 @@ export function DokumenChecklist({
   const belum = semuaItem.filter((i) => i.kondisi === "Belum Diperiksa").length;
   const adaRusak = rusakRingan > 0 || rusakBerat > 0;
 
+  // Split item menjadi dua: kolom kiri (separuh pertama) dan kolom kanan
+  // (separuh kedua) — agar tinggi tabel tidak meledak dan bertabrakan.
+  const midPoint = Math.ceil(semuaItem.length / 2);
+  const itemsKiri = semuaItem.slice(0, midPoint);
+  const itemsKanan = semuaItem.slice(midPoint);
+
+  // Item Tambahan: minimal 3 baris kosong. Jika ada item dengan catatan
+  // (keterangan terisi), tampilkan di sini — baris tambahan mengikuti.
+  const itemsCatatan = semuaItem.filter(
+    (i) => i.keterangan && i.keterangan.trim() !== ""
+  );
+  const barisTambahan = Math.max(3, itemsCatatan.length);
+
+  // Bangun baris info unit untuk vehicle-info section
+  const infoRows = [
+    { label: "Jenis Kendaraan", nilai: unit?.tipe || "-" },
+    {
+      label: "Tanggal Pemeriksaan",
+      nilai:
+        tanggalDoc.tanggal +
+        " " +
+        tanggalDoc.bulan +
+        " " +
+        tanggalDoc.tahunKata,
+    },
+    { label: "Tipe Kendaraan", nilai: unit?.merk || unit?.tipe || "-" },
+  ];
+
+  // Judul dokumen dinamis berdasarkan jenis unit.
+  const judulDokumen = (() => {
+    switch (checklist.jenisUnit) {
+      case "Motor":
+        return "CEKLIST PERAWATAN KENDARAAN MOTOR";
+      case "Mobil":
+        return "CEKLIST PERAWATAN KENDARAAN MOBIL";
+      case "Kapal":
+        return "CEKLIST PERAWATAN KAPAL SAR";
+      case "Perahu":
+        return "CEKLIST PERAWATAN PERAHU RIB";
+      default:
+        return "CEKLIST PERAWATAN KENDARAAN";
+    }
+  })();
+
   return (
     <div className="ba-doc">
       <section
         className="ba-sheet"
         aria-label="Laporan Hasil Checklist Perawatan"
       >
-        <KopSuratDokumen />
+        {/* Header dokumental — mirip template reference: judul + info kendaraan */}
+        <header className="document-header">
+          <h1>{judulDokumen}</h1>
+          <section className="vehicle-info">
+            <div className="info-column">
+              {infoRows.map((row, idx) => (
+                <div key={idx} className="info-row">
+                  <span>{row.label}</span>
+                  <span>:</span>
+                  <span>{row.nilai}</span>
+                </div>
+              ))}
+            </div>
+            <div className="info-column right-info">
+              <div className="info-row">
+                <span><strong>Nomor Polisi</strong></span>
+                <span>:</span>
+                <span>{unit?.kode || "-"}</span>
+              </div>
+              <div className="info-row">
+                <span>Tahun Pengadaan</span>
+                <span>:</span>
+                <span className="blank"></span>
+              </div>
+              <div className="info-row">
+                <span>KM</span>
+                <span>:</span>
+                <span className="blank"></span>
+              </div>
+            </div>
+          </section>
+          <h2 className="routine-title">PEMERIKSAAN RUTIN</h2>
+        </header>
 
-        <main>
-          <h1 className="ba-doc-title">Laporan Hasil Checklist Perawatan</h1>
-          <p className="ba-doc-number">Unit : {checklist.unit}</p>
-
-          <p className="ba-intro">
-            Pada hari ini, <strong><em>{tanggalDoc?.hari}</em></strong> Tanggal{" "}
-            <strong><em>{tanggalDoc?.tanggal}</em></strong> Bulan{" "}
-            <strong><em>{tanggalDoc?.bulan}</em></strong> Tahun{" "}
-            <strong><em>{tanggalDoc?.tahunKata}</em></strong>, telah dilakukan
-            pemeriksaan checklist perawatan terhadap{" "}
-            <strong>{checklist.unit}</strong>. Hasil pemeriksaan sebagai
-            berikut :
-          </p>
-
-          <p className="ba-section-heading">1.&nbsp;&nbsp;Informasi unit</p>
-
-          <table className="dc-info-table" aria-label="Informasi unit">
-            <tbody>
-              <BarisInfo label="Nama Unit" nilai={checklist.unit} />
-              <BarisInfo
-                label="Nama Referensi"
-                nilai={unit?.namaReferensi ?? unit?.nama}
-              />
-              <BarisInfo
-                label="Merk / Tipe"
-                nilai={
-                  unit?.merk || unit?.tipe
-                    ? [unit?.merk, unit?.tipe].filter(Boolean).join(" / ")
-                    : undefined
-                }
-              />
-              <BarisInfo label="Kode Barang" nilai={unit?.kode} />
-              <BarisInfo label="NUP" nilai={unit?.nup} />
-              <BarisInfo label="Lokasi" nilai={unit?.lokasi} />
-              <BarisInfo label="Template Checklist" nilai={templateNama} />
-              <BarisInfo label="Pemeriksa" nilai={checklist.pemeriksa} />
-              <BarisInfo label="Status Pengisian" nilai={checklist.status} />
-            </tbody>
-          </table>
-
-          <h2 className="ba-analysis-heading">2.&nbsp; Ringkasan hasil :</h2>
-          <ol className="ba-analysis-list" type="a">
-            <li>
-              Item yang diperiksa {checklist.itemChecked} dari{" "}
-              {checklist.itemTotal} ({belum === 0 ? "lengkap" : "belum lengkap"}
-              ).
-            </li>
-            <li>
-              Kondisi baik : {baik} item.
-              {adaRusak && (
-                <>
-                  {" "}
-                  Rusak ringan {rusakRingan} item, rusak berat {rusakBerat}{" "}
-                  item.
-                </>
-              )}
-            </li>
-            {belum > 0 && <li>Item yang belum diperiksa : {belum} item.</li>}
-            {checklist.catatan.trim() !== "" && (
-              <li>Catatan pemeriksa : {checklist.catatan}</li>
-            )}
-          </ol>
-
-          <p className="ba-section-heading">
-            3.&nbsp;&nbsp;Rincian item pemeriksaan
-          </p>
-
-          <table className="ba-data-table" aria-label="Rincian item pemeriksaan">
-            <colgroup>
-              <col style={{ width: "6.5%" }} />
-              <col style={{ width: "42.5%" }} />
-              <col style={{ width: "13.5%" }} />
-              <col style={{ width: "15.5%" }} />
-              <col style={{ width: "22%" }} />
-            </colgroup>
+        <section className="inspection-grid">
+          <table className="inspection-table left-table">
             <thead>
               <tr>
-                <th>NO</th>
-                <th>Item Pemeriksaan</th>
-                <th>Status</th>
-                <th>Kondisi</th>
-                <th>Keterangan</th>
+                <th className="item-head">ITEM PEMERIKSAAN</th>
+                <th className="good-head">Baik</th>
+                <th className="bad-head">Rusak /<br />Tidak sesuai<br />standart</th>
+                <th className="note-head">Ket</th>
               </tr>
             </thead>
             <tbody>
-              {semuaItem.map((item, idx) => (
-                <tr key={`${item.label}-${idx}`}>
-                  <td className="ba-center">{idx + 1}</td>
-                  <td className="ba-item-name">{item.label}</td>
-                  <td className="ba-center">
-                    {item.wajib ? "Wajib" : "Opsional"}
-                  </td>
-                  <td className="ba-center">{item.kondisi}</td>
-                  <td className="ba-center">{item.keterangan || "-"}</td>
+              {itemsKiri.map((item, idx) => (
+                <tr key={`kiri-${item.label}-${idx}`}>
+                  <td className="item-name">{item.label}</td>
+                  <td className="check">{item.kondisi === "Baik" ? "✓" : ""}</td>
+                  <td>{item.kondisi === "Rusak Ringan" || item.kondisi === "Rusak Berat" ? "✓" : ""}</td>
+                  <td>{item.keterangan || ""}</td>
                 </tr>
               ))}
-              {semuaItem.length === 0 && (
+              {itemsKiri.length === 0 && semuaItem.length === 0 && (
                 <tr>
-                  <td className="ba-center" colSpan={5}>
+                  <td className="item-name" colSpan={4}>
                     Belum ada item.
                   </td>
                 </tr>
@@ -188,36 +214,108 @@ export function DokumenChecklist({
             </tbody>
           </table>
 
-          <p className="ba-closing">
-            Demikian laporan hasil checklist perawatan unit {checklist.unit}{" "}
-            ini dibuat dengan sebenar-benarnya sebagai dokumentasi kondisi unit{" "}
-            untuk menjaga kesiapsiagaan armada{" "}
-            {KOP_SURAT.namaInstansi}.{" "}
-            {(rusakRingan > 0 || rusakBerat > 0) && (
-              <>
-                Untuk item yang rusak, telah dibuat Berita Acara Perbaikan
-                sebagai kelanjutan proses perawatan.{" "}
-              </>
-            )}
-            Atas perhatian dan kerja samanya kami ucapkan terima kasih.
-          </p>
-
-          <div className="ba-signature">
-            <div className="ba-signature-box">
-              <p>Yang Melaporkan,</p>
-              <p className="ba-signature-role">Penanggung Jawab Unit</p>
-              <div className="ba-signature-space" aria-hidden="true" />
-              <p className="ba-signature-name">{checklist.pemeriksa}</p>
-            </div>
-            <div className="ba-signature-box">
-              <p>Mengetahui,</p>
-              <p className="ba-signature-role">Kepala Subseksi Sumber Daya</p>
-              <div className="ba-signature-space" aria-hidden="true" />
-              <p className="ba-signature-name">Zulkfli S.I.P</p>
-              <p>Penata Muda Tk.I (III/b)</p>
-            </div>
+          <div className="right-tables">
+            <table className="inspection-table lights-table">
+              <thead>
+                <tr>
+                  <th className="item-head">ITEM PEMERIKSAAN</th>
+                  <th className="good-head">Baik</th>
+                  <th className="bad-head">Rusak / Tidak<br />sesuai standart</th>
+                  <th className="note-head">Ket</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itemsKanan.map((item, idx) => (
+                  <tr key={`kanan-${item.label}-${idx}`}>
+                    <td className="item-name">{item.label}</td>
+                    <td className="check">{item.kondisi === "Baik" ? "✓" : ""}</td>
+                    <td>{item.kondisi === "Rusak Ringan" || item.kondisi === "Rusak Berat" ? "✓" : ""}</td>
+                    <td>{item.keterangan || ""}</td>
+                  </tr>
+                ))}
+                {itemsKanan.length === 0 && semuaItem.length === 0 && (
+                  <tr>
+                    <td className="item-name" colSpan={4}>
+                      Belum ada item.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            <h3 className="additional-title">Item Tambahan</h3>
+            <table className="inspection-table additional-table">
+              <thead>
+                <tr>
+                  <th className="item-head">ITEM</th>
+                  <th className="good-head">Baik</th>
+                  <th className="bad-head">Rusak / Tidak<br />sesuai standart</th>
+                  <th className="note-head">Ket</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: barisTambahan }).map((_, idx) => {
+                  const cat = itemsCatatan[idx];
+                  return (
+                    <tr key={`tambahan-${idx}`}>
+                      <td>{cat?.label || ""}</td>
+                      <td className="check">
+                        {cat?.kondisi === "Baik" ? "✓" : ""}
+                      </td>
+                      <td>
+                        {cat &&
+                        (cat.kondisi === "Rusak Ringan" ||
+                          cat.kondisi === "Rusak Berat")
+                          ? "✓"
+                          : ""}
+                      </td>
+                      <td>{cat?.keterangan || ""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </main>
+        </section>
+
+        <section className="notes-section">
+          <div className="notes-label">Catatan :</div>
+          <div className="notes-box"></div>
+        </section>
+
+        <table className="trip-table">
+          <thead>
+            <tr>
+              <th>Driver</th>
+              <th>Tujuan</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <section className="signatures">
+          <div className="signature-block left-sign">
+            <div className="signature-title">Penanggung Jawab</div>
+            <div className="signature-space"></div>
+            <div className="signature-name">{penanggungJawab || "Penanggung Jawab"}</div>
+          </div>
+          <div className="signature-block right-sign">
+            <div className="signature-title">Kepala Subseksi Sumberdaya</div>
+            <div className="signature-space"></div>
+            <div className="signature-name">Zulkifli, S.I.P</div>
+          </div>
+        </section>
       </section>
     </div>
   );

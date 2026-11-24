@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import type { Database } from "@/types/supabase";
+import { getAuthenticatedUser } from "@/lib/supabase-server";
 
 /**
  * Admin client dibuat lazily (saat dipakai) supaya modul ini aman
@@ -24,11 +25,36 @@ function getSupabaseAdmin() {
   return supabaseAdmin;
 }
 
+/**
+ * Guard: hanya ADMIN_IT yang boleh mereset password user.
+ */
+async function requireAdminIT() {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return null;
+  }
+  const { data: row } = await getSupabaseAdmin()
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (row?.role !== "ADMIN_IT") {
+    return null;
+  }
+  return user;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ── Otorisasi: hanya ADMIN_IT yang boleh mereset password ──────────
+    const adminUser = await requireAdminIT();
+    if (!adminUser) {
+      return Response.json({ error: "Hanya admin yang boleh mengakses" }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { newPassword } = body;
@@ -58,9 +84,8 @@ export async function POST(
       .update({ password_changed: true, updated_at: new Date().toISOString() })
       .eq("id", id);
 
-    const admin = getSupabaseAdmin();
-    const { data: authUser } = await admin.auth.admin.getUserById(id);
-    await admin.auth.admin.updateUserById(id, {
+    const { data: authUser } = await getSupabaseAdmin().auth.admin.getUserById(id);
+    await getSupabaseAdmin().auth.admin.updateUserById(id, {
       app_metadata: {
         ...(authUser?.user?.app_metadata ?? {}),
         password_changed: true,

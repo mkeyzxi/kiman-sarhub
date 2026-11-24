@@ -47,7 +47,6 @@ import { useSesiUser } from "@/components/shared/use-session";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { CheckCircle2 as CheckCircleIcon, RefreshCw, AlertTriangle as AlertTri, Loader2 } from "lucide-react";
-import "@/components/shared/berita-acara-print.css";
 import "@/components/shared/dokumen-cetak-print.css";
 
 const unitIcon = {
@@ -558,6 +557,7 @@ export default function DetailChecklistPage() {
         checklist={checklist}
         templateNama={template?.nama}
         unit={unitInfo}
+        penanggungJawab={pjNama ?? undefined}
       />
     </div>
   );
