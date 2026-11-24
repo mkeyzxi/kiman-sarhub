@@ -1,36 +1,523 @@
 /* ==========================================================================
-   DOKUMEN CETAK TAMBAHAN — LAPORAN CHECKLIST & LOGBOOK
+   DOKUMEN CETAK TAMBAHAN — LAPORAN CHECKLIST
    --------------------------------------------------------------------------
-   Melengkapi `berita-acara-print.css`: dokumen checklist dan logbook memakai
-   kelas `ba-` yang sama (lembar A4, kop surat, tabel data, tanda tangan),
-   ditambah beberapa kelas `dc-` berikut (awalan "dokumen cetak").
-
-   Semua satuan memakai mm/pt supaya ukuran fisik di kertas A4 sama dengan
-   dokumen berita acara.
+   Melengkapi gaya template reference "checklist perawatan kendaraan trail"
+   Semua satuan memakai mm/pt supaya ukuran fisik di kertas A4 sama.
    ========================================================================== */
 
-/* ── Tabel informasi label : nilai (tanpa header kolom) ──────────────────── */
-.dc-info-table {
-  width: calc(100% - 1.5mm);
-  margin: 0 0 8mm 2.3mm;
-  border-collapse: collapse;
-  table-layout: fixed;
+/* ── Kontainer dokumen ───────────────────────────────────────────────────── */
+.ba-doc {
+  --basarnas-maroon: #702328;
+  --basarnas-red: #f20d22;
+  --ink: #111111;
+
+  container-type: inline-size;
+  container-name: ba-doc;
+
+  margin: 0;
+  padding: 24px 0;
+  color: var(--ink);
+  background: #f1f3f5;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 11pt;
-  line-height: 1.25;
+  line-height: 1.35;
+  box-sizing: border-box;
 }
 
-.dc-info-table td {
-  border: 1px solid #111;
-  padding: 1.2mm 2mm;
-  vertical-align: middle;
-  overflow-wrap: anywhere;
+/* ── Lembar A4 ───────────────────────────────────────────────────────────── */
+.ba-sheet {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 18px;
+  padding: 12.8mm 22mm 11mm 19mm;
+  background: #fff;
+  box-sizing: border-box;
+  /* Shadow sangat tipis & samar — tidak mencolok. */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
 }
 
-/* Kolom label — lebar tetap agar kolom nilai rata. */
-.dc-info-table .dc-label {
-  width: 34%;
+@media screen {
+  @container ba-doc (max-width: 800px) {
+    .ba-sheet {
+      width: calc(100% - 16px);
+      min-height: auto;
+      padding: 24px 18px;
+      margin-bottom: 12px;
+    }
+  }
+}
+
+/* ── Header dokumental (judul + info kendaraan) ─────────────────────────── */
+.document-header {
+  width: 100%;
+}
+
+.document-header h1 {
+  /* Margin bawah judul dipotong dari 7mm → 4mm. */
+  margin: 0 0 4mm;
+  text-align: center;
+  font-size: 11.5pt;
   font-weight: 700;
+  line-height: 1.2;
 }
 
-/* Tabel "Sebelum / Sesudah" memakai kelas `ba-data-table`; baris ada di
-   <tbody> sehingga tidak butuh aturan tambahan apa pun. */
+.routine-title {
+  /* Margin routine-title dipotong. */
+  margin: 2mm 0 1.5mm;
+  font-size: 10.5pt;
+  font-weight: bold;
+}
+
+/* ── Vehicle info grid ──────────────────────────────────────────────────── */
+.vehicle-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Gap dipotong dari 9mm → 5mm agar dokumen lebih rapi. */
+  gap: 5mm;
+  margin-bottom: 3mm;
+}
+
+.info-column {
+  min-width: 0;
+}
+
+/* Info row: label tetap, tanda dua titik tetap, nilai bisa membungkus. */
+.info-row {
+  display: grid;
+  grid-template-columns: 38mm 4mm 1fr;
+  align-items: start;
+  min-height: 6.3mm;
+  column-gap: 0;
+}
+
+.info-row > span:nth-child(1) {
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-row > span:nth-child(2) {
+  text-align: center;
+}
+
+.info-row > span:nth-child(3) {
+  font-weight: 700;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.info-row strong {
+  font-size: 10.5pt;
+}
+
+.vehicle-type-row {
+  min-height: 6.3mm;
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 0;
+}
+
+.vehicle-type-row strong {
+  font-size: 10.5pt;
+}
+
+.vehicle-value {
+  font-weight: 700;
+  letter-spacing: .1px;
+}
+
+.date-row {
+  align-items: end;
+}
+
+.date-field {
+  display: flex;
+  align-items: end;
+  min-height: 5.2mm;
+  width: 100%;
+  border-bottom: .25mm solid #777;
+  padding: 0 0 .6mm 1mm;
+}
+
+.date-placeholder {
+  color: #777;
+  letter-spacing: .4px;
+  font-size: 8.8pt;
+}
+
+.right-info {
+  .info-row {
+    grid-template-columns: 38mm 4mm 1fr;
+  }
+}
+
+.blank {
+  display: inline-block;
+  min-height: 3mm;
+}
+
+/* ── Inspection grid & tables ───────────────────────────────────────────── */
+/* Grid 2 kolom tabel: kiri + kanan. min-width: 0 agar tidak overflow. */
+.inspection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  align-items: start;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Setiap tabel: table-layout: fixed + width 100% relatif terhadap parent.
+   box-sizing: border-box supaya border tidak menambah lebar.
+   border-collapse: collapse membuat 5 border × 0.3mm = 1.5mm "hilang"
+   di luar box — kompensasi dengan border-spacing: 0 + width: calc. */
+.inspection-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  /* width: 100% minus koreksi 1.2mm (≈ 2 × 0.3mm border vertikal)
+     agar tabel tidak melewati lebar parent. */
+  width: calc(100% - 1.2mm);
+  table-layout: fixed;
+  font-size: 9.2pt;
+  box-sizing: border-box;
+}
+
+/* Border hanya di kiri+atas setiap sel — total kumulatif border vertikal
+   hanya 0.3mm per sisi, bukan 5 × 0.3mm = 1.5mm. */
+.inspection-table th,
+.inspection-table td {
+  border: none;
+  border-left: 0.3mm solid #222;
+  border-top: 0.3mm solid #222;
+  padding: 0.6mm 0.8mm;
+  vertical-align: middle;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Tambahkan border di sisi kanan & bawah tabel (1 border saja, bukan per sel). */
+.inspection-table {
+  border-right: 0.3mm solid #222;
+  border-bottom: 0.3mm solid #222;
+}
+
+.inspection-table td {
+  height: 4.4mm;
+}
+
+.inspection-table th {
+  text-align: center;
+  font-weight: bold;
+  height: 12mm;
+  line-height: 1.2;
+}
+
+.item-head {
+  background: #c9c9c9;
+  width: 48%;
+}
+
+.good-head {
+  background: #65b657;
+  width: 12%;
+}
+
+.bad-head {
+  background: #f1df32;
+  width: 20%;
+}
+
+.note-head {
+  background: #c96b6b;
+  width: 20%;
+}
+
+/* Semua tabel (kiri, kanan, tambahan) memakai lebar kolom yang sama
+   agar garis vertikal sejajar dan tidak terlihat "berbeda ukuran".
+   Distribusi proporsional: item 48% / baik 12% / rusak 20% / ket 20%. */
+.left-table,
+.lights-table,
+.additional-table {
+  .item-head { width: 48%; }
+  .good-head  { width: 12%; }
+  .bad-head   { width: 20%; }
+  .note-head  { width: 20%; }
+}
+
+/* Header tinggi sama untuk semua tabel — compact 12mm. */
+.left-table th,
+.lights-table th,
+.additional-table th {
+  height: 12mm;
+}
+
+/* Baris item tinggi konsisten; isi item boleh membungkus (tidak di-nowrap). */
+.left-table td,
+.lights-table td,
+.additional-table td {
+  font-size: 9pt;
+}
+
+/* Kolom item nama boleh membungkus agar tidak menabrak kolom "Baik". */
+.left-table td:first-child,
+.lights-table td:first-child,
+.additional-table td:first-child {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Kolom "Ket" — lebar 20%, teks boleh membungkus (break-word). */
+.left-table td:nth-child(4),
+.lights-table td:nth-child(4),
+.additional-table td:nth-child(4) {
+  font-size: 8.5pt;
+  text-align: left;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.check {
+  text-align: center;
+  font-size: 13pt;
+  line-height: 1;
+  font-family: Arial, sans-serif;
+}
+
+/* right-tables: min-width: 0 agar grid tidak mendorong konten keluar. */
+.right-tables {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.additional-title {
+  font-size: 10pt;
+  margin: 2mm 0 1mm;
+  font-weight: bold;
+}
+
+/* ── Notes section ──────────────────────────────────────────────────────── */
+.notes-section {
+  margin-top: 4mm;
+}
+
+.notes-label {
+  margin-bottom: 1mm;
+}
+
+/* Catatan dipadatkan dari 24mm → 14mm agar tidak memakan ruang. */
+.notes-box {
+  height: 14mm;
+  border: 0.35mm solid #222;
+}
+
+/* ── Trip table ──────────────────────────────────────────────────────────── */
+.trip-table {
+  width: calc(100% - 0.6mm);
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-right: 0.3mm solid #222;
+  border-bottom: 0.3mm solid #222;
+  table-layout: fixed;
+  margin-top: 3mm;
+  font-size: 9.2pt;
+  box-sizing: border-box;
+}
+
+.trip-table th,
+.trip-table td {
+  border: none;
+  border-left: 0.3mm solid #222;
+  border-top: 0.3mm solid #222;
+  text-align: center;
+  padding: 0.6mm 1mm;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.trip-table th {
+  background: #c9c9c9;
+  /* Header trip dipotong dari 12mm → 8mm. */
+  height: 8mm;
+  font-weight: normal;
+}
+
+.trip-table td {
+  /* Tinggi baris trip dipotong dari 7mm → 5.5mm. */
+  height: 5.5mm;
+}
+
+.trip-table th:nth-child(1) {
+  width: 23%;
+}
+
+.trip-table th:nth-child(2) {
+  width: 20%;
+}
+
+.trip-table th:nth-child(3) {
+  width: 57%;
+}
+
+/* ── Signatures ──────────────────────────────────────────────────────────── */
+.signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Margin atas dipotong dari 8mm → 4mm. */
+  margin-top: 4mm;
+  /* Tinggi blok tanda tangan dipotong dari 35mm → 22mm. */
+  min-height: 22mm;
+}
+
+.signature-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.signature-block.left-sign {
+  align-items: flex-start;
+  text-align: left;
+  padding-left: 8mm;
+}
+
+.signature-block.right-sign {
+  align-items: center;
+}
+
+.signature-title {
+  font-size: 9.4pt;
+}
+
+.signature-space {
+  /* Tinggi ruang tanda tangan dipotong dari 20mm → 12mm. */
+  height: 12mm;
+  width: 100%;
+}
+
+.signature-name {
+  font-size: 9.2pt;
+  font-weight: normal;
+}
+
+/* ── Media queries ──────────────────────────────────────────────────────── */
+@media screen {
+  .sheet {
+    /* Shadow sangat tipis & samar saat di layar. */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    /* Margin tipis 10mm di semua sisi. */
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: white;
+    padding: 0;
+    width: auto;
+    height: auto;
+  }
+
+  /* Kerangka dashboard dibuang saat cetak — hanya dokumen yang tampil. */
+  .app-shell {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .app-shell-content {
+    display: block !important;
+    padding-left: 0 !important;
+  }
+
+  .app-main {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  aside,
+  header.app-header,
+  nav {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Sheet jadi fluid mengikuti area cetak A4 (210mm - 2×10mm = 190mm).
+     width: 100% + padding: 0 memastikan semua konten muat di area cetak.
+     overflow: visible (bukan hidden) supaya border tabel tidak terpotong. */
+  .ba-sheet,
+  .sheet {
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    background: #fff;
+    overflow: visible;
+  }
+
+  /* Tabel: width calc(100% - 1.2mm) agar border vertikal (0.3mm × 2)
+     tetap muat di dalam area cetak tanpa terpotong di kanan. */
+  .inspection-table {
+    width: calc(100% - 1.2mm);
+    box-sizing: border-box;
+  }
+  .trip-table {
+    width: calc(100% - 0.6mm);
+    box-sizing: border-box;
+  }
+
+  /* Grid inspeksi: 2 kolom sama lebar, min-width: 0 mencegah overflow. */
+  .inspection-grid {
+    min-width: 0;
+  }
+
+  /* right-tables: min-width: 0 agar grid tidak mendorong konten keluar. */
+  .right-tables {
+    min-width: 0;
+  }
+
+  /* Setiap td: overflow-wrap break-word — teks panjang membungkus,
+     tidak pernah overflow ke kanan. */
+  .inspection-table td,
+  .trip-table td {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  /* Box-sizing global saat print untuk memastikan border+padding
+     tidak menambah lebar di atas 100%. */
+  .ba-doc * {
+    box-sizing: border-box;
+  }
+
+  /* print-color-adjust: exact agar warna background kolom tabel
+     tercetak persis. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
