@@ -96,6 +96,16 @@ export async function loginWithNip(
     });
 
     if (error) {
+      // Log aktivitas login gagal
+      try {
+        const { insertLog } = await import("@/components/shared/db-writes");
+        const nipClean = normalizeNip(nip);
+        // RLS memblokir INSERT log oleh user anonim, jadi kita gunakan service role atau abaikan
+        // Tapi karena ini di frontend, kita tetap coba. Jika gagal, tidak apa-apa.
+        await insertLog("FAILED_LOGIN", "auth", `Login gagal untuk NIP ${nipClean}`, nipClean);
+      } catch {
+        // ignore
+      }
       return { data: null, error: error.message };
     }
 
@@ -143,6 +153,14 @@ export async function loginWithNip(
       if (aktif === false) {
         await supabase.auth.signOut();
         return { data: null, error: INACTIVE_ACCOUNT_MESSAGE };
+      }
+
+      // Log aktivitas login berhasil
+      try {
+        const { insertLog } = await import("@/components/shared/db-writes");
+        await insertLog("LOGIN", "auth", `Login berhasil`, normalizeNip(nip));
+      } catch {
+        // ignore
       }
 
       return {

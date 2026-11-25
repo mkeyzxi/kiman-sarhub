@@ -95,7 +95,7 @@ function useTanggalDoc(tanggal: string) {
     hari: days[cek.getDay()],
     tanggal: dayStr,
     bulan: [
-      "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
       "Juli", "Agustus", "September", "Oktober", "November", "Desember",
     ][month],
     tahunKata: yearStr,
