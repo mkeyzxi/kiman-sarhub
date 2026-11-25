@@ -45,7 +45,26 @@ function pesan(raw: string): string {
   return raw;
 }
 
-// ─── ASETS ───────────────────────────────────────────────────────────────────
+export async function insertLog(
+  aksi: string,
+  target: string,
+  detail: string,
+  nip?: string
+): Promise<void> {
+  const supa = getSupabaseBrowserClient();
+  // NIP adalah user_id di tabel activity_log (FK ke users.nip)
+  const { error } = await supa.from("activity_log").insert({
+    id: crypto.randomUUID(),
+    user_id: nip || null,
+    aksi,
+    target,
+    detail,
+    tanggal: new Date().toISOString(),
+  } as never);
+  if (error) {
+    console.error("Gagal mencatat log:", error);
+  }
+}
 
 /** INSERT aset baru + entri riwayat penetapan. */
 export async function insertAset(
@@ -88,6 +107,8 @@ export async function insertAset(
   };
   const { error } = await supa.from("asets").insert(row);
   if (error) throw new Error(pesan(error.message));
+
+  await insertLog("INSERT", "asets", `Aset baru: ${input.nama} (${input.kode})`);
 
   await insertRiwayatAset(input.id, {
     tanggal: input.tanggalPenetapan,
@@ -160,6 +181,9 @@ export async function updateAsetRow(
   if (Object.keys(patch).length > 0) {
     const { error } = await supa.from("asets").update(patch).eq("id", id);
     if (error) throw new Error(pesan(error.message));
+    
+    const keysChanged = Object.keys(patch).join(", ");
+    await insertLog("UPDATE", "asets", `Aset ${id} diupdate: ${keysChanged}`, riwayatBaru?.userId);
   }
   if (riwayatBaru) {
     await insertRiwayatAset(id, riwayatBaru);
@@ -201,6 +225,8 @@ export async function hapusAset(id: string, nip: string, keterangan?: string): P
     })
     .eq("id", id);
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("DELETE", "asets", `Aset ${id} dihapus (soft delete)`, nip);
 }
 
 // ─── CHECKLIST ───────────────────────────────────────────────────────────────
@@ -209,7 +235,8 @@ export async function hapusAset(id: string, nip: string, keterangan?: string): P
 export async function serahkanKerusakanAset(
   asetId: string,
   kondisi: "Rusak Ringan" | "Rusak Berat",
-  keterangan: string
+  keterangan: string,
+  nip?: string
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
   const { error } = await supa.rpc("serahkan_kerusakan_aset", {
@@ -218,6 +245,8 @@ export async function serahkanKerusakanAset(
     p_keterangan: keterangan,
   });
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "asets", `Kerusakan aset ${asetId} diserahkan (${kondisi})`, nip);
 }
 
 /**
@@ -227,7 +256,8 @@ export async function serahkanKerusakanAset(
  */
 export async function kembalikanAsetBaik(
   asetId: string,
-  keterangan: string
+  keterangan: string,
+  nip?: string
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
   const { error } = await supa.rpc("kembalikan_aset_baik", {
@@ -235,6 +265,8 @@ export async function kembalikanAsetBaik(
     p_keterangan: keterangan,
   });
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "asets", `Aset ${asetId} dikembalikan ke kondisi Baik`, nip);
 }
 
 /** UPDATE checklist harian (mis. tandai selesai diperiksa). */
@@ -246,7 +278,8 @@ export async function updateChecklistItem(
     itemTotal?: number;
     items?: unknown;
     catatan?: string;
-  }
+  },
+  nip?: string
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
   const body: Partial<Omit<ChecklistHarianRow, "created_at">> = {};
@@ -259,6 +292,8 @@ export async function updateChecklistItem(
   if (Object.keys(body).length === 0) return;
   const { error } = await supa.from("checklist_harian").update(body).eq("id", id);
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "checklist_harian", `Checklist ${id} diperbarui`, nip);
 }
 
 // ─── BERITA ACARA ────────────────────────────────────────────────────────────
@@ -309,6 +344,8 @@ export async function insertBeritaAcara(input: {
   };
   const { error } = await supa.from("berita_acara").insert(row);
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("INSERT", "berita_acara", `Berita Acara baru: ${input.namaAset}`, input.pengajuId);
 }
 
 /** UPDATE status berita acara (Diserahkan / Disetujui / Ditolak dst.). */
@@ -319,6 +356,7 @@ export async function updateBeritaAcaraStatus(
     alasanPenolakan?: string;
     keterangan?: string;
     tiketId?: string;
+    nip?: string;
   } = {}
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
@@ -333,6 +371,8 @@ export async function updateBeritaAcaraStatus(
 
   const { error } = await supa.from("berita_acara").update(patch).eq("id", id);
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "berita_acara", `Berita Acara ${id} status menjadi ${status}`, extra.nip);
 }
 
 /** UPDATE isi berita acara (nomor, uraian, kendala, foto). */
@@ -345,6 +385,7 @@ export async function updateBeritaAcaraIsi(
     fotoBukti?: unknown;
     namaAset?: string;
     kodeAset?: string;
+    nip?: string;
   }
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
@@ -360,6 +401,8 @@ export async function updateBeritaAcaraIsi(
 
   const { error } = await supa.from("berita_acara").update(patch).eq("id", id);
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "berita_acara", `Berita Acara ${id} isinya diperbarui`, isi.nip);
 }
 
 /**
@@ -371,7 +414,8 @@ export async function updateBeritaAcaraIsi(
 export async function putuskanBeritaAcara(
   baId: string,
   setujui: boolean,
-  alasan: string
+  alasan: string,
+  nip?: string
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
   const { error } = await supa.rpc("putuskan_berita_acara", {
@@ -380,6 +424,8 @@ export async function putuskanBeritaAcara(
     p_alasan: alasan,
   });
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "berita_acara", `Berita Acara ${baId} ${setujui ? "disetujui" : "ditolak"}`, nip);
 }
 
 /**
@@ -392,7 +438,8 @@ export async function putuskanBeritaAcara(
 export async function putuskanTiketMaintenance(
   tiketId: string,
   selesai: boolean,
-  keterangan = ""
+  keterangan = "",
+  nip?: string
 ): Promise<void> {
   const supa = getSupabaseBrowserClient();
   const { error } = await supa.rpc("putuskan_tiket_maintenance", {
@@ -401,4 +448,6 @@ export async function putuskanTiketMaintenance(
     p_keterangan: keterangan,
   });
   if (error) throw new Error(pesan(error.message));
+  
+  await insertLog("UPDATE", "ews_tickets", `Tiket maintenance ${tiketId} ${selesai ? "diselesaikan" : "ditolak"}`, nip);
 }

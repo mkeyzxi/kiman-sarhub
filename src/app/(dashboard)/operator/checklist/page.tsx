@@ -311,26 +311,30 @@ export default function ChecklistPerawatanPage() {
   const baCount = baList.length;
   const filteredChecklist = useMemo(() => {
     return checklistHarianList.filter((item) => {
+      const q = debouncedSearch.toLowerCase().trim();
+      
+      // Pencarian: Unit, Nama Pemeriksa, atau Nama Referensi Unit
       const matchSearch =
-        item.unit.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        item.pemeriksa.toLowerCase().includes(debouncedSearch.toLowerCase());
+        q === "" ||
+        item.unit.toLowerCase().includes(q) ||
+        item.pemeriksa.toLowerCase().includes(q) ||
+        (referensiUntuk(item) !== "-" && referensiUntuk(item).toLowerCase().includes(q));
+      
       const matchStatus =
         statusFilter === "Semua" ||
         item.status === statusFilter ||
         (statusFilter === "Perlu Tindakan" && perluTindakan(item));
+      
       const matchJenis =
         jenisFilter === "Semua" || item.jenisUnit === jenisFilter;
+      
       return matchSearch && matchStatus && matchJenis;
     });
-    // `baCount` di-deps sebagai pemicu re-komputasi: setiap kali jumlah
-    // berita acara berubah (hidrasi Supabase / BA baru dibuat), filter
-    // "Perlu Tindakan" menghitung ulang otomatis.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- perluTindakan & hitungRusak & baStatus adalah fungsi stabil (baca module-level, tanpa dep React state)
-  }, [checklistHarianList, debouncedSearch, statusFilter, jenisFilter, baCount]);
+  }, [checklistHarianList, debouncedSearch, statusFilter, jenisFilter, baCount, referensiUntuk, perluTindakan]);
 
-  // Urutkan data checklist: terbaru (desc) atau terlama (asc) berdasarkan tanggal
+  // Urutkan data checklist TERFILTER: terbaru (desc) atau terlama (asc) berdasarkan tanggal
   const sortedChecklist = useMemo(() => {
-    return [...checklistHarianList].sort((a, b) => {
+    return [...filteredChecklist].sort((a, b) => {
       if (sortBy === "tanggal") {
         const aTgl = new Date(a.tanggal).getTime();
         const bTgl = new Date(b.tanggal).getTime();
@@ -341,13 +345,20 @@ export default function ChecklistPerawatanPage() {
       const bUnit = b.unit.toLowerCase();
       return sortDir === "desc" ? bUnit.localeCompare(aUnit) : aUnit.localeCompare(bUnit);
     });
-  }, [checklistHarianList, sortBy, sortDir]);
+  }, [filteredChecklist, sortBy, sortDir]);
 
   // Pagination - HARUS dipanggil sebelum conditional return
+  // Menggunakan jumlah item TERFILTER agar pagination selalu sinkron dengan hasil filter
   const pagination = usePagination(sortedChecklist.length, 20);
   const paginatedChecklist = useMemo(() => {
     return sortedChecklist.slice(pagination.startIndex, pagination.endIndex);
   }, [sortedChecklist, pagination.startIndex, pagination.endIndex]);
+
+  // Jika filter berubah, reset ke halaman pertama agar hasil langsung terlihat
+  useEffect(() => {
+    pagination.goToPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, statusFilter, jenisFilter]);
 
   /**
    * Draft milik user yang sedang login — dihitung langsung saat render

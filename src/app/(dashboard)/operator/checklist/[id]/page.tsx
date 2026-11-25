@@ -177,6 +177,7 @@ export default function DetailChecklistPage() {
         namaReferensi: aset.namaReferensi,
         kode: aset.kode,
         nup: aset.nup,
+        noPolisi: aset.noPolisi,
         merk: aset.merk,
         tipe: aset.tipe,
         lokasi: aset.lokasi,
@@ -193,8 +194,24 @@ export default function DetailChecklistPage() {
         unitInfo.penanggungJawab
       : null;
 
+  /**
+   * Format tanggal dengan hari nol ("09 Oktober 2026") — konsisten dengan
+   * dokumen cetak (useTanggalDoc di dokumen-checklist.tsx).
+   * Parsing manual agar tidak bergantung timezone browser.
+   */
+  const formatTanggalDokumen = (iso: string) => {
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return iso;
+    const [ , y, mo, d] = m;
+    const bulan = [
+      "","Januari","Februari","Maret","April","Mei","Juni",
+      "Juli","Agustus","September","Oktober","November","Desember",
+    ];
+    return `${d} ${bulan[Number(mo)] ?? ""} ${y}`;
+  };
+
   const info = [
-    { icon: Calendar, label: "Tanggal", value: formatTanggal(checklist.tanggal) },
+    { icon: Calendar, label: "Tanggal", value: formatTanggalDokumen(checklist.tanggal) },
     { icon: User, label: "Pemeriksa", value: checklist.pemeriksa },
     { icon: Tag, label: "Nama Referensi", value: unitInfo?.namaReferensi || "-" },
     {

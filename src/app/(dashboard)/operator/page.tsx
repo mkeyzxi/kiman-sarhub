@@ -904,7 +904,7 @@ function KartuLogbookKapal({
               },
               {
                 key: "nahkoda",
-                header: "Nahkoda",
+                header: "Pengguna",
                 render: (item) => item.nahkoda,
                 cellClassName: "text-slate-700",
               },

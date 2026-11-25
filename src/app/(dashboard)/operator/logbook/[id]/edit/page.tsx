@@ -83,7 +83,7 @@ function validasiFormEdit(
   if (!form.tujuan.trim()) e.tujuan = "Tujuan kegiatan wajib diisi.";
   if (!form.kategoriUnit) e.kategoriUnit = "Kategori unit wajib dipilih.";
   if (!form.jenisUnit) e.jenisUnit = "Jenis unit wajib dipilih.";
-  if (!form.nahkoda.trim()) e.nahkoda = "Operator wajib diisi.";
+  if (!form.nahkoda.trim()) e.nahkoda = "Pengguna wajib diisi.";
   if (!form.jumlahPersonel.trim() || Number(form.jumlahPersonel) < 1) {
     e.jumlahPersonel = "Jumlah personel minimal 1.";
   }
@@ -527,7 +527,7 @@ export default function EditLogbookPage() {
               />
             </Field>
             <Field
-              label={laut ? "Nahkoda" : "Operator / Pengemudi"}
+              label="Pengguna"
               htmlFor="nahkoda"
               error={errors.nahkoda}
             >

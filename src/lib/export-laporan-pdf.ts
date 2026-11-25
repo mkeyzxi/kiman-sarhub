@@ -344,7 +344,7 @@ export function eksporLaporanPDF(data: DataLaporan): void {
           "Tujuan",
           "Jenis Unit",
           "Kategori",
-          "Nahkoda",
+          "Pengguna",
           "Personel",
           "BBM Seblm",
           "BBM Sesd",

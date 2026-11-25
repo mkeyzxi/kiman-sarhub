@@ -21,7 +21,7 @@ import { Input, Select, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  users,
+  users as usersMock,
   cariAsetDmUnit,
   cariAsetDariJenisUnit,
   labelModelAset,
@@ -30,6 +30,7 @@ import {
   type FormLogbook,
   type LogbookPerjalanan,
   type Aset,
+  type User,
 } from "@/components/shared/mock-data";
 import { simpanTahapAwal } from "@/components/shared/logbook-store";
 import {
@@ -70,10 +71,8 @@ function isArmadaLaut(kategori: FormLogbook["kategoriUnit"]): boolean {
 
 /**
  * Label operator unit tergantung kategori */
-function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
-  if (isArmadaLaut(kategori)) return "Nahkoda";
-  if (kategori === "Motor") return "Pengemudi";
-  return "Pengemudi / Driver";
+function getOperatorLabel() {
+  return "Pengguna";
 }
 
 /** Daftar unit berdasarkan kategori, diambil dari master aset real. */
@@ -200,24 +199,58 @@ export default function TambahLogbookPage() {
     {}
   );
   const [errorUmum, setErrorUmum] = useState<string | null>(null);
-  const defaultNahkodaSet = useRef(false);
   const qrScanProcessed = useRef<string | null>(null);
 
-  // ─── SET DEFAULT NAHKODA KE USER LOGIN ────────────────────────────────────
+  /**
+   * Daftar pengguna untuk opsi Select "Pengguna".
+   * Gabungan user mock (diimport dari mock-data) + user login, sehingga
+   * nilai default pengguna selalu tersedia di list opsi — Select bisa
+   * menampilkan pilihan yang terpilih, bukan placeholder.
+   */
+  const users = useMemo(() => {
+    if (!ses.id) return usersMock;
+    const sudahAda = usersMock.some(
+      (u) => u.nip === ses.id || u.nama === ses.nama
+    );
+    if (sudahAda) return usersMock;
+    return [
+      {
+        id: "usr-login",
+        nama: ses.nama,
+        nip: ses.id,
+        role: ses.role,
+        email: "",
+        noTelepon: "",
+        avatar: "",
+        aktif: true,
+      },
+      ...usersMock,
+    ];
+  }, [ses.id, ses.nama, ses.role]);
+
+  // ─── SET DEFAULT PENGUNA KE USER LOGIN ────────────────────────────────────
+  /**
+   * Nama default "Pengguna" dari user login. Dipakai sebagai value Select
+   * agar selalu ada di list opsi (garansi oleh `users` di atas).
+   */
+  const namaDefaultPengguna = useMemo(() => {
+    if (!ses.nama) return "";
+    const diDaftar = users.find((u) => u.nip === ses.id || u.nama === ses.nama);
+    return diDaftar?.nama ?? ses.nama;
+  }, [users, ses.id, ses.nama]);
+
   useEffect(() => {
-    if (ses.nama && !defaultNahkodaSet.current) {
-      // Schedule update untuk menghindari synchronous setState
-      queueMicrotask(() => {
-        setFormData((prev) => {
-          if (!prev.nahkoda && !defaultNahkodaSet.current) {
-            defaultNahkodaSet.current = true;
-            return { ...prev, nahkoda: ses.nama };
-          }
-          return prev;
-        });
+    if (!namaDefaultPengguna) return;
+    const t = setTimeout(() => {
+      setFormData((prev) => {
+        if (!prev.nahkoda) {
+          return { ...prev, nahkoda: namaDefaultPengguna };
+        }
+        return prev;
       });
-    }
-  }, [ses.nama]);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [namaDefaultPengguna]);
 
   // ─── AUTO-FILL DARI QR CODE SCAN ──────────────────────────────────────────
   const paramUnit = searchParams.get("unit");
@@ -688,7 +721,7 @@ export default function TambahLogbookPage() {
             </Field>
 
             <Field
-              label={getOperatorLabel(formData.kategoriUnit)}
+              label={getOperatorLabel()}
               htmlFor="operator"
               error={errors.nahkoda}
             >
@@ -698,7 +731,7 @@ export default function TambahLogbookPage() {
                 onChange={(e) => setField("nahkoda", e.target.value)}
               >
                 <option value="" >
-                  Pilih {getOperatorLabel(formData.kategoriUnit).toLowerCase()}
+                  Pilih {getOperatorLabel().toLowerCase()}
                 </option>
                 {users
                   .filter((u) => u.aktif)

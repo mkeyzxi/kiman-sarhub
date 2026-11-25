@@ -3964,7 +3964,7 @@ export function validasiTahapAwal(form: FormLogbook): LogbookErrors {
   if (!form.tujuan.trim()) e.tujuan = "Tujuan kegiatan wajib diisi.";
   if (!form.kategoriUnit) e.kategoriUnit = "Kategori unit wajib dipilih.";
   if (!form.jenisUnit) e.jenisUnit = "Jenis unit wajib dipilih.";
-  if (!form.nahkoda.trim()) e.nahkoda = "Operator wajib diisi.";
+  if (!form.nahkoda.trim()) e.nahkoda = "Pengguna wajib diisi.";
 
   if (!cekAngka(form.jumlahPersonel) || Number(form.jumlahPersonel) < 1) {
     e.jumlahPersonel = "Jumlah personel minimal 1.";

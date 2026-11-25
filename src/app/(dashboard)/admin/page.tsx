@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatTanggal } from "@/components/shared/mock-data";
-import { useSupabaseUsers } from "@/components/shared/use-supabase-data";
+import { useSupabaseUsers, useActivityLog } from "@/components/shared/use-supabase-data";
 import { DataLoading, DataError } from "@/components/shared/data-state";
 import { cn } from "@/lib/utils";
 
@@ -63,66 +63,6 @@ const pengaturanSistem = [
   },
 ];
 
-// ─── Data untuk halaman log sistem ───────────────────────────────────────────
-const logSistem = [
-  {
-    id: "sys-01",
-    tanggal: "2026-09-28T18:00:00",
-    level: "INFO",
-    pesan: "Backup database berhasil dilakukan",
-    user: "system",
-  },
-  {
-    id: "sys-02",
-    tanggal: "2026-09-28T17:30:00",
-    level: "WARNING",
-    pesan: "Percobaan login gagal 3x untuk user: unknown@basarnas.go.id",
-    user: "system",
-  },
-  {
-    id: "sys-03",
-    tanggal: "2026-09-28T17:00:00",
-    level: "INFO",
-    pesan: "Export data aset oleh Rizky Pratama",
-    user: "usr-004",
-  },
-  {
-    id: "sys-04",
-    tanggal: "2026-09-28T16:45:00",
-    level: "INFO",
-    pesan: "Update firmware drone DJI Mavic 3 Classic",
-    user: "usr-004",
-  },
-  {
-    id: "sys-05",
-    tanggal: "2026-09-28T16:30:00",
-    level: "INFO",
-    pesan: "Verifikasi ditolak untuk pengajuan Thermal Imaging Camera",
-    user: "usr-002",
-  },
-  {
-    id: "sys-06",
-    tanggal: "2026-09-28T16:00:00",
-    level: "INFO",
-    pesan: "Update checklist kesiapan peralatan medis",
-    user: "usr-007",
-  },
-  {
-    id: "sys-07",
-    tanggal: "2026-09-28T15:30:00",
-    level: "WARNING",
-    pesan: "Penggunaan API melebihi 80% quota harian",
-    user: "system",
-  },
-  {
-    id: "sys-08",
-    tanggal: "2026-09-28T15:00:00",
-    level: "INFO",
-    pesan: "Arsip kamera DSLR Canon EOS 90D untuk maintenance lensa",
-    user: "usr-003",
-  },
-];
-
 // ─── Komponen ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
   label: string;
@@ -150,10 +90,22 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor, subText }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  // Pengguna dari Supabase; pengaturan sistem & log tetap konfigurasi lokal.
+  // Pengguna & Log dari Supabase; pengaturan sistem tetap konfigurasi lokal.
   const { data: users, loading, error, refetch } = useSupabaseUsers();
+  const { data: logs, loading: loadingLogs } = useActivityLog();
+  
   const activeUsers = users.filter((u) => u.aktif).length;
   const totalUsers = users.length;
+  
+  /**
+   * Helper untuk mengambil nama user dari ID/NIP berdasarkan user_id di log
+   */
+  const findUsername = (nip?: string) => {
+    if (!nip) return "Sistem";
+    // Cari di list users berdasarkan nip
+    const found = users.find((u) => u.nip === nip);
+    return found?.nama || nip;
+  }
 
   if (loading) {
     return <DataLoading label="Memuat statistik pengguna…" />;
@@ -259,25 +211,40 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
-              Log Sistem Terbaru
+              Log Aktivitas Terbaru
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {logSistem.slice(0, 6).map((log) => (
-                <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full mt-2 shrink-0",
-                    log.level === "WARNING" ? "bg-amber-500" : log.level === "ERROR" ? "bg-rose-500" : "bg-blue-500"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-700">{log.pesan}</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {formatTanggal(log.tanggal)} • {log.user}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              {loadingLogs ? (
+                <p className="text-sm text-slate-400 italic">Memuat log aktivitas...</p>
+              ) : (
+                logs && logs.length > 0 ? logs.slice(0, 6).map((log) => {
+                  return (
+                    <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full mt-2 shrink-0",
+                        log.aksi === "DELETE" ? "bg-rose-500" : 
+                        log.aksi === "UPDATE" ? "bg-amber-500" : 
+                        "bg-blue-500"
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-700 font-medium">
+                          {log.aksi} pada {log.target}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                          {log.detail}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {formatTanggal(log.tanggal)} • {findUsername(log.userId)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <p className="text-sm text-slate-400 italic">Belum ada aktivitas tercatat.</p>
+                )
+              )}
             </div>
           </CardContent>
         </Card>

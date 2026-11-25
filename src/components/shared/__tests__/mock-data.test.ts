@@ -160,7 +160,7 @@ describe("Validasi Tahap Awal (jam keberangkatan & data berangkat)", () => {
     const form = formValid();
     form.nahkoda = "";
     const errors = validasiTahapAwal(form);
-    expect(errors.nahkoda).toBe("Operator wajib diisi.");
+    expect(errors.nahkoda).toBe("Pengguna wajib diisi.");
   });
 
   it("jumlahPersonel < 1 → error", () => {
