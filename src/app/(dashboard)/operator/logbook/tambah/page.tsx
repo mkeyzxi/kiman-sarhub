@@ -70,10 +70,8 @@ function isArmadaLaut(kategori: FormLogbook["kategoriUnit"]): boolean {
 
 /**
  * Label operator unit tergantung kategori */
-function getOperatorLabel(kategori: FormLogbook["kategoriUnit"]) {
-  if (isArmadaLaut(kategori)) return "Nahkoda";
-  if (kategori === "Motor") return "Pengemudi";
-  return "Pengemudi / Driver";
+function getOperatorLabel() {
+  return "Pengguna";
 }
 
 /** Daftar unit berdasarkan kategori, diambil dari master aset real. */
@@ -688,7 +686,7 @@ export default function TambahLogbookPage() {
             </Field>
 
             <Field
-              label={getOperatorLabel(formData.kategoriUnit)}
+              label={getOperatorLabel()}
               htmlFor="operator"
               error={errors.nahkoda}
             >
@@ -698,7 +696,7 @@ export default function TambahLogbookPage() {
                 onChange={(e) => setField("nahkoda", e.target.value)}
               >
                 <option value="" >
-                  Pilih {getOperatorLabel(formData.kategoriUnit).toLowerCase()}
+                  Pilih {getOperatorLabel().toLowerCase()}
                 </option>
                 {users
                   .filter((u) => u.aktif)

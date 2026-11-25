@@ -363,7 +363,7 @@ export default function LogbookPerjalananPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
-              placeholder="Cari rute, tujuan, atau nahkoda..."
+              placeholder="Cari rute, tujuan, atau pengguna..."
               className="pl-7"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -448,7 +448,7 @@ export default function LogbookPerjalananPage() {
             },
             {
               key: "nahkoda",
-              header: "Nahkoda",
+              header: "Pengguna",
               render: (row) => row.nahkoda,
               cellClassName: "text-slate-700",
             },
@@ -744,7 +744,7 @@ export default function LogbookPerjalananPage() {
                 </span>
               </div>
               <div className="sm:flex sm-items-center sm-justify-between">
-                <span className="sm:text-slate-500">Nahkoda</span>
+                <span className="sm:text-slate-500">Pengguna</span>
                 <span className="sm.font-medium text-slate-800">
                   {hapusTarget.nahkoda}
                 </span>

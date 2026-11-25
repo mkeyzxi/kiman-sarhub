@@ -177,6 +177,7 @@ export default function DetailChecklistPage() {
         namaReferensi: aset.namaReferensi,
         kode: aset.kode,
         nup: aset.nup,
+        noPolisi: aset.noPolisi,
         merk: aset.merk,
         tipe: aset.tipe,
         lokasi: aset.lokasi,

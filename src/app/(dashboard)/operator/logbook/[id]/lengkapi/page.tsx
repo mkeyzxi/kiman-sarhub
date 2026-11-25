@@ -271,7 +271,7 @@ export default function LengkapiLogbookPage() {
             />
             <Ringkas label="Unit" value={logbook.jenisUnit} />
             <Ringkas
-              label={laut ? "Nahkoda" : "Pengemudi"}
+              label="Pengguna"
               value={logbook.nahkoda}
             />
             <Ringkas

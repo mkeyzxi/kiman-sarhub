@@ -133,7 +133,7 @@ export function DokumenLogbook({ log, unit }: DokumenLogbookProps) {
               <BarisInfo label="Rute" nilai={log.rute} />
               <BarisInfo label="Tujuan" nilai={log.tujuan} />
               <BarisInfo
-                label={laut ? "Nahkoda" : "Pengemudi"}
+                label="Pengguna"
                 nilai={log.nahkoda}
               />
               <BarisInfo
@@ -235,7 +235,7 @@ export function DokumenLogbook({ log, unit }: DokumenLogbookProps) {
             <div className="ba-signature-box">
               <p>Dibuat oleh,</p>
               <p className="ba-signature-role">
-                {laut ? "Nahkoda" : "Pengemudi"}
+                Pengguna
               </p>
               <div className="ba-signature-space" aria-hidden="true" />
               <p className="ba-signature-name">{log.nahkoda}</p>

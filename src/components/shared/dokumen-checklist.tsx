@@ -24,6 +24,7 @@ export interface InfoUnitDokumen {
   namaReferensi?: string;
   kode?: string;
   nup?: string;
+  noPolisi?: string;
   merk?: string;
   tipe?: string;
   lokasi?: string;
@@ -60,7 +61,8 @@ function BarisInfo({
 
 /**
  * Format tanggal dalam hari/tanggal/bulan/tahun.
- * Dipakai dari mock-data agar konsisten dengan berita acara.
+ * Parsing manual dari string YYYY-MM-DD agar tidak bergantung pada
+ * interpretasi timezone browser (yang bisa menggeser tanggal mundur/maju).
  */
 function useTanggalDoc(tanggal: string) {
   const tanggalTeks = {
@@ -69,18 +71,34 @@ function useTanggalDoc(tanggal: string) {
     bulan: "Mei",
     tahunKata: "2024",
   };
-  // Parsing sederhana dari format tanggal checklist
-  const dateObj = new Date(tanggal);
-  if (!dateObj) return tanggalTeks;
+
+  const match = tanggal.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return tanggalTeks;
+
+  const [, yearStr, monthStr, dayStr] = match;
+  const year = Number(yearStr);
+  const month = Number(monthStr) - 1;
+  const day = Number(dayStr);
+
+  // Validasi agar nilai sesuai setelah dikemas ulang ke Date
+  const cek = new Date(year, month, day);
+  if (
+    cek.getFullYear() !== year ||
+    cek.getMonth() !== month ||
+    cek.getDate() !== day
+  ) {
+    return tanggalTeks;
+  }
+
   const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
   return {
-    hari: days[dateObj.getDay()],
-    tanggal: String(dateObj.getDate()).padStart(2, "0"),
+    hari: days[cek.getDay()],
+    tanggal: dayStr,
     bulan: [
       "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
       "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-    ][dateObj.getMonth()],
-    tahunKata: dateObj.getFullYear().toString(),
+    ][month],
+    tahunKata: yearStr,
   };
 }
 
@@ -168,7 +186,7 @@ export function DokumenChecklist({
               <div className="info-row">
                 <span><strong>Nomor Polisi</strong></span>
                 <span>:</span>
-                <span>{unit?.kode || "-"}</span>
+                <span>{unit?.noPolisi || "-"}</span>
               </div>
               <div className="info-row">
                 <span>Tahun Pengadaan</span>

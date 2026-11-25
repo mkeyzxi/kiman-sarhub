@@ -177,7 +177,7 @@ export default function DetailLogbookPage() {
     { icon: Clock, label: "Jam Kembali", value: log.jamKembali || "-" },
     { icon: Route, label: "Durasi", value: durasi },
     { icon: Ship, label: "Jenis Unit", value: log.jenisUnit },
-    { icon: Users, label: laut ? "Nahkoda" : "Pengemudi", value: log.nahkoda },
+    { icon: Users, label: "Pengguna", value: log.nahkoda },
     {
       icon: Users,
       label: "Jumlah Personel",
